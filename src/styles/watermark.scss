@@ -1,0 +1,158 @@
+/* Global Background Watermark Styles - Test Version */
+
+.app-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: -1;
+  overflow: hidden;
+  background: linear-gradient(45deg, #f0f8ff 0%, #e6f3ff 50%, #d0e8ff 100%);
+}
+
+.watermark-pattern {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.6;
+  background-image: 
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Ctext x='40' y='50' font-family='Arial' font-size='30' text-anchor='middle' fill='%23333'%3E🔧%3C/text%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Ctext x='40' y='50' font-family='Arial' font-size='30' text-anchor='middle' fill='%23666'%3E�%3C/text%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Ctext x='40' y='50' font-family='Arial' font-size='30' text-anchor='middle' fill='%23555'%3E⚙️%3C/text%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Ctext x='40' y='50' font-family='Arial' font-size='30' text-anchor='middle' fill='%23777'%3E�%3C/text%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Ctext x='40' y='50' font-family='Arial' font-size='30' text-anchor='middle' fill='%23999'%3E🔩%3C/text%3E%3C/svg%3E");
+  
+  background-size: 120px 120px, 150px 150px, 130px 130px, 140px 140px, 110px 110px;
+  background-position: 
+    100px 50px,
+    300px 150px,
+    50px 250px,
+    250px 300px,
+    150px 400px;
+  background-repeat: repeat;
+  animation: drift 30s linear infinite;
+}
+
+@keyframes drift {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  25% {
+    transform: translate(-50px, -25px) rotate(0.5deg);
+  }
+  50% {
+    transform: translate(-25px, -50px) rotate(0deg);
+  }
+  75% {
+    transform: translate(-75px, -25px) rotate(-0.5deg);
+  }
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+}
+
+/* Enhanced pattern for larger screens */
+@media (min-width: 1200px) {
+  .watermark-pattern {
+    opacity: 0.05;
+    background-size: 
+      220px 140px,
+      160px 160px,
+      240px 240px,
+      180px 180px,
+      260px 200px,
+      140px 200px,
+      120px 280px;
+  }
+}
+
+/* Reduced pattern for mobile */
+@media (max-width: 768px) {
+  .watermark-pattern {
+    opacity: 0.025;
+    background-size: 
+      120px 80px,
+      100px 100px,
+      140px 140px,
+      110px 110px,
+      150px 120px,
+      80px 120px,
+      70px 160px;
+  }
+}
+
+/* Content page watermark (slightly more visible) */
+.content-watermark .watermark-pattern {
+  opacity: 0.06;
+  animation: drift 100s linear infinite;
+}
+
+/* Dashboard specific styling */
+.dashboard-content {
+  position: relative;
+  z-index: 1;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(1px);
+  border-radius: 8px;
+  margin: 20px;
+  padding: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+/* Body background gradient */
+body {
+  background: linear-gradient(135deg, 
+    #f0f2f5 0%, 
+    #e4e6ea 25%, 
+    #d3d6db 50%, 
+    #e4e6ea 75%, 
+    #f0f2f5 100%
+  );
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+/* Add subtle texture overlay */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    radial-gradient(circle at 20% 30%, rgba(52, 152, 219, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(231, 76, 60, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 50% 90%, rgba(46, 204, 113, 0.05) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: -2;
+}
+
+/* Automotive theme colors for special areas */
+.automotive-accent {
+  background: linear-gradient(45deg, 
+    #1a1a2e 0%, 
+    #16213e 25%, 
+    #0f0f23 50%, 
+    #16213e 75%, 
+    #1a1a2e 100%
+  );
+}
+
+/* Optional: Add some depth with shadows */
+.watermark-depth::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 30% 20%, rgba(52, 152, 219, 0.1) 0%, transparent 70%),
+              radial-gradient(circle at 70% 80%, rgba(231, 76, 60, 0.1) 0%, transparent 70%),
+              radial-gradient(circle at 50% 50%, rgba(46, 204, 113, 0.1) 0%, transparent 70%);
+  pointer-events: none;
+}
