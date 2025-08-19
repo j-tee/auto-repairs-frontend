@@ -1,14 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Table, Button, Badge, Alert, Spinner } from 'react-bootstrap';
-import { useAuth } from '../hooks/useAuth';
-import type { Vehicle, Customer } from '../types/entities';
-import { apiGet } from '../utils/api';
-import { AddVehicleModal, AddCustomerModal, AddVehicleProblemModal } from '../components/modals';
-import { formatVIN, formatPhoneNumber } from '../utils/validation';
+import React, { useState, useEffect } from "react";
+import {
+  Container,
+  Row,
+  Col,
+  Card,
+  Table,
+  Button,
+  Badge,
+  Alert,
+  Spinner,
+} from "react-bootstrap";
+import { useAuth } from "../hooks/useAuth";
+import type { Vehicle, Customer } from "../types/entities";
+import { apiGet } from "../utils/api";
+import {
+  AddVehicleModal,
+  AddCustomerModal,
+  AddVehicleProblemModal,
+} from "../components/modals";
+import { formatVIN, formatPhoneNumber } from "../utils/validation";
 
 export const VehicleManagement: React.FC = () => {
   const { user } = useAuth();
-  const [vehicles, setVehicles] = useState<(Vehicle & { customer_name: string })[]>([]);
+  const [vehicles, setVehicles] = useState<
+    (Vehicle & { customer_name: string })[]
+  >([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -18,7 +34,9 @@ export const VehicleManagement: React.FC = () => {
   const [showVehicleModal, setShowVehicleModal] = useState(false);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [showProblemModal, setShowProblemModal] = useState(false);
-  const [selectedVehicleId, setSelectedVehicleId] = useState<number | undefined>();
+  const [selectedVehicleId, setSelectedVehicleId] = useState<
+    number | undefined
+  >();
 
   useEffect(() => {
     loadData();
@@ -28,24 +46,26 @@ export const VehicleManagement: React.FC = () => {
     setLoading(true);
     try {
       const [vehiclesResponse, customersResponse] = await Promise.all([
-        apiGet<Vehicle[]>('/vehicles/'),
-        apiGet<Customer[]>('/customers/')
+        apiGet<Vehicle[]>("/vehicles/"),
+        apiGet<Customer[]>("/customers/"),
       ]);
 
       setCustomers(customersResponse);
-      
+
       // Combine vehicle data with customer names
-      const vehiclesWithCustomers = vehiclesResponse.map(vehicle => {
-        const customer = customersResponse.find(c => c.id === vehicle.customer);
+      const vehiclesWithCustomers = vehiclesResponse.map((vehicle) => {
+        const customer = customersResponse.find(
+          (c) => c.id === vehicle.customer
+        );
         return {
           ...vehicle,
-          customer_name: customer?.name || 'Unknown Customer'
+          customer_name: customer?.name || "Unknown Customer",
         };
       });
 
       setVehicles(vehiclesWithCustomers);
     } catch (err) {
-      setError('Failed to load data');
+      setError("Failed to load data");
     } finally {
       setLoading(false);
     }
@@ -62,7 +82,9 @@ export const VehicleManagement: React.FC = () => {
     setShowProblemModal(true);
   };
 
-  const getVehicleDisplayName = (vehicle: Vehicle & { customer_name: string }) => {
+  const getVehicleDisplayName = (
+    vehicle: Vehicle & { customer_name: string }
+  ) => {
     return `${vehicle.year} ${vehicle.make} ${vehicle.model}`;
   };
 
@@ -80,7 +102,11 @@ export const VehicleManagement: React.FC = () => {
   return (
     <Container fluid className="py-4">
       {successMessage && (
-        <Alert variant="success" dismissible onClose={() => setSuccessMessage(null)}>
+        <Alert
+          variant="success"
+          dismissible
+          onClose={() => setSuccessMessage(null)}
+        >
           {successMessage}
         </Alert>
       )}
@@ -96,15 +122,15 @@ export const VehicleManagement: React.FC = () => {
           <div className="d-flex justify-content-between align-items-center">
             <h1 className="mb-0">🚗 Vehicle Management</h1>
             <div className="d-flex gap-2">
-              <Button 
-                variant="success" 
+              <Button
+                variant="success"
                 onClick={() => setShowCustomerModal(true)}
                 className="d-flex align-items-center gap-2"
               >
                 👤 Add Customer
               </Button>
-              <Button 
-                variant="primary" 
+              <Button
+                variant="primary"
                 onClick={() => setShowVehicleModal(true)}
                 className="d-flex align-items-center gap-2"
               >
@@ -137,8 +163,11 @@ export const VehicleManagement: React.FC = () => {
           <Card className="text-center">
             <Card.Body>
               <h2 className="text-info">
-                {customers.reduce((acc, customer) => 
-                  acc + vehicles.filter(v => v.customer === customer.id).length, 0
+                {customers.reduce(
+                  (acc, customer) =>
+                    acc +
+                    vehicles.filter((v) => v.customer === customer.id).length,
+                  0
                 )}
               </h2>
               <p className="mb-0">Avg Vehicles/Customer</p>
@@ -158,9 +187,11 @@ export const VehicleManagement: React.FC = () => {
               {vehicles.length === 0 ? (
                 <div className="text-center py-5">
                   <h5>No vehicles registered yet</h5>
-                  <p className="text-muted">Start by adding your first vehicle!</p>
-                  <Button 
-                    variant="primary" 
+                  <p className="text-muted">
+                    Start by adding your first vehicle!
+                  </p>
+                  <Button
+                    variant="primary"
                     onClick={() => setShowVehicleModal(true)}
                   >
                     Add First Vehicle
@@ -186,9 +217,13 @@ export const VehicleManagement: React.FC = () => {
                             <strong>{vehicle.customer_name}</strong>
                             <br />
                             <small className="text-muted">
-                              {customers.find(c => c.id === vehicle.customer)?.phone_number && 
-                                formatPhoneNumber(customers.find(c => c.id === vehicle.customer)!.phone_number)
-                              }
+                              {customers.find((c) => c.id === vehicle.customer)
+                                ?.phone_number &&
+                                formatPhoneNumber(
+                                  customers.find(
+                                    (c) => c.id === vehicle.customer
+                                  )!.phone_number
+                                )}
                             </small>
                           </div>
                         </td>
@@ -200,7 +235,7 @@ export const VehicleManagement: React.FC = () => {
                           </div>
                         </td>
                         <td>
-                          <code style={{ fontSize: '0.85em' }}>
+                          <code style={{ fontSize: "0.85em" }}>
                             {formatVIN(vehicle.vin)}
                           </code>
                         </td>
@@ -213,10 +248,20 @@ export const VehicleManagement: React.FC = () => {
                         </td>
                         <td>
                           {vehicle.color ? (
-                            <span className="badge" style={{ 
-                              backgroundColor: vehicle.color.toLowerCase(),
-                              color: ['white', 'yellow', 'silver', 'gray'].includes(vehicle.color.toLowerCase()) ? 'black' : 'white'
-                            }}>
+                            <span
+                              className="badge"
+                              style={{
+                                backgroundColor: vehicle.color.toLowerCase(),
+                                color: [
+                                  "white",
+                                  "yellow",
+                                  "silver",
+                                  "gray",
+                                ].includes(vehicle.color.toLowerCase())
+                                  ? "black"
+                                  : "white",
+                              }}
+                            >
                               {vehicle.color}
                             </span>
                           ) : (
@@ -260,12 +305,12 @@ export const VehicleManagement: React.FC = () => {
       </Row>
 
       {/* Role-based information */}
-      {user?.role === 'customer' && (
+      {user?.role === "customer" && (
         <Row className="mt-4">
           <Col>
             <Alert variant="info">
-              <strong>Customer Portal:</strong> You can view your vehicles and report problems. 
-              Contact us to schedule service appointments.
+              <strong>Customer Portal:</strong> You can view your vehicles and
+              report problems. Contact us to schedule service appointments.
             </Alert>
           </Col>
         </Row>
@@ -275,13 +320,13 @@ export const VehicleManagement: React.FC = () => {
       <AddCustomerModal
         show={showCustomerModal}
         onHide={() => setShowCustomerModal(false)}
-        onSuccess={(data) => handleSuccess('Customer', data)}
+        onSuccess={(data) => handleSuccess("Customer", data)}
       />
 
       <AddVehicleModal
         show={showVehicleModal}
         onHide={() => setShowVehicleModal(false)}
-        onSuccess={(data) => handleSuccess('Vehicle', data)}
+        onSuccess={(data) => handleSuccess("Vehicle", data)}
       />
 
       <AddVehicleProblemModal
@@ -290,7 +335,7 @@ export const VehicleManagement: React.FC = () => {
           setShowProblemModal(false);
           setSelectedVehicleId(undefined);
         }}
-        onSuccess={(data) => handleSuccess('Problem Report', data)}
+        onSuccess={(data) => handleSuccess("Problem Report", data)}
         vehicleId={selectedVehicleId}
       />
     </Container>

@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Modal, Button, Form, Alert, InputGroup } from 'react-bootstrap';
-import type { PartFormData, Shop } from '../../types/entities';
-import { apiPost, apiGet } from '../../utils/api';
+import React, { useState, useEffect } from "react";
+import { Modal, Button, Form, Alert, InputGroup } from "react-bootstrap";
+import type { PartFormData, Shop } from "../../types/entities";
+import { apiPost, apiGet } from "../../utils/api";
 
 interface AddPartModalProps {
   show: boolean;
@@ -18,11 +18,11 @@ export const AddPartModal: React.FC<AddPartModalProps> = ({
 }) => {
   const [formData, setFormData] = useState<PartFormData>({
     shop: shopId || 0,
-    name: '',
-    category: 'new',
-    part_number: '',
-    description: '',
-    manufacturer: '',
+    name: "",
+    category: "new",
+    part_number: "",
+    description: "",
+    manufacturer: "",
     unit_price: 0,
     taxable: true,
     warranty_months: 0,
@@ -41,39 +41,46 @@ export const AddPartModal: React.FC<AddPartModalProps> = ({
 
   useEffect(() => {
     if (shopId) {
-      setFormData(prev => ({ ...prev, shop: shopId }));
+      setFormData((prev) => ({ ...prev, shop: shopId }));
     }
   }, [shopId]);
 
   const loadShops = async () => {
     setLoadingShops(true);
     try {
-      const response = await apiGet<Shop[]>('/shops/');
+      const response = await apiGet<Shop[]>("/shops/");
       setShops(response);
     } catch (err) {
-      setError('Failed to load shops');
+      setError("Failed to load shops");
     } finally {
       setLoadingShops(false);
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
+  ) => {
     const { name, value, type } = e.target;
-    
-    if (type === 'checkbox') {
+
+    if (type === "checkbox") {
       const target = e.target as HTMLInputElement;
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         [name]: target.checked,
       }));
     } else {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        [name]: name === 'shop' || name === 'warranty_months' || name === 'stock_quantity'
-          ? parseInt(value) || 0
-          : name === 'unit_price'
-          ? parseFloat(value) || 0
-          : value,
+        [name]:
+          name === "shop" ||
+          name === "warranty_months" ||
+          name === "stock_quantity"
+            ? parseInt(value) || 0
+            : name === "unit_price"
+            ? parseFloat(value) || 0
+            : value,
       }));
     }
   };
@@ -84,11 +91,11 @@ export const AddPartModal: React.FC<AddPartModalProps> = ({
     setError(null);
 
     try {
-      const response = await apiPost('/parts/', formData);
+      const response = await apiPost("/parts/", formData);
       onSuccess(response);
       handleClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create part');
+      setError(err instanceof Error ? err.message : "Failed to create part");
     } finally {
       setLoading(false);
     }
@@ -97,11 +104,11 @@ export const AddPartModal: React.FC<AddPartModalProps> = ({
   const handleClose = () => {
     setFormData({
       shop: shopId || 0,
-      name: '',
-      category: 'new',
-      part_number: '',
-      description: '',
-      manufacturer: '',
+      name: "",
+      category: "new",
+      part_number: "",
+      description: "",
+      manufacturer: "",
       unit_price: 0,
       taxable: true,
       warranty_months: 0,
@@ -112,9 +119,9 @@ export const AddPartModal: React.FC<AddPartModalProps> = ({
   };
 
   const categories = [
-    { value: 'new', label: 'New' },
-    { value: 'used', label: 'Used' },
-    { value: 'refurbished', label: 'Refurbished' },
+    { value: "new", label: "New" },
+    { value: "used", label: "Used" },
+    { value: "refurbished", label: "Refurbished" },
   ];
 
   return (
@@ -125,7 +132,7 @@ export const AddPartModal: React.FC<AddPartModalProps> = ({
       <Form onSubmit={handleSubmit}>
         <Modal.Body>
           {error && <Alert variant="danger">{error}</Alert>}
-          
+
           <Form.Group className="mb-3">
             <Form.Label>Shop *</Form.Label>
             <Form.Select
@@ -136,7 +143,7 @@ export const AddPartModal: React.FC<AddPartModalProps> = ({
               disabled={!!shopId || loadingShops}
             >
               <option value="">
-                {loadingShops ? 'Loading shops...' : 'Select a shop'}
+                {loadingShops ? "Loading shops..." : "Select a shop"}
               </option>
               {shops.map((shop) => (
                 <option key={shop.id} value={shop.id}>
@@ -281,8 +288,12 @@ export const AddPartModal: React.FC<AddPartModalProps> = ({
           <Button variant="secondary" onClick={handleClose}>
             Cancel
           </Button>
-          <Button variant="primary" type="submit" disabled={loading || !formData.shop}>
-            {loading ? 'Creating...' : 'Create Part'}
+          <Button
+            variant="primary"
+            type="submit"
+            disabled={loading || !formData.shop}
+          >
+            {loading ? "Creating..." : "Create Part"}
           </Button>
         </Modal.Footer>
       </Form>

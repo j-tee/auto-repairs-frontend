@@ -1,7 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { Modal, Button, Form, Alert, Table, InputGroup, Badge } from 'react-bootstrap';
-import type { RepairOrderFormData, Vehicle, Service, Part, Customer } from '../../types/entities';
-import { apiPost, apiGet } from '../../utils/api';
+import React, { useState, useEffect } from "react";
+import {
+  Modal,
+  Button,
+  Form,
+  Alert,
+  Table,
+  InputGroup,
+  Badge,
+} from "react-bootstrap";
+import type {
+  RepairOrderFormData,
+  Vehicle,
+  Service,
+  Part,
+  Customer,
+} from "../../types/entities";
+import { apiPost, apiGet } from "../../utils/api";
 
 interface AddRepairOrderModalProps {
   show: boolean;
@@ -29,15 +43,17 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
     discount_amount: 0,
     discount_percent: 0,
     tax_percent: 8.25, // Default tax rate
-    notes: '',
+    notes: "",
   });
-  
-  const [vehicles, setVehicles] = useState<(Vehicle & { customer_name: string })[]>([]);
+
+  const [vehicles, setVehicles] = useState<
+    (Vehicle & { customer_name: string })[]
+  >([]);
   const [availableServices, setAvailableServices] = useState<Service[]>([]);
   const [availableParts, setAvailableParts] = useState<Part[]>([]);
   const [selectedServices, setSelectedServices] = useState<Service[]>([]);
   const [selectedParts, setSelectedParts] = useState<SelectedPart[]>([]);
-  
+
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,75 +66,91 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
 
   useEffect(() => {
     if (vehicleId) {
-      setFormData(prev => ({ ...prev, vehicle: vehicleId }));
+      setFormData((prev) => ({ ...prev, vehicle: vehicleId }));
     }
   }, [vehicleId]);
 
   const loadData = async () => {
     setLoadingData(true);
     try {
-      const [vehiclesResponse, customersResponse, servicesResponse, partsResponse] = await Promise.all([
-        apiGet<Vehicle[]>('/vehicles/'),
-        apiGet<Customer[]>('/customers/'),
-        apiGet<Service[]>('/services/'),
-        apiGet<Part[]>('/parts/')
+      const [
+        vehiclesResponse,
+        customersResponse,
+        servicesResponse,
+        partsResponse,
+      ] = await Promise.all([
+        apiGet<Vehicle[]>("/vehicles/"),
+        apiGet<Customer[]>("/customers/"),
+        apiGet<Service[]>("/services/"),
+        apiGet<Part[]>("/parts/"),
       ]);
-      
+
       // Combine vehicle data with customer names
-      const vehiclesWithCustomers = vehiclesResponse.map(vehicle => {
-        const customer = customersResponse.find(c => c.id === vehicle.customer);
+      const vehiclesWithCustomers = vehiclesResponse.map((vehicle) => {
+        const customer = customersResponse.find(
+          (c) => c.id === vehicle.customer
+        );
         return {
           ...vehicle,
-          customer_name: customer?.name || 'Unknown Customer'
+          customer_name: customer?.name || "Unknown Customer",
         };
       });
-      
+
       setVehicles(vehiclesWithCustomers);
       setAvailableServices(servicesResponse);
-      setAvailableParts(partsResponse.filter(p => p.stock_quantity > 0)); // Only show parts in stock
+      setAvailableParts(partsResponse.filter((p) => p.stock_quantity > 0)); // Only show parts in stock
     } catch (err) {
-      setError('Failed to load data');
+      setError("Failed to load data");
     } finally {
       setLoadingData(false);
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
+  ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: name === 'vehicle' 
-        ? parseInt(value) || 0
-        : ['discount_amount', 'discount_percent', 'tax_percent'].includes(name)
-        ? parseFloat(value) || 0
-        : value,
+      [name]:
+        name === "vehicle"
+          ? parseInt(value) || 0
+          : ["discount_amount", "discount_percent", "tax_percent"].includes(
+              name
+            )
+          ? parseFloat(value) || 0
+          : value,
     }));
   };
 
   const addService = (serviceId: number) => {
-    const service = availableServices.find(s => s.id === serviceId);
-    if (service && !selectedServices.find(s => s.id === serviceId)) {
-      setSelectedServices(prev => [...prev, service]);
-      setFormData(prev => ({
+    const service = availableServices.find((s) => s.id === serviceId);
+    if (service && !selectedServices.find((s) => s.id === serviceId)) {
+      setSelectedServices((prev) => [...prev, service]);
+      setFormData((prev) => ({
         ...prev,
-        services: [...prev.services, serviceId]
+        services: [...prev.services, serviceId],
       }));
     }
   };
 
   const removeService = (serviceId: number) => {
-    setSelectedServices(prev => prev.filter(s => s.id !== serviceId));
-    setFormData(prev => ({
+    setSelectedServices((prev) => prev.filter((s) => s.id !== serviceId));
+    setFormData((prev) => ({
       ...prev,
-      services: prev.services.filter(id => id !== serviceId)
+      services: prev.services.filter((id) => id !== serviceId),
     }));
   };
 
   const addPart = (partId: number, quantity: number = 1) => {
-    const part = availableParts.find(p => p.id === partId);
+    const part = availableParts.find((p) => p.id === partId);
     if (part && quantity > 0 && quantity <= part.stock_quantity) {
-      const existingIndex = selectedParts.findIndex(sp => sp.part.id === partId);
-      
+      const existingIndex = selectedParts.findIndex(
+        (sp) => sp.part.id === partId
+      );
+
       if (existingIndex >= 0) {
         // Update existing part quantity
         const newSelectedParts = [...selectedParts];
@@ -126,34 +158,38 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
         setSelectedParts(newSelectedParts);
       } else {
         // Add new part
-        setSelectedParts(prev => [...prev, { part, quantity }]);
+        setSelectedParts((prev) => [...prev, { part, quantity }]);
       }
-      
+
       updatePartsInFormData();
     }
   };
 
   const removePart = (partId: number) => {
-    setSelectedParts(prev => prev.filter(sp => sp.part.id !== partId));
+    setSelectedParts((prev) => prev.filter((sp) => sp.part.id !== partId));
     updatePartsInFormData();
   };
 
   const updatePartsInFormData = () => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      parts: selectedParts.map(sp => ({
+      parts: selectedParts.map((sp) => ({
         part: sp.part.id!,
         quantity: sp.quantity,
-        warranty_override_months: sp.warranty_override_months
-      }))
+        warranty_override_months: sp.warranty_override_months,
+      })),
     }));
   };
 
   const calculateSubtotal = () => {
-    const servicesTotal = selectedServices.reduce((sum, service) => 
-      sum + parseFloat(service.labor_cost), 0);
-    const partsTotal = selectedParts.reduce((sum, sp) => 
-      sum + (parseFloat(sp.part.unit_price) * sp.quantity), 0);
+    const servicesTotal = selectedServices.reduce(
+      (sum, service) => sum + parseFloat(service.labor_cost),
+      0
+    );
+    const partsTotal = selectedParts.reduce(
+      (sum, sp) => sum + parseFloat(sp.part.unit_price) * sp.quantity,
+      0
+    );
     return servicesTotal + partsTotal;
   };
 
@@ -162,12 +198,11 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
     const discountPercent = formData.discount_percent || 0;
     const discountAmount = formData.discount_amount || 0;
     const taxPercent = formData.tax_percent || 0;
-    
-    const discount = discountPercent > 0 
-      ? (subtotal * discountPercent / 100)
-      : discountAmount;
+
+    const discount =
+      discountPercent > 0 ? (subtotal * discountPercent) / 100 : discountAmount;
     const afterDiscount = subtotal - discount;
-    const tax = afterDiscount * taxPercent / 100;
+    const tax = (afterDiscount * taxPercent) / 100;
     return afterDiscount + tax;
   };
 
@@ -180,18 +215,20 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
       // Update parts data before submitting
       const finalFormData = {
         ...formData,
-        parts: selectedParts.map(sp => ({
+        parts: selectedParts.map((sp) => ({
           part: sp.part.id!,
           quantity: sp.quantity,
-          warranty_override_months: sp.warranty_override_months
-        }))
+          warranty_override_months: sp.warranty_override_months,
+        })),
       };
-      
-      const response = await apiPost('/repair-orders/', finalFormData);
+
+      const response = await apiPost("/repair-orders/", finalFormData);
       onSuccess(response);
       handleClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create repair order');
+      setError(
+        err instanceof Error ? err.message : "Failed to create repair order"
+      );
     } finally {
       setLoading(false);
     }
@@ -205,7 +242,7 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
       discount_amount: 0,
       discount_percent: 0,
       tax_percent: 8.25,
-      notes: '',
+      notes: "",
     });
     setSelectedServices([]);
     setSelectedParts([]);
@@ -219,9 +256,9 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
         <Modal.Title>Create New Repair Order</Modal.Title>
       </Modal.Header>
       <Form onSubmit={handleSubmit}>
-        <Modal.Body style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+        <Modal.Body style={{ maxHeight: "70vh", overflowY: "auto" }}>
           {error && <Alert variant="danger">{error}</Alert>}
-          
+
           {/* Vehicle Selection */}
           <Form.Group className="mb-4">
             <Form.Label>Vehicle *</Form.Label>
@@ -233,11 +270,12 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
               disabled={!!vehicleId || loadingData}
             >
               <option value="">
-                {loadingData ? 'Loading vehicles...' : 'Select a vehicle'}
+                {loadingData ? "Loading vehicles..." : "Select a vehicle"}
               </option>
               {vehicles.map((vehicle) => (
                 <option key={vehicle.id} value={vehicle.id}>
-                  {vehicle.customer_name} - {vehicle.make} {vehicle.model} ({vehicle.license_plate || vehicle.vin})
+                  {vehicle.customer_name} - {vehicle.make} {vehicle.model} (
+                  {vehicle.license_plate || vehicle.vin})
                 </option>
               ))}
             </Form.Select>
@@ -249,12 +287,17 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
             <Form.Group className="mb-3">
               <Form.Label>Add Service</Form.Label>
               <Form.Select
-                onChange={(e) => e.target.value && addService(parseInt(e.target.value))}
+                onChange={(e) =>
+                  e.target.value && addService(parseInt(e.target.value))
+                }
                 value=""
               >
                 <option value="">Select a service to add</option>
                 {availableServices
-                  .filter(service => !selectedServices.find(s => s.id === service.id))
+                  .filter(
+                    (service) =>
+                      !selectedServices.find((s) => s.id === service.id)
+                  )
                   .map((service) => (
                     <option key={service.id} value={service.id}>
                       {service.name} - ${service.labor_cost}
@@ -262,7 +305,7 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
                   ))}
               </Form.Select>
             </Form.Group>
-            
+
             {selectedServices.length > 0 && (
               <Table striped bordered size="sm">
                 <thead>
@@ -307,20 +350,26 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
             <Form.Group className="mb-3">
               <Form.Label>Add Part</Form.Label>
               <Form.Select
-                onChange={(e) => e.target.value && addPart(parseInt(e.target.value))}
+                onChange={(e) =>
+                  e.target.value && addPart(parseInt(e.target.value))
+                }
                 value=""
               >
                 <option value="">Select a part to add</option>
                 {availableParts
-                  .filter(part => !selectedParts.find(sp => sp.part.id === part.id))
+                  .filter(
+                    (part) =>
+                      !selectedParts.find((sp) => sp.part.id === part.id)
+                  )
                   .map((part) => (
                     <option key={part.id} value={part.id}>
-                      {part.name} - ${part.unit_price} (Stock: {part.stock_quantity})
+                      {part.name} - ${part.unit_price} (Stock:{" "}
+                      {part.stock_quantity})
                     </option>
                   ))}
               </Form.Select>
             </Form.Group>
-            
+
             {selectedParts.length > 0 && (
               <Table striped bordered size="sm">
                 <thead>
@@ -343,11 +392,22 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
                           value={selectedPart.quantity}
                           min="1"
                           max={selectedPart.part.stock_quantity}
-                          onChange={(e) => addPart(selectedPart.part.id!, parseInt(e.target.value) || 1)}
-                          style={{ width: '80px' }}
+                          onChange={(e) =>
+                            addPart(
+                              selectedPart.part.id!,
+                              parseInt(e.target.value) || 1
+                            )
+                          }
+                          style={{ width: "80px" }}
                         />
                       </td>
-                      <td>${(parseFloat(selectedPart.part.unit_price) * selectedPart.quantity).toFixed(2)}</td>
+                      <td>
+                        $
+                        {(
+                          parseFloat(selectedPart.part.unit_price) *
+                          selectedPart.quantity
+                        ).toFixed(2)}
+                      </td>
                       <td>
                         <Button
                           variant="outline-danger"
@@ -448,12 +508,16 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
           <Button variant="secondary" onClick={handleClose}>
             Cancel
           </Button>
-          <Button 
-            variant="primary" 
-            type="submit" 
-            disabled={loading || !formData.vehicle || (selectedServices.length === 0 && selectedParts.length === 0)}
+          <Button
+            variant="primary"
+            type="submit"
+            disabled={
+              loading ||
+              !formData.vehicle ||
+              (selectedServices.length === 0 && selectedParts.length === 0)
+            }
           >
-            {loading ? 'Creating...' : 'Create Repair Order'}
+            {loading ? "Creating..." : "Create Repair Order"}
           </Button>
         </Modal.Footer>
       </Form>

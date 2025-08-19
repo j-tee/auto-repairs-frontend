@@ -1,10 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Badge, Alert, Spinner, Form } from 'react-bootstrap';
-import { useAuth } from '../hooks/useAuth';
-import type { Customer, Vehicle } from '../types/entities';
-import { apiGet } from '../utils/api';
-import { AddCustomerModal, AddVehicleModal } from '../components/modals';
-import { formatPhoneNumber } from '../utils/validation';
+import React, { useState, useEffect } from "react";
+import {
+  Container,
+  Row,
+  Col,
+  Card,
+  Button,
+  Badge,
+  Alert,
+  Spinner,
+  Form,
+} from "react-bootstrap";
+import { useAuth } from "../hooks/useAuth";
+import type { Customer, Vehicle } from "../types/entities";
+import { apiGet } from "../utils/api";
+import { AddCustomerModal, AddVehicleModal } from "../components/modals";
+import { formatPhoneNumber } from "../utils/validation";
 
 export const CustomerManagement: React.FC = () => {
   const { user } = useAuth();
@@ -13,7 +23,7 @@ export const CustomerManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Modal states
   const [showCustomerModal, setShowCustomerModal] = useState(false);
@@ -27,14 +37,14 @@ export const CustomerManagement: React.FC = () => {
     setLoading(true);
     try {
       const [customersResponse, vehiclesResponse] = await Promise.all([
-        apiGet<Customer[]>('/customers/'),
-        apiGet<Vehicle[]>('/vehicles/')
+        apiGet<Customer[]>("/customers/"),
+        apiGet<Vehicle[]>("/vehicles/"),
       ]);
 
       setCustomers(customersResponse);
       setVehicles(vehiclesResponse);
     } catch (err) {
-      setError('Failed to load data');
+      setError("Failed to load data");
     } finally {
       setLoading(false);
     }
@@ -47,13 +57,15 @@ export const CustomerManagement: React.FC = () => {
   };
 
   const getCustomerVehicles = (customerId: number) => {
-    return vehicles.filter(v => v.customer === customerId);
+    return vehicles.filter((v) => v.customer === customerId);
   };
 
-  const filteredCustomers = customers.filter(customer =>
-    customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (customer.email && customer.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    customer.phone_number.includes(searchTerm)
+  const filteredCustomers = customers.filter(
+    (customer) =>
+      customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (customer.email &&
+        customer.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      customer.phone_number.includes(searchTerm)
   );
 
   const handleAddVehicleForCustomer = (_customerId: number) => {
@@ -74,7 +86,11 @@ export const CustomerManagement: React.FC = () => {
   return (
     <Container fluid className="py-4">
       {successMessage && (
-        <Alert variant="success" dismissible onClose={() => setSuccessMessage(null)}>
+        <Alert
+          variant="success"
+          dismissible
+          onClose={() => setSuccessMessage(null)}
+        >
           {successMessage}
         </Alert>
       )}
@@ -89,8 +105,8 @@ export const CustomerManagement: React.FC = () => {
         <Col>
           <div className="d-flex justify-content-between align-items-center">
             <h1 className="mb-0">👥 Customer Management</h1>
-            <Button 
-              variant="success" 
+            <Button
+              variant="success"
               onClick={() => setShowCustomerModal(true)}
               className="d-flex align-items-center gap-2"
             >
@@ -142,14 +158,18 @@ export const CustomerManagement: React.FC = () => {
             <Card>
               <Card.Body className="text-center py-5">
                 <h5>
-                  {searchTerm ? 'No customers found matching your search' : 'No customers registered yet'}
+                  {searchTerm
+                    ? "No customers found matching your search"
+                    : "No customers registered yet"}
                 </h5>
                 <p className="text-muted">
-                  {searchTerm ? 'Try adjusting your search terms' : 'Start by adding your first customer!'}
+                  {searchTerm
+                    ? "Try adjusting your search terms"
+                    : "Start by adding your first customer!"}
                 </p>
                 {!searchTerm && (
-                  <Button 
-                    variant="success" 
+                  <Button
+                    variant="success"
                     onClick={() => setShowCustomerModal(true)}
                   >
                     Add First Customer
@@ -167,27 +187,39 @@ export const CustomerManagement: React.FC = () => {
                       <Card.Header className="bg-primary text-white d-flex justify-content-between align-items-center">
                         <h6 className="mb-0">👤 {customer.name}</h6>
                         <Badge bg="light" text="dark">
-                          {customerVehicles.length} vehicle{customerVehicles.length !== 1 ? 's' : ''}
+                          {customerVehicles.length} vehicle
+                          {customerVehicles.length !== 1 ? "s" : ""}
                         </Badge>
                       </Card.Header>
                       <Card.Body>
                         <div className="mb-3">
                           <div className="mb-2">
-                            <strong>📧 Email:</strong><br />
-                            <a href={`mailto:${customer.email}`} className="text-decoration-none">
+                            <strong>📧 Email:</strong>
+                            <br />
+                            <a
+                              href={`mailto:${customer.email}`}
+                              className="text-decoration-none"
+                            >
                               {customer.email}
                             </a>
                           </div>
                           <div className="mb-2">
-                            <strong>📞 Phone:</strong><br />
-                            <a href={`tel:${customer.phone_number}`} className="text-decoration-none">
+                            <strong>📞 Phone:</strong>
+                            <br />
+                            <a
+                              href={`tel:${customer.phone_number}`}
+                              className="text-decoration-none"
+                            >
                               {formatPhoneNumber(customer.phone_number)}
                             </a>
                           </div>
                           {customer.address && (
                             <div className="mb-2">
-                              <strong>🏠 Address:</strong><br />
-                              <small className="text-muted">{customer.address}</small>
+                              <strong>🏠 Address:</strong>
+                              <br />
+                              <small className="text-muted">
+                                {customer.address}
+                              </small>
                             </div>
                           )}
                         </div>
@@ -198,20 +230,38 @@ export const CustomerManagement: React.FC = () => {
                             <strong>🚗 Vehicles:</strong>
                             <div className="mt-2">
                               {customerVehicles.map((vehicle) => (
-                                <div key={vehicle.id} className="border rounded p-2 mb-2 bg-light">
+                                <div
+                                  key={vehicle.id}
+                                  className="border rounded p-2 mb-2 bg-light"
+                                >
                                   <div className="d-flex justify-content-between align-items-start">
                                     <div>
-                                      <strong>{vehicle.year} {vehicle.make} {vehicle.model}</strong><br />
+                                      <strong>
+                                        {vehicle.year} {vehicle.make}{" "}
+                                        {vehicle.model}
+                                      </strong>
+                                      <br />
                                       <small className="text-muted">
                                         VIN: {vehicle.vin.slice(-8)}
-                                        {vehicle.license_plate && ` • ${vehicle.license_plate}`}
+                                        {vehicle.license_plate &&
+                                          ` • ${vehicle.license_plate}`}
                                       </small>
                                     </div>
                                     {vehicle.color && (
-                                      <Badge 
-                                        style={{ 
-                                          backgroundColor: vehicle.color.toLowerCase(),
-                                          color: ['white', 'yellow', 'silver', 'gray'].includes(vehicle.color.toLowerCase()) ? 'black' : 'white'
+                                      <Badge
+                                        style={{
+                                          backgroundColor:
+                                            vehicle.color.toLowerCase(),
+                                          color: [
+                                            "white",
+                                            "yellow",
+                                            "silver",
+                                            "gray",
+                                          ].includes(
+                                            vehicle.color.toLowerCase()
+                                          )
+                                            ? "black"
+                                            : "white",
                                         }}
                                       >
                                         {vehicle.color}
@@ -225,7 +275,9 @@ export const CustomerManagement: React.FC = () => {
                         ) : (
                           <div className="mb-3">
                             <Alert variant="info" className="py-2 mb-0">
-                              <small>No vehicles registered for this customer</small>
+                              <small>
+                                No vehicles registered for this customer
+                              </small>
                             </Alert>
                           </div>
                         )}
@@ -235,7 +287,9 @@ export const CustomerManagement: React.FC = () => {
                           <Button
                             size="sm"
                             variant="primary"
-                            onClick={() => handleAddVehicleForCustomer(customer.id!)}
+                            onClick={() =>
+                              handleAddVehicleForCustomer(customer.id!)
+                            }
                             className="flex-grow-1"
                           >
                             🚗 Add Vehicle
@@ -270,19 +324,20 @@ export const CustomerManagement: React.FC = () => {
         <Row className="mt-3">
           <Col>
             <Alert variant="info" className="mb-0">
-              Showing {filteredCustomers.length} of {customers.length} customers matching "{searchTerm}"
+              Showing {filteredCustomers.length} of {customers.length} customers
+              matching "{searchTerm}"
             </Alert>
           </Col>
         </Row>
       )}
 
       {/* Role-based information */}
-      {user?.role === 'customer' && (
+      {user?.role === "customer" && (
         <Row className="mt-4">
           <Col>
             <Alert variant="warning">
-              <strong>Limited Access:</strong> As a customer, you can only view your own profile. 
-              Contact our staff for account updates.
+              <strong>Limited Access:</strong> As a customer, you can only view
+              your own profile. Contact our staff for account updates.
             </Alert>
           </Col>
         </Row>
@@ -292,13 +347,13 @@ export const CustomerManagement: React.FC = () => {
       <AddCustomerModal
         show={showCustomerModal}
         onHide={() => setShowCustomerModal(false)}
-        onSuccess={(data) => handleSuccess('Customer', data)}
+        onSuccess={(data) => handleSuccess("Customer", data)}
       />
 
       <AddVehicleModal
         show={showVehicleModal}
         onHide={() => setShowVehicleModal(false)}
-        onSuccess={(data) => handleSuccess('Vehicle', data)}
+        onSuccess={(data) => handleSuccess("Vehicle", data)}
       />
     </Container>
   );

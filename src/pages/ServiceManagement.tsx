@@ -1,9 +1,32 @@
-import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Table, Button, Badge, Alert, Spinner, Form, Tabs, Tab } from 'react-bootstrap';
-import { useAuth } from '../hooks/useAuth';
-import type { RepairOrder, Appointment, Service, Vehicle, Customer } from '../types/entities';
-import { apiGet } from '../utils/api';
-import { AddRepairOrderModal, AddAppointmentModal, AddServiceModal } from '../components/modals';
+import React, { useState, useEffect } from "react";
+import {
+  Container,
+  Row,
+  Col,
+  Card,
+  Table,
+  Button,
+  Badge,
+  Alert,
+  Spinner,
+  Form,
+  Tabs,
+  Tab,
+} from "react-bootstrap";
+import { useAuth } from "../hooks/useAuth";
+import type {
+  RepairOrder,
+  Appointment,
+  Service,
+  Vehicle,
+  Customer,
+} from "../types/entities";
+import { apiGet } from "../utils/api";
+import {
+  AddRepairOrderModal,
+  AddAppointmentModal,
+  AddServiceModal,
+} from "../components/modals";
 
 export const ServiceManagement: React.FC = () => {
   const { user } = useAuth();
@@ -15,7 +38,7 @@ export const ServiceManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<string>('repair-orders');
+  const [activeTab, setActiveTab] = useState<string>("repair-orders");
 
   // Modal states
   const [showRepairOrderModal, setShowRepairOrderModal] = useState(false);
@@ -34,13 +57,13 @@ export const ServiceManagement: React.FC = () => {
         appointmentsResponse,
         servicesResponse,
         vehiclesResponse,
-        customersResponse
+        customersResponse,
       ] = await Promise.all([
-        apiGet<RepairOrder[]>('/repair-orders/'),
-        apiGet<Appointment[]>('/appointments/'),
-        apiGet<Service[]>('/services/'),
-        apiGet<Vehicle[]>('/vehicles/'),
-        apiGet<Customer[]>('/customers/')
+        apiGet<RepairOrder[]>("/repair-orders/"),
+        apiGet<Appointment[]>("/appointments/"),
+        apiGet<Service[]>("/services/"),
+        apiGet<Vehicle[]>("/vehicles/"),
+        apiGet<Customer[]>("/customers/"),
       ]);
 
       setRepairOrders(repairOrdersResponse);
@@ -49,7 +72,7 @@ export const ServiceManagement: React.FC = () => {
       setVehicles(vehiclesResponse);
       setCustomers(customersResponse);
     } catch (err) {
-      setError('Failed to load data');
+      setError("Failed to load data");
     } finally {
       setLoading(false);
     }
@@ -62,26 +85,32 @@ export const ServiceManagement: React.FC = () => {
   };
 
   const getVehicleInfo = (vehicleId: number) => {
-    const vehicle = vehicles.find(v => v.id === vehicleId);
-    if (!vehicle) return 'Unknown Vehicle';
+    const vehicle = vehicles.find((v) => v.id === vehicleId);
+    if (!vehicle) return "Unknown Vehicle";
     return `${vehicle.year} ${vehicle.make} ${vehicle.model}`;
   };
 
   const getCustomerInfo = (vehicleId: number) => {
-    const vehicle = vehicles.find(v => v.id === vehicleId);
-    if (!vehicle) return 'Unknown Customer';
-    const customer = customers.find(c => c.id === vehicle.customer);
-    return customer?.name || 'Unknown Customer';
+    const vehicle = vehicles.find((v) => v.id === vehicleId);
+    if (!vehicle) return "Unknown Customer";
+    const customer = customers.find((c) => c.id === vehicle.customer);
+    return customer?.name || "Unknown Customer";
   };
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
-      case 'pending': return 'warning';
-      case 'in_progress': return 'primary';
-      case 'completed': return 'success';
-      case 'cancelled': return 'danger';
-      case 'scheduled': return 'info';
-      default: return 'secondary';
+      case "pending":
+        return "warning";
+      case "in_progress":
+        return "primary";
+      case "completed":
+        return "success";
+      case "cancelled":
+        return "danger";
+      case "scheduled":
+        return "info";
+      default:
+        return "secondary";
     }
   };
 
@@ -99,7 +128,11 @@ export const ServiceManagement: React.FC = () => {
   return (
     <Container fluid className="py-4">
       {successMessage && (
-        <Alert variant="success" dismissible onClose={() => setSuccessMessage(null)}>
+        <Alert
+          variant="success"
+          dismissible
+          onClose={() => setSuccessMessage(null)}
+        >
           {successMessage}
         </Alert>
       )}
@@ -115,22 +148,22 @@ export const ServiceManagement: React.FC = () => {
           <div className="d-flex justify-content-between align-items-center">
             <h1 className="mb-0">🔧 Service Management</h1>
             <div className="d-flex gap-2">
-              <Button 
-                variant="info" 
+              <Button
+                variant="info"
                 onClick={() => setShowServiceModal(true)}
                 className="d-flex align-items-center gap-2"
               >
                 ⚙️ Add Service
               </Button>
-              <Button 
-                variant="primary" 
+              <Button
+                variant="primary"
                 onClick={() => setShowAppointmentModal(true)}
                 className="d-flex align-items-center gap-2"
               >
                 📅 Schedule Appointment
               </Button>
-              <Button 
-                variant="success" 
+              <Button
+                variant="success"
                 onClick={() => setShowRepairOrderModal(true)}
                 className="d-flex align-items-center gap-2"
               >
@@ -146,7 +179,9 @@ export const ServiceManagement: React.FC = () => {
         <Col md={3}>
           <Card className="text-center">
             <Card.Body>
-              <h3 className="text-warning">{repairOrders.filter(ro => ro.status === 'pending').length}</h3>
+              <h3 className="text-warning">
+                {repairOrders.filter((ro) => ro.status === "pending").length}
+              </h3>
               <p className="mb-0">Pending Orders</p>
             </Card.Body>
           </Card>
@@ -154,7 +189,12 @@ export const ServiceManagement: React.FC = () => {
         <Col md={3}>
           <Card className="text-center">
             <Card.Body>
-              <h3 className="text-primary">{repairOrders.filter(ro => ro.status === 'in_progress').length}</h3>
+              <h3 className="text-primary">
+                {
+                  repairOrders.filter((ro) => ro.status === "in_progress")
+                    .length
+                }
+              </h3>
               <p className="mb-0">In Progress</p>
             </Card.Body>
           </Card>
@@ -162,7 +202,12 @@ export const ServiceManagement: React.FC = () => {
         <Col md={3}>
           <Card className="text-center">
             <Card.Body>
-              <h3 className="text-info">{appointments.filter(apt => apt.status === 'scheduled').length}</h3>
+              <h3 className="text-info">
+                {
+                  appointments.filter((apt) => apt.status === "scheduled")
+                    .length
+                }
+              </h3>
               <p className="mb-0">Scheduled</p>
             </Card.Body>
           </Card>
@@ -180,7 +225,7 @@ export const ServiceManagement: React.FC = () => {
       {/* Tabs for different views */}
       <Tabs
         activeKey={activeTab}
-        onSelect={(k) => setActiveTab(k || 'repair-orders')}
+        onSelect={(k) => setActiveTab(k || "repair-orders")}
         className="mb-4"
       >
         <Tab eventKey="repair-orders" title="🔧 Repair Orders">
@@ -189,9 +234,11 @@ export const ServiceManagement: React.FC = () => {
               {repairOrders.length === 0 ? (
                 <div className="text-center py-5">
                   <h5>No repair orders yet</h5>
-                  <p className="text-muted">Start by creating your first repair order!</p>
-                  <Button 
-                    variant="success" 
+                  <p className="text-muted">
+                    Start by creating your first repair order!
+                  </p>
+                  <Button
+                    variant="success"
                     onClick={() => setShowRepairOrderModal(true)}
                   >
                     Create First Repair Order
@@ -223,7 +270,7 @@ export const ServiceManagement: React.FC = () => {
                         </td>
                         <td>
                           <Badge bg={getStatusBadgeVariant(order.status)}>
-                            {order.status.replace('_', ' ').toUpperCase()}
+                            {order.status.replace("_", " ").toUpperCase()}
                           </Badge>
                         </td>
                         <td>
@@ -231,13 +278,25 @@ export const ServiceManagement: React.FC = () => {
                         </td>
                         <td>
                           <div className="d-flex gap-1">
-                            <Button size="sm" variant="outline-primary" title="View Details">
+                            <Button
+                              size="sm"
+                              variant="outline-primary"
+                              title="View Details"
+                            >
                               👁️
                             </Button>
-                            <Button size="sm" variant="outline-warning" title="Edit Order">
+                            <Button
+                              size="sm"
+                              variant="outline-warning"
+                              title="Edit Order"
+                            >
                               ✏️
                             </Button>
-                            <Button size="sm" variant="outline-success" title="Update Status">
+                            <Button
+                              size="sm"
+                              variant="outline-success"
+                              title="Update Status"
+                            >
                               🔄
                             </Button>
                           </div>
@@ -258,8 +317,8 @@ export const ServiceManagement: React.FC = () => {
                 <div className="text-center py-5">
                   <h5>No appointments scheduled</h5>
                   <p className="text-muted">Schedule the first appointment!</p>
-                  <Button 
-                    variant="primary" 
+                  <Button
+                    variant="primary"
                     onClick={() => setShowAppointmentModal(true)}
                   >
                     Schedule First Appointment
@@ -283,27 +342,32 @@ export const ServiceManagement: React.FC = () => {
                       <tr key={appointment.id}>
                         <td>
                           <div>
-                            <strong>{new Date(appointment.date).toLocaleDateString()}</strong><br />
-                            <small className="text-muted">{appointment.time}</small>
+                            <strong>
+                              {new Date(appointment.date).toLocaleDateString()}
+                            </strong>
+                            <br />
+                            <small className="text-muted">
+                              {appointment.time}
+                            </small>
                           </div>
                         </td>
                         <td>{getCustomerInfo(appointment.vehicle)}</td>
                         <td>{getVehicleInfo(appointment.vehicle)}</td>
                         <td>
-                          {services.find(s => s.id === appointment.service)?.name || 'Unknown Service'}
+                          {services.find((s) => s.id === appointment.service)
+                            ?.name || "Unknown Service"}
                         </td>
                         <td>
                           <Badge bg={getStatusBadgeVariant(appointment.status)}>
-                            {appointment.status.replace('_', ' ').toUpperCase()}
+                            {appointment.status.replace("_", " ").toUpperCase()}
                           </Badge>
                         </td>
                         <td>
                           {appointment.notes ? (
                             <span title={appointment.notes}>
-                              {appointment.notes.length > 30 
-                                ? `${appointment.notes.substring(0, 30)}...` 
-                                : appointment.notes
-                              }
+                              {appointment.notes.length > 30
+                                ? `${appointment.notes.substring(0, 30)}...`
+                                : appointment.notes}
                             </span>
                           ) : (
                             <span className="text-muted">No notes</span>
@@ -311,13 +375,25 @@ export const ServiceManagement: React.FC = () => {
                         </td>
                         <td>
                           <div className="d-flex gap-1">
-                            <Button size="sm" variant="outline-primary" title="View Details">
+                            <Button
+                              size="sm"
+                              variant="outline-primary"
+                              title="View Details"
+                            >
                               👁️
                             </Button>
-                            <Button size="sm" variant="outline-warning" title="Reschedule">
+                            <Button
+                              size="sm"
+                              variant="outline-warning"
+                              title="Reschedule"
+                            >
                               📅
                             </Button>
-                            <Button size="sm" variant="outline-success" title="Complete">
+                            <Button
+                              size="sm"
+                              variant="outline-success"
+                              title="Complete"
+                            >
                               ✅
                             </Button>
                           </div>
@@ -338,9 +414,11 @@ export const ServiceManagement: React.FC = () => {
                 <Card>
                   <Card.Body className="text-center py-5">
                     <h5>No services defined</h5>
-                    <p className="text-muted">Add your first service offering!</p>
-                    <Button 
-                      variant="info" 
+                    <p className="text-muted">
+                      Add your first service offering!
+                    </p>
+                    <Button
+                      variant="info"
                       onClick={() => setShowServiceModal(true)}
                     >
                       Add First Service
@@ -357,23 +435,34 @@ export const ServiceManagement: React.FC = () => {
                     </Card.Header>
                     <Card.Body>
                       <div className="mb-3">
-                        <h4 className="text-success">${service.price.toFixed(2)}</h4>
+                        <h4 className="text-success">
+                          ${service.price.toFixed(2)}
+                        </h4>
                       </div>
                       {service.description && (
                         <p className="text-muted">{service.description}</p>
                       )}
                       <div className="mb-2">
                         <small className="text-muted">
-                          <strong>Category:</strong> {service.category || 'General'}
+                          <strong>Category:</strong>{" "}
+                          {service.category || "General"}
                         </small>
                       </div>
                     </Card.Body>
                     <Card.Footer className="bg-light">
                       <div className="d-flex gap-2">
-                        <Button size="sm" variant="outline-primary" className="flex-grow-1">
+                        <Button
+                          size="sm"
+                          variant="outline-primary"
+                          className="flex-grow-1"
+                        >
                           📅 Schedule
                         </Button>
-                        <Button size="sm" variant="outline-secondary" title="Edit Service">
+                        <Button
+                          size="sm"
+                          variant="outline-secondary"
+                          title="Edit Service"
+                        >
                           ✏️
                         </Button>
                       </div>
@@ -387,12 +476,13 @@ export const ServiceManagement: React.FC = () => {
       </Tabs>
 
       {/* Role-based access information */}
-      {user?.role === 'customer' && (
+      {user?.role === "customer" && (
         <Row className="mt-4">
           <Col>
             <Alert variant="info">
-              <strong>Customer View:</strong> You can view your appointments and service history. 
-              Contact us to schedule new services or check repair order status.
+              <strong>Customer View:</strong> You can view your appointments and
+              service history. Contact us to schedule new services or check
+              repair order status.
             </Alert>
           </Col>
         </Row>
@@ -402,19 +492,19 @@ export const ServiceManagement: React.FC = () => {
       <AddServiceModal
         show={showServiceModal}
         onHide={() => setShowServiceModal(false)}
-        onSuccess={(data) => handleSuccess('Service', data)}
+        onSuccess={(data) => handleSuccess("Service", data)}
       />
 
       <AddAppointmentModal
         show={showAppointmentModal}
         onHide={() => setShowAppointmentModal(false)}
-        onSuccess={(data) => handleSuccess('Appointment', data)}
+        onSuccess={(data) => handleSuccess("Appointment", data)}
       />
 
       <AddRepairOrderModal
         show={showRepairOrderModal}
         onHide={() => setShowRepairOrderModal(false)}
-        onSuccess={(data) => handleSuccess('Repair Order', data)}
+        onSuccess={(data) => handleSuccess("Repair Order", data)}
       />
     </Container>
   );

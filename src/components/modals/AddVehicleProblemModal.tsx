@@ -1,7 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { Modal, Button, Form, Alert } from 'react-bootstrap';
-import type { VehicleProblemFormData, Vehicle, Customer } from '../../types/entities';
-import { apiPost, apiGet } from '../../utils/api';
+import React, { useState, useEffect } from "react";
+import { Modal, Button, Form, Alert } from "react-bootstrap";
+import type {
+  VehicleProblemFormData,
+  Vehicle,
+  Customer,
+} from "../../types/entities";
+import { apiPost, apiGet } from "../../utils/api";
 
 interface AddVehicleProblemModalProps {
   show: boolean;
@@ -18,10 +22,12 @@ export const AddVehicleProblemModal: React.FC<AddVehicleProblemModalProps> = ({
 }) => {
   const [formData, setFormData] = useState<VehicleProblemFormData>({
     vehicle: vehicleId || 0,
-    description: '',
+    description: "",
     resolved: false,
   });
-  const [vehicles, setVehicles] = useState<(Vehicle & { customer_name: string })[]>([]);
+  const [vehicles, setVehicles] = useState<
+    (Vehicle & { customer_name: string })[]
+  >([]);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +40,7 @@ export const AddVehicleProblemModal: React.FC<AddVehicleProblemModalProps> = ({
 
   useEffect(() => {
     if (vehicleId) {
-      setFormData(prev => ({ ...prev, vehicle: vehicleId }));
+      setFormData((prev) => ({ ...prev, vehicle: vehicleId }));
     }
   }, [vehicleId]);
 
@@ -42,39 +48,45 @@ export const AddVehicleProblemModal: React.FC<AddVehicleProblemModalProps> = ({
     setLoadingData(true);
     try {
       const [vehiclesResponse, customersResponse] = await Promise.all([
-        apiGet<Vehicle[]>('/vehicles/'),
-        apiGet<Customer[]>('/customers/')
+        apiGet<Vehicle[]>("/vehicles/"),
+        apiGet<Customer[]>("/customers/"),
       ]);
-      
-      const vehiclesWithCustomers = vehiclesResponse.map(vehicle => {
-        const customer = customersResponse.find(c => c.id === vehicle.customer);
+
+      const vehiclesWithCustomers = vehiclesResponse.map((vehicle) => {
+        const customer = customersResponse.find(
+          (c) => c.id === vehicle.customer
+        );
         return {
           ...vehicle,
-          customer_name: customer?.name || 'Unknown Customer'
+          customer_name: customer?.name || "Unknown Customer",
         };
       });
-      
+
       setVehicles(vehiclesWithCustomers);
     } catch (err) {
-      setError('Failed to load vehicles');
+      setError("Failed to load vehicles");
     } finally {
       setLoadingData(false);
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
+  ) => {
     const { name, value, type } = e.target;
-    
-    if (type === 'checkbox') {
+
+    if (type === "checkbox") {
       const target = e.target as HTMLInputElement;
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         [name]: target.checked,
       }));
     } else {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        [name]: name === 'vehicle' ? parseInt(value) || 0 : value,
+        [name]: name === "vehicle" ? parseInt(value) || 0 : value,
       }));
     }
   };
@@ -85,11 +97,11 @@ export const AddVehicleProblemModal: React.FC<AddVehicleProblemModalProps> = ({
     setError(null);
 
     try {
-      const response = await apiPost('/vehicle-problems/', formData);
+      const response = await apiPost("/vehicle-problems/", formData);
       onSuccess(response);
       handleClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to report problem');
+      setError(err instanceof Error ? err.message : "Failed to report problem");
     } finally {
       setLoading(false);
     }
@@ -98,7 +110,7 @@ export const AddVehicleProblemModal: React.FC<AddVehicleProblemModalProps> = ({
   const handleClose = () => {
     setFormData({
       vehicle: vehicleId || 0,
-      description: '',
+      description: "",
       resolved: false,
     });
     setError(null);
@@ -113,7 +125,7 @@ export const AddVehicleProblemModal: React.FC<AddVehicleProblemModalProps> = ({
       <Form onSubmit={handleSubmit}>
         <Modal.Body>
           {error && <Alert variant="danger">{error}</Alert>}
-          
+
           <Form.Group className="mb-3">
             <Form.Label>Vehicle *</Form.Label>
             <Form.Select
@@ -124,11 +136,12 @@ export const AddVehicleProblemModal: React.FC<AddVehicleProblemModalProps> = ({
               disabled={!!vehicleId || loadingData}
             >
               <option value="">
-                {loadingData ? 'Loading vehicles...' : 'Select a vehicle'}
+                {loadingData ? "Loading vehicles..." : "Select a vehicle"}
               </option>
               {vehicles.map((vehicle) => (
                 <option key={vehicle.id} value={vehicle.id}>
-                  {vehicle.customer_name} - {vehicle.make} {vehicle.model} ({vehicle.license_plate || vehicle.vin})
+                  {vehicle.customer_name} - {vehicle.make} {vehicle.model} (
+                  {vehicle.license_plate || vehicle.vin})
                 </option>
               ))}
             </Form.Select>
@@ -161,8 +174,12 @@ export const AddVehicleProblemModal: React.FC<AddVehicleProblemModalProps> = ({
           <Button variant="secondary" onClick={handleClose}>
             Cancel
           </Button>
-          <Button variant="primary" type="submit" disabled={loading || !formData.vehicle}>
-            {loading ? 'Reporting...' : 'Report Problem'}
+          <Button
+            variant="primary"
+            type="submit"
+            disabled={loading || !formData.vehicle}
+          >
+            {loading ? "Reporting..." : "Report Problem"}
           </Button>
         </Modal.Footer>
       </Form>

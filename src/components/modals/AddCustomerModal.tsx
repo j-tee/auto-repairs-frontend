@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { Modal, Button, Form, Alert } from 'react-bootstrap';
-import type { CustomerFormData } from '../../types/entities';
-import { apiPost } from '../../utils/api';
+import React, { useState } from "react";
+import { Modal, Button, Form, Alert } from "react-bootstrap";
+import type { CustomerFormData } from "../../types/entities";
+import { apiPost } from "../../utils/api";
 
 interface AddCustomerModalProps {
   show: boolean;
@@ -15,17 +15,19 @@ export const AddCustomerModal: React.FC<AddCustomerModalProps> = ({
   onSuccess,
 }) => {
   const [formData, setFormData] = useState<CustomerFormData>({
-    name: '',
-    phone_number: '',
-    email: '',
-    address: '',
+    name: "",
+    phone_number: "",
+    email: "",
+    address: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
@@ -37,11 +39,13 @@ export const AddCustomerModal: React.FC<AddCustomerModalProps> = ({
     setError(null);
 
     try {
-      const response = await apiPost('/customers/', formData);
+      const response = await apiPost("/customers/", formData);
       onSuccess(response);
       handleClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create customer');
+      setError(
+        err instanceof Error ? err.message : "Failed to create customer"
+      );
     } finally {
       setLoading(false);
     }
@@ -49,10 +53,10 @@ export const AddCustomerModal: React.FC<AddCustomerModalProps> = ({
 
   const handleClose = () => {
     setFormData({
-      name: '',
-      phone_number: '',
-      email: '',
-      address: '',
+      name: "",
+      phone_number: "",
+      email: "",
+      address: "",
     });
     setError(null);
     onHide();
@@ -66,7 +70,7 @@ export const AddCustomerModal: React.FC<AddCustomerModalProps> = ({
       <Form onSubmit={handleSubmit}>
         <Modal.Body>
           {error && <Alert variant="danger">{error}</Alert>}
-          
+
           <Form.Group className="mb-3">
             <Form.Label>Customer Name *</Form.Label>
             <Form.Control
@@ -119,7 +123,7 @@ export const AddCustomerModal: React.FC<AddCustomerModalProps> = ({
             Cancel
           </Button>
           <Button variant="primary" type="submit" disabled={loading}>
-            {loading ? 'Creating...' : 'Create Customer'}
+            {loading ? "Creating..." : "Create Customer"}
           </Button>
         </Modal.Footer>
       </Form>

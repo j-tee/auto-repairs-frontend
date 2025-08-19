@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Container, Row, Col, Card, Button, Alert } from 'react-bootstrap';
+import React, { useState } from "react";
+import { Container, Row, Col, Card, Button, Alert } from "react-bootstrap";
 import {
   AddShopModal,
   AddCustomerModal,
@@ -10,7 +10,7 @@ import {
   AddEmployeeModal,
   AddAppointmentModal,
   AddRepairOrderModal,
-} from './modals';
+} from "./modals";
 
 export const ModalsDemo: React.FC = () => {
   // Modal visibility states
@@ -34,68 +34,68 @@ export const ModalsDemo: React.FC = () => {
 
   const modalButtons = [
     {
-      title: 'Shop',
-      description: 'Create a new auto repair shop',
-      icon: '🏪',
+      title: "Shop",
+      description: "Create a new auto repair shop",
+      icon: "🏪",
       onClick: () => setShowShopModal(true),
-      color: 'primary'
+      color: "primary",
     },
     {
-      title: 'Customer',
-      description: 'Add a new customer',
-      icon: '👤',
+      title: "Customer",
+      description: "Add a new customer",
+      icon: "👤",
       onClick: () => setShowCustomerModal(true),
-      color: 'success'
+      color: "success",
     },
     {
-      title: 'Vehicle',
-      description: 'Register a customer vehicle',
-      icon: '🚗',
+      title: "Vehicle",
+      description: "Register a customer vehicle",
+      icon: "🚗",
       onClick: () => setShowVehicleModal(true),
-      color: 'info'
+      color: "info",
     },
     {
-      title: 'Vehicle Problem',
-      description: 'Report a vehicle issue',
-      icon: '⚠️',
+      title: "Vehicle Problem",
+      description: "Report a vehicle issue",
+      icon: "⚠️",
       onClick: () => setShowVehicleProblemModal(true),
-      color: 'warning'
+      color: "warning",
     },
     {
-      title: 'Service',
-      description: 'Add a new service offering',
-      icon: '🔧',
+      title: "Service",
+      description: "Add a new service offering",
+      icon: "🔧",
       onClick: () => setShowServiceModal(true),
-      color: 'secondary'
+      color: "secondary",
     },
     {
-      title: 'Part',
-      description: 'Add inventory parts',
-      icon: '⚙️',
+      title: "Part",
+      description: "Add inventory parts",
+      icon: "⚙️",
       onClick: () => setShowPartModal(true),
-      color: 'dark'
+      color: "dark",
     },
     {
-      title: 'Employee',
-      description: 'Add shop staff member',
-      icon: '👷',
+      title: "Employee",
+      description: "Add shop staff member",
+      icon: "👷",
       onClick: () => setShowEmployeeModal(true),
-      color: 'primary'
+      color: "primary",
     },
     {
-      title: 'Appointment',
-      description: 'Schedule vehicle service',
-      icon: '📅',
+      title: "Appointment",
+      description: "Schedule vehicle service",
+      icon: "📅",
       onClick: () => setShowAppointmentModal(true),
-      color: 'success'
+      color: "success",
     },
     {
-      title: 'Repair Order',
-      description: 'Create comprehensive repair order',
-      icon: '📋',
+      title: "Repair Order",
+      description: "Create comprehensive repair order",
+      icon: "📋",
       onClick: () => setShowRepairOrderModal(true),
-      color: 'danger'
-    }
+      color: "danger",
+    },
   ];
 
   return (
@@ -104,7 +104,8 @@ export const ModalsDemo: React.FC = () => {
         <Col>
           <h1 className="text-center mb-3">🚗 Auto Repair Management System</h1>
           <p className="text-center text-muted">
-            Comprehensive modals for managing all aspects of your auto repair business
+            Comprehensive modals for managing all aspects of your auto repair
+            business
           </p>
         </Col>
       </Row>
@@ -112,7 +113,11 @@ export const ModalsDemo: React.FC = () => {
       {successMessage && (
         <Row className="mb-4">
           <Col>
-            <Alert variant="success" dismissible onClose={() => setSuccessMessage(null)}>
+            <Alert
+              variant="success"
+              dismissible
+              onClose={() => setSuccessMessage(null)}
+            >
               {successMessage}
             </Alert>
           </Col>
@@ -125,14 +130,14 @@ export const ModalsDemo: React.FC = () => {
             <Card className="h-100 shadow-sm">
               <Card.Body className="d-flex flex-column">
                 <div className="text-center mb-3">
-                  <div style={{ fontSize: '3rem' }}>{button.icon}</div>
+                  <div style={{ fontSize: "3rem" }}>{button.icon}</div>
                 </div>
                 <Card.Title className="text-center">{button.title}</Card.Title>
                 <Card.Text className="text-center flex-grow-1">
                   {button.description}
                 </Card.Text>
-                <Button 
-                  variant={button.color} 
+                <Button
+                  variant={button.color}
                   onClick={button.onClick}
                   className="mt-auto"
                 >
@@ -150,12 +155,28 @@ export const ModalsDemo: React.FC = () => {
             <Card.Body>
               <h5>🔗 Relationship Information</h5>
               <ul className="mb-0">
-                <li><strong>Shops</strong> can have multiple employees, services, and parts</li>
-                <li><strong>Customers</strong> can own multiple vehicles</li>
-                <li><strong>Vehicles</strong> can have multiple problems and appointments</li>
-                <li><strong>Appointments</strong> can reference specific vehicle problems</li>
-                <li><strong>Repair Orders</strong> combine multiple services and parts for a vehicle</li>
-                <li><strong>Employees</strong> are linked to specific shops</li>
+                <li>
+                  <strong>Shops</strong> can have multiple employees, services,
+                  and parts
+                </li>
+                <li>
+                  <strong>Customers</strong> can own multiple vehicles
+                </li>
+                <li>
+                  <strong>Vehicles</strong> can have multiple problems and
+                  appointments
+                </li>
+                <li>
+                  <strong>Appointments</strong> can reference specific vehicle
+                  problems
+                </li>
+                <li>
+                  <strong>Repair Orders</strong> combine multiple services and
+                  parts for a vehicle
+                </li>
+                <li>
+                  <strong>Employees</strong> are linked to specific shops
+                </li>
               </ul>
             </Card.Body>
           </Card>
@@ -166,55 +187,55 @@ export const ModalsDemo: React.FC = () => {
       <AddShopModal
         show={showShopModal}
         onHide={() => setShowShopModal(false)}
-        onSuccess={(data: any) => handleSuccess('Shop', data)}
+        onSuccess={(data: any) => handleSuccess("Shop", data)}
       />
 
       <AddCustomerModal
         show={showCustomerModal}
         onHide={() => setShowCustomerModal(false)}
-        onSuccess={(data: any) => handleSuccess('Customer', data)}
+        onSuccess={(data: any) => handleSuccess("Customer", data)}
       />
 
       <AddVehicleModal
         show={showVehicleModal}
         onHide={() => setShowVehicleModal(false)}
-        onSuccess={(data: any) => handleSuccess('Vehicle', data)}
+        onSuccess={(data: any) => handleSuccess("Vehicle", data)}
       />
 
       <AddVehicleProblemModal
         show={showVehicleProblemModal}
         onHide={() => setShowVehicleProblemModal(false)}
-        onSuccess={(data: any) => handleSuccess('Vehicle Problem', data)}
+        onSuccess={(data: any) => handleSuccess("Vehicle Problem", data)}
       />
 
       <AddServiceModal
         show={showServiceModal}
         onHide={() => setShowServiceModal(false)}
-        onSuccess={(data: any) => handleSuccess('Service', data)}
+        onSuccess={(data: any) => handleSuccess("Service", data)}
       />
 
       <AddPartModal
         show={showPartModal}
         onHide={() => setShowPartModal(false)}
-        onSuccess={(data: any) => handleSuccess('Part', data)}
+        onSuccess={(data: any) => handleSuccess("Part", data)}
       />
 
       <AddEmployeeModal
         show={showEmployeeModal}
         onHide={() => setShowEmployeeModal(false)}
-        onSuccess={(data: any) => handleSuccess('Employee', data)}
+        onSuccess={(data: any) => handleSuccess("Employee", data)}
       />
 
       <AddAppointmentModal
         show={showAppointmentModal}
         onHide={() => setShowAppointmentModal(false)}
-        onSuccess={(data: any) => handleSuccess('Appointment', data)}
+        onSuccess={(data: any) => handleSuccess("Appointment", data)}
       />
 
       <AddRepairOrderModal
         show={showRepairOrderModal}
         onHide={() => setShowRepairOrderModal(false)}
-        onSuccess={(data: any) => handleSuccess('Repair Order', data)}
+        onSuccess={(data: any) => handleSuccess("Repair Order", data)}
       />
     </Container>
   );

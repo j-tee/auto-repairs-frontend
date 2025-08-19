@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { Modal, Button, Form, Alert } from 'react-bootstrap';
-import type { ShopFormData } from '../../types/entities';
-import { apiPost } from '../../utils/api';
+import React, { useState } from "react";
+import { Modal, Button, Form, Alert } from "react-bootstrap";
+import type { ShopFormData } from "../../types/entities";
+import { apiPost } from "../../utils/api";
 
 interface AddShopModalProps {
   show: boolean;
@@ -15,17 +15,19 @@ export const AddShopModal: React.FC<AddShopModalProps> = ({
   onSuccess,
 }) => {
   const [formData, setFormData] = useState<ShopFormData>({
-    name: '',
-    address: '',
-    phone: '',
-    email: '',
+    name: "",
+    address: "",
+    phone: "",
+    email: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
@@ -37,11 +39,11 @@ export const AddShopModal: React.FC<AddShopModalProps> = ({
     setError(null);
 
     try {
-      const response = await apiPost('/shops/', formData);
+      const response = await apiPost("/shops/", formData);
       onSuccess(response);
       handleClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create shop');
+      setError(err instanceof Error ? err.message : "Failed to create shop");
     } finally {
       setLoading(false);
     }
@@ -49,10 +51,10 @@ export const AddShopModal: React.FC<AddShopModalProps> = ({
 
   const handleClose = () => {
     setFormData({
-      name: '',
-      address: '',
-      phone: '',
-      email: '',
+      name: "",
+      address: "",
+      phone: "",
+      email: "",
     });
     setError(null);
     onHide();
@@ -66,7 +68,7 @@ export const AddShopModal: React.FC<AddShopModalProps> = ({
       <Form onSubmit={handleSubmit}>
         <Modal.Body>
           {error && <Alert variant="danger">{error}</Alert>}
-          
+
           <Form.Group className="mb-3">
             <Form.Label>Shop Name *</Form.Label>
             <Form.Control
@@ -120,7 +122,7 @@ export const AddShopModal: React.FC<AddShopModalProps> = ({
             Cancel
           </Button>
           <Button variant="primary" type="submit" disabled={loading}>
-            {loading ? 'Creating...' : 'Create Shop'}
+            {loading ? "Creating..." : "Create Shop"}
           </Button>
         </Modal.Footer>
       </Form>

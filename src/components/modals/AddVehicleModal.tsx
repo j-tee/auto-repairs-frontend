@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Modal, Button, Form, Alert } from 'react-bootstrap';
-import type { VehicleFormData, Customer } from '../../types/entities';
-import { apiPost, apiGet } from '../../utils/api';
-import { AutomotiveValidation, formatVIN } from '../../utils/validation';
+import React, { useState, useEffect } from "react";
+import { Modal, Button, Form, Alert } from "react-bootstrap";
+import type { VehicleFormData, Customer } from "../../types/entities";
+import { apiPost, apiGet } from "../../utils/api";
+import { AutomotiveValidation, formatVIN } from "../../utils/validation";
 
 interface AddVehicleModalProps {
   show: boolean;
@@ -19,18 +19,20 @@ export const AddVehicleModal: React.FC<AddVehicleModalProps> = ({
 }) => {
   const [formData, setFormData] = useState<VehicleFormData>({
     customer: customerId || 0,
-    make: '',
-    model: '',
+    make: "",
+    model: "",
     year: new Date().getFullYear(),
-    vin: '',
-    license_plate: '',
-    color: '',
+    vin: "",
+    license_plate: "",
+    color: "",
   });
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingCustomers, setLoadingCustomers] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [validationErrors, setValidationErrors] = useState<
+    Record<string, string>
+  >({});
 
   useEffect(() => {
     if (show) {
@@ -40,54 +42,60 @@ export const AddVehicleModal: React.FC<AddVehicleModalProps> = ({
 
   useEffect(() => {
     if (customerId) {
-      setFormData(prev => ({ ...prev, customer: customerId }));
+      setFormData((prev) => ({ ...prev, customer: customerId }));
     }
   }, [customerId]);
 
   const loadCustomers = async () => {
     setLoadingCustomers(true);
     try {
-      const response = await apiGet<Customer[]>('/customers/');
+      const response = await apiGet<Customer[]>("/customers/");
       setCustomers(response);
     } catch (err) {
-      setError('Failed to load customers');
+      setError("Failed to load customers");
     } finally {
       setLoadingCustomers(false);
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
+  ) => {
     const { name, value } = e.target;
     const newFormData = {
       ...formData,
-      [name]: name === 'customer' || name === 'year' ? parseInt(value) : value,
+      [name]: name === "customer" || name === "year" ? parseInt(value) : value,
     };
     setFormData(newFormData);
-    
+
     // Clear validation error for this field when user starts typing
     if (validationErrors[name]) {
-      setValidationErrors(prev => {
+      setValidationErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[name];
         return newErrors;
       });
     }
-    
+
     // Real-time validation for specific fields
-    if (name === 'vin') {
+    if (name === "vin") {
       const vinError = AutomotiveValidation.validateVIN(value);
       if (vinError) {
-        setValidationErrors(prev => ({ ...prev, vin: vinError }));
+        setValidationErrors((prev) => ({ ...prev, vin: vinError }));
       }
-    } else if (name === 'license_plate') {
+    } else if (name === "license_plate") {
       const plateError = AutomotiveValidation.validateLicensePlate(value);
       if (plateError) {
-        setValidationErrors(prev => ({ ...prev, license_plate: plateError }));
+        setValidationErrors((prev) => ({ ...prev, license_plate: plateError }));
       }
-    } else if (name === 'year') {
-      const yearError = AutomotiveValidation.validateVehicleYear(parseInt(value));
+    } else if (name === "year") {
+      const yearError = AutomotiveValidation.validateVehicleYear(
+        parseInt(value)
+      );
       if (yearError) {
-        setValidationErrors(prev => ({ ...prev, year: yearError }));
+        setValidationErrors((prev) => ({ ...prev, year: yearError }));
       }
     }
   };
@@ -98,7 +106,7 @@ export const AddVehicleModal: React.FC<AddVehicleModalProps> = ({
     setError(null);
 
     // Validate form
-    const errors = AutomotiveValidation.validateForm('vehicle', formData);
+    const errors = AutomotiveValidation.validateForm("vehicle", formData);
     if (Object.keys(errors).length > 0) {
       setValidationErrors(errors);
       setLoading(false);
@@ -106,11 +114,11 @@ export const AddVehicleModal: React.FC<AddVehicleModalProps> = ({
     }
 
     try {
-      const response = await apiPost('/vehicles/', formData);
+      const response = await apiPost("/vehicles/", formData);
       onSuccess(response);
       handleClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create vehicle');
+      setError(err instanceof Error ? err.message : "Failed to create vehicle");
     } finally {
       setLoading(false);
     }
@@ -119,12 +127,12 @@ export const AddVehicleModal: React.FC<AddVehicleModalProps> = ({
   const handleClose = () => {
     setFormData({
       customer: customerId || 0,
-      make: '',
-      model: '',
+      make: "",
+      model: "",
       year: new Date().getFullYear(),
-      vin: '',
-      license_plate: '',
-      color: '',
+      vin: "",
+      license_plate: "",
+      color: "",
     });
     setValidationErrors({});
     setError(null);
@@ -142,7 +150,7 @@ export const AddVehicleModal: React.FC<AddVehicleModalProps> = ({
       <Form onSubmit={handleSubmit}>
         <Modal.Body>
           {error && <Alert variant="danger">{error}</Alert>}
-          
+
           <Form.Group className="mb-3">
             <Form.Label>Customer *</Form.Label>
             <Form.Select
@@ -153,7 +161,9 @@ export const AddVehicleModal: React.FC<AddVehicleModalProps> = ({
               disabled={!!customerId || loadingCustomers}
             >
               <option value="">
-                {loadingCustomers ? 'Loading customers...' : 'Select a customer'}
+                {loadingCustomers
+                  ? "Loading customers..."
+                  : "Select a customer"}
               </option>
               {customers.map((customer) => (
                 <option key={customer.id} value={customer.id}>
@@ -201,7 +211,7 @@ export const AddVehicleModal: React.FC<AddVehicleModalProps> = ({
                   value={formData.year}
                   onChange={handleInputChange}
                   required
-                  className={validationErrors.year ? 'is-invalid' : ''}
+                  className={validationErrors.year ? "is-invalid" : ""}
                 >
                   {years.map((year) => (
                     <option key={year} value={year}>
@@ -210,7 +220,9 @@ export const AddVehicleModal: React.FC<AddVehicleModalProps> = ({
                   ))}
                 </Form.Select>
                 {validationErrors.year && (
-                  <div className="invalid-feedback">{validationErrors.year}</div>
+                  <div className="invalid-feedback">
+                    {validationErrors.year}
+                  </div>
                 )}
               </Form.Group>
             </div>
@@ -238,8 +250,14 @@ export const AddVehicleModal: React.FC<AddVehicleModalProps> = ({
               required
               placeholder="Vehicle Identification Number"
               maxLength={17}
-              className={validationErrors.vin ? 'is-invalid' : formData.vin.length === 17 ? 'is-valid' : ''}
-              style={{ textTransform: 'uppercase' }}
+              className={
+                validationErrors.vin
+                  ? "is-invalid"
+                  : formData.vin.length === 17
+                  ? "is-valid"
+                  : ""
+              }
+              style={{ textTransform: "uppercase" }}
             />
             {validationErrors.vin && (
               <div className="invalid-feedback">{validationErrors.vin}</div>
@@ -248,7 +266,8 @@ export const AddVehicleModal: React.FC<AddVehicleModalProps> = ({
               <div className="valid-feedback">VIN format looks good!</div>
             )}
             <Form.Text className="text-muted">
-              17-character Vehicle Identification Number (formatted: {formatVIN(formData.vin)})
+              17-character Vehicle Identification Number (formatted:{" "}
+              {formatVIN(formData.vin)})
             </Form.Text>
           </Form.Group>
 
@@ -260,11 +279,13 @@ export const AddVehicleModal: React.FC<AddVehicleModalProps> = ({
               value={formData.license_plate}
               onChange={handleInputChange}
               placeholder="License plate number"
-              className={validationErrors.license_plate ? 'is-invalid' : ''}
-              style={{ textTransform: 'uppercase' }}
+              className={validationErrors.license_plate ? "is-invalid" : ""}
+              style={{ textTransform: "uppercase" }}
             />
             {validationErrors.license_plate && (
-              <div className="invalid-feedback">{validationErrors.license_plate}</div>
+              <div className="invalid-feedback">
+                {validationErrors.license_plate}
+              </div>
             )}
           </Form.Group>
         </Modal.Body>
@@ -272,8 +293,12 @@ export const AddVehicleModal: React.FC<AddVehicleModalProps> = ({
           <Button variant="secondary" onClick={handleClose}>
             Cancel
           </Button>
-          <Button variant="primary" type="submit" disabled={loading || !formData.customer}>
-            {loading ? 'Creating...' : 'Create Vehicle'}
+          <Button
+            variant="primary"
+            type="submit"
+            disabled={loading || !formData.customer}
+          >
+            {loading ? "Creating..." : "Create Vehicle"}
           </Button>
         </Modal.Footer>
       </Form>

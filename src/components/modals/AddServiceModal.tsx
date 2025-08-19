@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Modal, Button, Form, Alert, InputGroup } from 'react-bootstrap';
-import type { ServiceFormData, Shop } from '../../types/entities';
-import { apiPost, apiGet } from '../../utils/api';
+import React, { useState, useEffect } from "react";
+import { Modal, Button, Form, Alert, InputGroup } from "react-bootstrap";
+import type { ServiceFormData, Shop } from "../../types/entities";
+import { apiPost, apiGet } from "../../utils/api";
 
 interface AddServiceModalProps {
   show: boolean;
@@ -18,8 +18,8 @@ export const AddServiceModal: React.FC<AddServiceModalProps> = ({
 }) => {
   const [formData, setFormData] = useState<ServiceFormData>({
     shop: shopId || 0,
-    name: '',
-    description: '',
+    name: "",
+    description: "",
     labor_cost: 0,
     taxable: true,
     warranty_months: 0,
@@ -37,39 +37,44 @@ export const AddServiceModal: React.FC<AddServiceModalProps> = ({
 
   useEffect(() => {
     if (shopId) {
-      setFormData(prev => ({ ...prev, shop: shopId }));
+      setFormData((prev) => ({ ...prev, shop: shopId }));
     }
   }, [shopId]);
 
   const loadShops = async () => {
     setLoadingShops(true);
     try {
-      const response = await apiGet<Shop[]>('/shops/');
+      const response = await apiGet<Shop[]>("/shops/");
       setShops(response);
     } catch (err) {
-      setError('Failed to load shops');
+      setError("Failed to load shops");
     } finally {
       setLoadingShops(false);
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
+  ) => {
     const { name, value, type } = e.target;
-    
-    if (type === 'checkbox') {
+
+    if (type === "checkbox") {
       const target = e.target as HTMLInputElement;
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         [name]: target.checked,
       }));
     } else {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        [name]: name === 'shop' || name === 'warranty_months' 
-          ? parseInt(value) || 0
-          : name === 'labor_cost'
-          ? parseFloat(value) || 0
-          : value,
+        [name]:
+          name === "shop" || name === "warranty_months"
+            ? parseInt(value) || 0
+            : name === "labor_cost"
+            ? parseFloat(value) || 0
+            : value,
       }));
     }
   };
@@ -80,11 +85,11 @@ export const AddServiceModal: React.FC<AddServiceModalProps> = ({
     setError(null);
 
     try {
-      const response = await apiPost('/services/', formData);
+      const response = await apiPost("/services/", formData);
       onSuccess(response);
       handleClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create service');
+      setError(err instanceof Error ? err.message : "Failed to create service");
     } finally {
       setLoading(false);
     }
@@ -93,8 +98,8 @@ export const AddServiceModal: React.FC<AddServiceModalProps> = ({
   const handleClose = () => {
     setFormData({
       shop: shopId || 0,
-      name: '',
-      description: '',
+      name: "",
+      description: "",
       labor_cost: 0,
       taxable: true,
       warranty_months: 0,
@@ -111,7 +116,7 @@ export const AddServiceModal: React.FC<AddServiceModalProps> = ({
       <Form onSubmit={handleSubmit}>
         <Modal.Body>
           {error && <Alert variant="danger">{error}</Alert>}
-          
+
           <Form.Group className="mb-3">
             <Form.Label>Shop *</Form.Label>
             <Form.Select
@@ -122,7 +127,7 @@ export const AddServiceModal: React.FC<AddServiceModalProps> = ({
               disabled={!!shopId || loadingShops}
             >
               <option value="">
-                {loadingShops ? 'Loading shops...' : 'Select a shop'}
+                {loadingShops ? "Loading shops..." : "Select a shop"}
               </option>
               {shops.map((shop) => (
                 <option key={shop.id} value={shop.id}>
@@ -204,8 +209,12 @@ export const AddServiceModal: React.FC<AddServiceModalProps> = ({
           <Button variant="secondary" onClick={handleClose}>
             Cancel
           </Button>
-          <Button variant="primary" type="submit" disabled={loading || !formData.shop}>
-            {loading ? 'Creating...' : 'Create Service'}
+          <Button
+            variant="primary"
+            type="submit"
+            disabled={loading || !formData.shop}
+          >
+            {loading ? "Creating..." : "Create Service"}
           </Button>
         </Modal.Footer>
       </Form>

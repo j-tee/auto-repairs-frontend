@@ -1,7 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { Modal, Button, Form, Alert } from 'react-bootstrap';
-import type { AppointmentFormData, Vehicle, VehicleProblem, Customer } from '../../types/entities';
-import { apiPost, apiGet } from '../../utils/api';
+import React, { useState, useEffect } from "react";
+import { Modal, Button, Form, Alert } from "react-bootstrap";
+import type {
+  AppointmentFormData,
+  Vehicle,
+  VehicleProblem,
+  Customer,
+} from "../../types/entities";
+import { apiPost, apiGet } from "../../utils/api";
 
 interface AddAppointmentModalProps {
   show: boolean;
@@ -21,11 +26,13 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
   const [formData, setFormData] = useState<AppointmentFormData>({
     vehicle: vehicleId || 0,
     reported_problem: problemId,
-    description: '',
-    date: '',
-    status: 'pending',
+    description: "",
+    date: "",
+    status: "pending",
   });
-  const [vehicles, setVehicles] = useState<(Vehicle & { customer_name: string })[]>([]);
+  const [vehicles, setVehicles] = useState<
+    (Vehicle & { customer_name: string })[]
+  >([]);
   const [problems, setProblems] = useState<VehicleProblem[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
@@ -39,14 +46,14 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
 
   useEffect(() => {
     if (vehicleId) {
-      setFormData(prev => ({ ...prev, vehicle: vehicleId }));
+      setFormData((prev) => ({ ...prev, vehicle: vehicleId }));
       loadProblemsForVehicle(vehicleId);
     }
   }, [vehicleId]);
 
   useEffect(() => {
     if (problemId) {
-      setFormData(prev => ({ ...prev, reported_problem: problemId }));
+      setFormData((prev) => ({ ...prev, reported_problem: problemId }));
     }
   }, [problemId]);
 
@@ -54,22 +61,24 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
     setLoadingData(true);
     try {
       const [vehiclesResponse, customersResponse] = await Promise.all([
-        apiGet<Vehicle[]>('/vehicles/'),
-        apiGet<Customer[]>('/customers/')
+        apiGet<Vehicle[]>("/vehicles/"),
+        apiGet<Customer[]>("/customers/"),
       ]);
-      
+
       // Combine vehicle data with customer names
-      const vehiclesWithCustomers = vehiclesResponse.map(vehicle => {
-        const customer = customersResponse.find(c => c.id === vehicle.customer);
+      const vehiclesWithCustomers = vehiclesResponse.map((vehicle) => {
+        const customer = customersResponse.find(
+          (c) => c.id === vehicle.customer
+        );
         return {
           ...vehicle,
-          customer_name: customer?.name || 'Unknown Customer'
+          customer_name: customer?.name || "Unknown Customer",
         };
       });
-      
+
       setVehicles(vehiclesWithCustomers);
     } catch (err) {
-      setError('Failed to load vehicles');
+      setError("Failed to load vehicles");
     } finally {
       setLoadingData(false);
     }
@@ -77,25 +86,35 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
 
   const loadProblemsForVehicle = async (vehicleId: number) => {
     try {
-      const response = await apiGet<VehicleProblem[]>(`/vehicles/${vehicleId}/problems/`);
-      setProblems(response.filter(p => !p.resolved)); // Only show unresolved problems
+      const response = await apiGet<VehicleProblem[]>(
+        `/vehicles/${vehicleId}/problems/`
+      );
+      setProblems(response.filter((p) => !p.resolved)); // Only show unresolved problems
     } catch (err) {
       // If endpoint doesn't exist, try getting all problems and filter
       try {
-        const allProblems = await apiGet<VehicleProblem[]>('/vehicle-problems/');
-        setProblems(allProblems.filter(p => p.vehicle === vehicleId && !p.resolved));
+        const allProblems = await apiGet<VehicleProblem[]>(
+          "/vehicle-problems/"
+        );
+        setProblems(
+          allProblems.filter((p) => p.vehicle === vehicleId && !p.resolved)
+        );
       } catch {
         setProblems([]);
       }
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
+  ) => {
     const { name, value } = e.target;
-    
-    if (name === 'vehicle') {
+
+    if (name === "vehicle") {
       const vehicleId = parseInt(value) || 0;
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         [name]: vehicleId,
         reported_problem: undefined, // Reset problem when vehicle changes
@@ -106,9 +125,10 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
         setProblems([]);
       }
     } else {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        [name]: name === 'reported_problem' ? (parseInt(value) || undefined) : value,
+        [name]:
+          name === "reported_problem" ? parseInt(value) || undefined : value,
       }));
     }
   };
@@ -119,11 +139,13 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
     setError(null);
 
     try {
-      const response = await apiPost('/appointments/', formData);
+      const response = await apiPost("/appointments/", formData);
       onSuccess(response);
       handleClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create appointment');
+      setError(
+        err instanceof Error ? err.message : "Failed to create appointment"
+      );
     } finally {
       setLoading(false);
     }
@@ -133,9 +155,9 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
     setFormData({
       vehicle: vehicleId || 0,
       reported_problem: problemId,
-      description: '',
-      date: '',
-      status: 'pending',
+      description: "",
+      date: "",
+      status: "pending",
     });
     setProblems([]);
     setError(null);
@@ -143,10 +165,10 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
   };
 
   const statusOptions = [
-    { value: 'pending', label: 'Pending' },
-    { value: 'in_progress', label: 'In Progress' },
-    { value: 'completed', label: 'Completed' },
-    { value: 'cancelled', label: 'Cancelled' },
+    { value: "pending", label: "Pending" },
+    { value: "in_progress", label: "In Progress" },
+    { value: "completed", label: "Completed" },
+    { value: "cancelled", label: "Cancelled" },
   ];
 
   // Generate date/time input default (tomorrow at 9 AM)
@@ -165,7 +187,7 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
       <Form onSubmit={handleSubmit}>
         <Modal.Body>
           {error && <Alert variant="danger">{error}</Alert>}
-          
+
           <Form.Group className="mb-3">
             <Form.Label>Vehicle *</Form.Label>
             <Form.Select
@@ -176,11 +198,12 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
               disabled={!!vehicleId || loadingData}
             >
               <option value="">
-                {loadingData ? 'Loading vehicles...' : 'Select a vehicle'}
+                {loadingData ? "Loading vehicles..." : "Select a vehicle"}
               </option>
               {vehicles.map((vehicle) => (
                 <option key={vehicle.id} value={vehicle.id}>
-                  {vehicle.customer_name} - {vehicle.make} {vehicle.model} ({vehicle.license_plate || vehicle.vin})
+                  {vehicle.customer_name} - {vehicle.make} {vehicle.model} (
+                  {vehicle.license_plate || vehicle.vin})
                 </option>
               ))}
             </Form.Select>
@@ -191,7 +214,7 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
               <Form.Label>Related Problem (Optional)</Form.Label>
               <Form.Select
                 name="reported_problem"
-                value={formData.reported_problem || ''}
+                value={formData.reported_problem || ""}
                 onChange={handleInputChange}
                 disabled={!!problemId}
               >
@@ -199,7 +222,7 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
                 {problems.map((problem) => (
                   <option key={problem.id} value={problem.id}>
                     {problem.description.substring(0, 80)}
-                    {problem.description.length > 80 ? '...' : ''}
+                    {problem.description.length > 80 ? "..." : ""}
                   </option>
                 ))}
               </Form.Select>
@@ -252,8 +275,12 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
           <Button variant="secondary" onClick={handleClose}>
             Cancel
           </Button>
-          <Button variant="primary" type="submit" disabled={loading || !formData.vehicle}>
-            {loading ? 'Scheduling...' : 'Schedule Appointment'}
+          <Button
+            variant="primary"
+            type="submit"
+            disabled={loading || !formData.vehicle}
+          >
+            {loading ? "Scheduling..." : "Schedule Appointment"}
           </Button>
         </Modal.Footer>
       </Form>
