@@ -58,6 +58,14 @@ export const Navigation: React.FC = () => {
             Dashboard
           </Link>
 
+          <Link
+            to="/modals"
+            className={isActiveRoute("/modals") ? "active" : ""}
+            onClick={closeMenus}
+          >
+            Add Data
+          </Link>
+
           {user.role !== "customer" && (
             <Link
               to="/repairs"
@@ -130,18 +138,26 @@ export const Navigation: React.FC = () => {
                 {user.avatar ? (
                   <img
                     src={user.avatar}
-                    alt={`${user.firstName} ${user.lastName}`}
+                    alt={
+                      user.firstName || user.lastName
+                        ? `${user.firstName || ""} ${
+                            user.lastName || ""
+                          }`.trim()
+                        : user.email
+                    }
                   />
                 ) : (
                   <span>
-                    {user.firstName.charAt(0)}
-                    {user.lastName.charAt(0)}
+                    {user.firstName?.charAt(0) || user.email?.charAt(0) || "?"}
+                    {user.lastName?.charAt(0) || ""}
                   </span>
                 )}
               </div>
               <div className="user-details">
                 <span className="user-name">
-                  {user.firstName} {user.lastName}
+                  {user.firstName || user.lastName
+                    ? `${user.firstName || ""} ${user.lastName || ""}`.trim()
+                    : user.email}
                 </span>
                 <span className="user-role">{user.role}</span>
               </div>
@@ -152,7 +168,9 @@ export const Navigation: React.FC = () => {
               <div className="user-menu-header">
                 <div className="user-menu-info">
                   <strong>
-                    {user.firstName} {user.lastName}
+                    {user.firstName || user.lastName
+                      ? `${user.firstName || ""} ${user.lastName || ""}`.trim()
+                      : user.email}
                   </strong>
                   <small>{user.email}</small>
                   <span className={`role-badge ${user.role}`}>{user.role}</span>

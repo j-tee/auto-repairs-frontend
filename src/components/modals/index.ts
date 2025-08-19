@@ -1,0 +1,10 @@
+// Modal exports for easy importing
+export { AddShopModal } from './AddShopModal';
+export { AddCustomerModal } from './AddCustomerModal';
+export { AddVehicleModal } from './AddVehicleModal';
+export { AddVehicleProblemModal } from './AddVehicleProblemModal';
+export { AddServiceModal } from './AddServiceModal';
+export { AddPartModal } from './AddPartModal';
+export { AddEmployeeModal } from './AddEmployeeModal';
+export { AddAppointmentModal } from './AddAppointmentModal';
+export { AddRepairOrderModal } from './AddRepairOrderModal';

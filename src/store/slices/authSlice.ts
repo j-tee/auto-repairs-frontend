@@ -74,7 +74,23 @@ export const loginUser = createAsyncThunk(
       
       // Get user information from a separate endpoint
       try {
-        const user = await apiGet<User>('/auth/user/');
+        const userData = await apiGet<any>('/auth/user/');
+        
+        // Transform Django snake_case fields to frontend camelCase
+        const user: User = {
+          id: userData.id?.toString() || '',
+          email: userData.email || '',
+          firstName: userData.first_name || '',
+          lastName: userData.last_name || '',
+          role: userData.role || 'customer',
+          avatar: userData.avatar,
+          phone: userData.phone,
+          address: userData.address,
+          isActive: userData.is_active ?? true,
+          createdAt: userData.date_joined || new Date().toISOString(),
+          lastLogin: userData.last_login
+        };
+        
         authResponse.user = user;
         localStorage.setItem('user', JSON.stringify(user));
       } catch (userError) {
@@ -218,9 +234,24 @@ export const getCurrentUser = createAsyncThunk(
         throw new Error('No authentication token');
       }
       
-      const user = await apiGet<User>('/auth/user/');
-      localStorage.setItem('user', JSON.stringify(user));
+      const userData = await apiGet<any>('/auth/user/');
       
+      // Transform Django snake_case fields to frontend camelCase
+      const user: User = {
+        id: userData.id?.toString() || '',
+        email: userData.email || '',
+        firstName: userData.first_name || '',
+        lastName: userData.last_name || '',
+        role: userData.role || 'customer',
+        avatar: userData.avatar,
+        phone: userData.phone,
+        address: userData.address,
+        isActive: userData.is_active ?? true,
+        createdAt: userData.date_joined || new Date().toISOString(),
+        lastLogin: userData.last_login
+      };
+      
+      localStorage.setItem('user', JSON.stringify(user));
       return user;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to get user info');

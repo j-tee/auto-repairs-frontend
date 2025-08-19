@@ -9,6 +9,7 @@ import { Navigation } from "./components/navigation/Navigation";
 import { AuthPage } from "./components/auth/AuthPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { DashboardPage } from "./pages/DashboardPage";
+import { ModalsDemo } from "./components/ModalsDemo";
 import { useAuth } from "./hooks/useAuth";
 import "./App.scss";
 import "./styles/watermark.scss";
@@ -31,6 +32,14 @@ const AppContent: React.FC = () => {
             element={
               <ProtectedRoute>
                 <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/modals"
+            element={
+              <ProtectedRoute>
+                <ModalsDemo />
               </ProtectedRoute>
             }
           />
