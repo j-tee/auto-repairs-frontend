@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useAuth } from "../../hooks/useAuth";
-import type { RegisterData, User } from "../../store/slices/authSlice";
+import type { RegisterData, User } from "../../store/slices/autoRepairsSlice";
 import "./auth.scss";
 
 type UserRole = User["role"];

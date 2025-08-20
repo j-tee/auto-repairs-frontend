@@ -36,8 +36,11 @@ export const Navigation: React.FC = () => {
   }
 
   return (
-    <nav className="navigation" style={{ overflow: "visible" }}>
-      <div className="nav-container" style={{ overflow: "visible" }}>
+    <nav
+      className="navigation"
+      style={{ position: "sticky", top: 0, zIndex: 1000 }}
+    >
+      <div className="nav-container">
         {/* Logo/Brand */}
         <div className="nav-brand">
           <Link to="/" onClick={closeMenus}>
@@ -68,17 +71,27 @@ export const Navigation: React.FC = () => {
             className={isActiveRoute("/dashboard") ? "active" : ""}
             onClick={closeMenus}
             style={{
-              color: "rgba(255, 255, 255, 0.9)",
+              color: isActiveRoute("/dashboard")
+                ? "#fff"
+                : "rgba(255, 255, 255, 0.9)",
               textDecoration: "none",
               fontWeight: "600",
               fontSize: "11px",
               padding: "8px 12px",
               borderRadius: "16px",
-              background: "rgba(255, 255, 255, 0.05)",
+              background: isActiveRoute("/dashboard")
+                ? "linear-gradient(135deg, #ff6b35 0%, #f7931e 100%)"
+                : "rgba(255, 255, 255, 0.05)",
               border: "1px solid rgba(255, 255, 255, 0.1)",
               backdropFilter: "blur(5px)",
               whiteSpace: "nowrap",
               flexShrink: 0,
+              transform: isActiveRoute("/dashboard")
+                ? "translateY(-1px)"
+                : "none",
+              boxShadow: isActiveRoute("/dashboard")
+                ? "0 4px 12px rgba(255, 107, 53, 0.3)"
+                : "none",
             }}
           >
             Dashboard
@@ -129,19 +142,12 @@ export const Navigation: React.FC = () => {
                     whiteSpace: "nowrap",
                   }}
                   onClick={() => {
-                    console.log("Customer Management clicked", {
-                      showCustomerMenu,
-                      user: user?.role,
-                    });
                     setShowCustomerMenu(!showCustomerMenu);
                     setShowServiceMenu(false);
                     setShowReportsMenu(false);
                   }}
                 >
                   Customer Mgmt {showCustomerMenu ? "▲" : "▼"}
-                  {showCustomerMenu && (
-                    <span style={{ color: "red" }}> OPEN</span>
-                  )}
                 </button>
                 {showCustomerMenu && (
                   <div
@@ -157,13 +163,6 @@ export const Navigation: React.FC = () => {
                       border: "1px solid #ddd",
                       borderRadius: "8px",
                       boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
-                    }}
-                    ref={(el) => {
-                      if (el)
-                        console.log(
-                          "Customer Management dropdown rendered",
-                          el
-                        );
                     }}
                   >
                     <Link

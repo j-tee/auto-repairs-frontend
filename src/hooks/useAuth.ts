@@ -17,11 +17,11 @@ import {
   type User,
   type PasswordResetRequest,
   type PasswordReset
-} from '../store/slices/authSlice';
+} from '../store/slices/autoRepairsSlice';
 
 export const useAuth = () => {
   const dispatch = useAppDispatch();
-  const auth = useAppSelector(state => state.auth);
+  const auth = useAppSelector(state => state.autoRepairs);
 
   const login = useCallback(async (credentials: LoginCredentials) => {
     return dispatch(loginUser(credentials));

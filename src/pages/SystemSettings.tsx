@@ -33,8 +33,8 @@ export const SystemSettings: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!hasPermission("admin")) {
-      setError("Access denied. Administrator privileges required.");
+    if (!hasPermission("owner")) {
+      setError("Access denied. Owner privileges required.");
       return;
     }
 
@@ -72,13 +72,13 @@ export const SystemSettings: React.FC = () => {
     }
   };
 
-  if (!hasPermission("admin")) {
+  if (!hasPermission("owner")) {
     return (
       <Container className="py-5">
         <Alert variant="danger">
           <h4>Access Denied</h4>
           <p>
-            You don't have permission to access system settings. Administrator
+            You don't have permission to access system settings. Owner
             privileges are required.
           </p>
         </Alert>

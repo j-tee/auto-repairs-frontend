@@ -1,6 +1,6 @@
 import React from "react";
 import { useAuth } from "../hooks/useAuth";
-import type { User } from "../store/slices/authSlice";
+import type { User } from "../store/slices/autoRepairsSlice";
 
 interface PermissionGuardProps {
   children: React.ReactNode;
@@ -29,16 +29,7 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
   fallback = null,
   showError = false,
 }) => {
-  const {
-    user,
-    isOwner,
-    isEmployee,
-    canManageShops,
-    canViewFinancialData,
-    canManageInventory,
-    canManageEmployees,
-    hasPermission,
-  } = useAuth();
+  const { user, hasPermission } = useAuth();
 
   // Check if user is authenticated
   if (!user) {
@@ -64,7 +55,7 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
   }
 
   // Check owner requirement
-  if (requireOwner && !isOwner()) {
+  if (requireOwner && user.role !== "owner") {
     return showError ? (
       <div className="alert alert-danger">
         Access denied. Owner privileges required.
@@ -75,7 +66,7 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
   }
 
   // Check employee requirement (includes owners)
-  if (requireEmployee && !isEmployee()) {
+  if (requireEmployee && user.role !== "employee" && user.role !== "owner") {
     return showError ? (
       <div className="alert alert-danger">
         Access denied. Employee or owner privileges required.
@@ -91,16 +82,18 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
 
     switch (permission) {
       case "canManageShops":
-        hasRequiredPermission = canManageShops();
+        hasRequiredPermission = user.role === "owner";
         break;
       case "canViewFinancialData":
-        hasRequiredPermission = canViewFinancialData();
+        hasRequiredPermission =
+          user.role === "owner" || user.role === "employee";
         break;
       case "canManageInventory":
-        hasRequiredPermission = canManageInventory();
+        hasRequiredPermission =
+          user.role === "owner" || user.role === "employee";
         break;
       case "canManageEmployees":
-        hasRequiredPermission = canManageEmployees();
+        hasRequiredPermission = user.role === "owner";
         break;
       default:
         hasRequiredPermission = false;
@@ -125,30 +118,20 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
  * Hook for conditional logic based on permissions
  */
 export const usePermissions = () => {
-  const {
-    user,
-    isOwner,
-    isEmployee,
-    isCustomer,
-    canManageShops,
-    canViewFinancialData,
-    canManageInventory,
-    canManageEmployees,
-    hasPermission,
-  } = useAuth();
+  const { user, hasPermission } = useAuth();
 
   const permissions = {
     user,
-    // Role checks
-    isOwner: isOwner(),
-    isEmployee: isEmployee(),
-    isCustomer: isCustomer(),
+    // Role checks - using the correct role names and logic
+    isOwner: user?.role === "owner",
+    isEmployee: user?.role === "employee",
+    isCustomer: user?.role === "customer",
 
-    // Permission checks
-    canManageShops: canManageShops(),
-    canViewFinancialData: canViewFinancialData(),
-    canManageInventory: canManageInventory(),
-    canManageEmployees: canManageEmployees(),
+    // Permission checks based on role hierarchy
+    canManageShops: user?.role === "owner", // Only owners can manage shops
+    canViewFinancialData: user?.role === "owner" || user?.role === "employee", // Owners and employees
+    canManageInventory: user?.role === "owner" || user?.role === "employee", // Owners and employees
+    canManageEmployees: user?.role === "owner", // Only owners can manage employees
 
     // Helper functions
     hasRole: (role: User["role"]) => hasPermission(role),
@@ -161,13 +144,13 @@ export const usePermissions = () => {
     ) => {
       switch (permission) {
         case "canManageShops":
-          return canManageShops();
+          return user?.role === "owner";
         case "canViewFinancialData":
-          return canViewFinancialData();
+          return user?.role === "owner" || user?.role === "employee";
         case "canManageInventory":
-          return canManageInventory();
+          return user?.role === "owner" || user?.role === "employee";
         case "canManageEmployees":
-          return canManageEmployees();
+          return user?.role === "owner";
         default:
           return false;
       }

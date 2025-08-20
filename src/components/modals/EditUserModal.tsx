@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Modal, Form, Button, Row, Col, Alert, Spinner } from "react-bootstrap";
 import { UserManagementAPI } from "../../services/userManagementAPI";
 import type { UpdateUserData, AdminUser } from "../../types/userManagement";
-import type { User } from "../../store/slices/authSlice";
+import type { User } from "../../store/slices/autoRepairsSlice";
 
 interface EditUserModalProps {
   show: boolean;

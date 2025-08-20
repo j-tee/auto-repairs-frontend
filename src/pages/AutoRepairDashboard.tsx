@@ -10,11 +10,7 @@ import {
   Tabs,
 } from "react-bootstrap";
 import { useAuth } from "../hooks/useAuth";
-import {
-  CounterComponent,
-  AutoRepairsDashboard,
-  AxiosQueryDemo,
-} from "../components";
+import { AutoRepairsDashboard, AxiosQueryDemo } from "../components";
 import {
   RebuildDashboard,
   DashboardTestComponent,
@@ -185,7 +181,14 @@ export const AutoRepairDashboard: React.FC = () => {
   };
 
   return (
-    <Container fluid className="dashboard-content py-4">
+    <div
+      className="dashboard-content py-4"
+      style={{
+        maxWidth: "1400px",
+        margin: "0 auto",
+        padding: "1.5rem 16px",
+      }}
+    >
       {successMessage && (
         <Alert
           variant="success"
@@ -448,9 +451,6 @@ export const AutoRepairDashboard: React.FC = () => {
             {/* Axios + Query String Demo */}
             <AxiosQueryDemo />
 
-            {/* Redux Counter Component */}
-            <CounterComponent />
-
             {/* Auto Repairs Dashboard Component */}
             <AutoRepairsDashboard />
           </Tab>
@@ -487,7 +487,7 @@ export const AutoRepairDashboard: React.FC = () => {
         onHide={() => setShowProblemModal(false)}
         onSuccess={(data) => handleSuccess("Problem Report", data)}
       />
-    </Container>
+    </div>
   );
 };
 

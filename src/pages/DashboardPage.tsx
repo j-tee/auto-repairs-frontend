@@ -10,11 +10,7 @@ import {
   Tabs,
 } from "react-bootstrap";
 import { useAuth } from "../hooks/useAuth";
-import {
-  CounterComponent,
-  AutoRepairsDashboard,
-  AxiosQueryDemo,
-} from "../components";
+import { AutoRepairsDashboard, AxiosQueryDemo } from "../components";
 import {
   RebuildDashboard,
   DashboardTestComponent,
@@ -175,9 +171,6 @@ export const DashboardPage: React.FC = () => {
 
             {/* Axios + Query String Demo */}
             <AxiosQueryDemo />
-
-            {/* Redux Counter Component */}
-            <CounterComponent />
 
             {/* Auto Repairs Dashboard Component */}
             <AutoRepairsDashboard />

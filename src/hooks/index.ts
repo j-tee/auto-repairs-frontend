@@ -1,4 +1,4 @@
 // Export all hooks from a single location for easier imports
-export { useCounter } from './useCounter';
+export { useAuth } from './useAuth';
 export { useAutoRepairs } from './useAutoRepairs';
-export { useEnhancedAutoRepairs } from './useEnhancedAutoRepairs';
+export { useDashboard } from './useDashboard';

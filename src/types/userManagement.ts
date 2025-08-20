@@ -1,4 +1,4 @@
-import type { User } from '../store/slices/authSlice';
+import type { User } from '../store/slices/autoRepairsSlice';
 
 // Extended user interface for admin management
 export interface AdminUser extends User {

@@ -125,8 +125,15 @@ const RepairJobCard: React.FC<{ job: RepairJob }> = ({ job }) => (
 // Main Dashboard Component
 export const RebuildDashboard: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const { data, isLoading, error, search, loadAll, clearResults } =
-    useDashboard();
+  const {
+    data,
+    isLoading,
+    error,
+    lastSearchQuery,
+    search,
+    loadAll,
+    clearResults,
+  } = useDashboard();
 
   const handleSearch = useCallback(
     async (e: React.FormEvent) => {
@@ -215,8 +222,8 @@ export const RebuildDashboard: React.FC = () => {
                 <div className="mt-4">
                   <div className="d-flex justify-content-between align-items-center mb-3">
                     <h5>
-                      {data.searchQuery ? (
-                        <>Search Results for "{data.searchQuery}"</>
+                      {lastSearchQuery ? (
+                        <>Search Results for "{lastSearchQuery}"</>
                       ) : (
                         <>All Records</>
                       )}
@@ -229,7 +236,7 @@ export const RebuildDashboard: React.FC = () => {
                         Customers: {data.totalCounts.customers}
                       </Badge>
                       <Badge bg="warning">
-                        Jobs: {data.totalCounts.repairJobs}
+                        Jobs: {data.totalCounts.repairOrders}
                       </Badge>
                     </div>
                   </div>
@@ -266,10 +273,10 @@ export const RebuildDashboard: React.FC = () => {
                     {/* Repair Jobs Section */}
                     <div className="col-md-4">
                       <h6 className="border-bottom pb-2">
-                        🔧 Repair Jobs ({data.repairJobs.length})
+                        🔧 Repair Jobs ({data.repairOrders.length})
                       </h6>
-                      {data.repairJobs.length > 0 ? (
-                        data.repairJobs.map((job) => (
+                      {data.repairOrders.length > 0 ? (
+                        data.repairOrders.map((job: any) => (
                           <RepairJobCard key={job.id} job={job} />
                         ))
                       ) : (

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Modal, Form, Button, Row, Col, Alert, Spinner } from "react-bootstrap";
 import { UserManagementAPI } from "../../services/userManagementAPI";
 import type { CreateUserData } from "../../types/userManagement";
-import type { User } from "../../store/slices/authSlice";
+import type { User } from "../../store/slices/autoRepairsSlice";
 
 interface CreateUserModalProps {
   show: boolean;
