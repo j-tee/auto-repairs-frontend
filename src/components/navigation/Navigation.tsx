@@ -4,11 +4,12 @@ import { useAuth } from "../../hooks/useAuth";
 import "./navigation.scss";
 
 export const Navigation: React.FC = () => {
-  const { user, logout, isAdmin, hasPermission } = useAuth();
+  const { user, logout, hasPermission } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showCustomerMenu, setShowCustomerMenu] = useState(false);
   const [showServiceMenu, setShowServiceMenu] = useState(false);
   const [showReportsMenu, setShowReportsMenu] = useState(false);
 
@@ -25,6 +26,7 @@ export const Navigation: React.FC = () => {
   const closeMenus = () => {
     setShowUserMenu(false);
     setShowMobileMenu(false);
+    setShowCustomerMenu(false);
     setShowServiceMenu(false);
     setShowReportsMenu(false);
   };
@@ -34,8 +36,8 @@ export const Navigation: React.FC = () => {
   }
 
   return (
-    <nav className="navigation">
-      <div className="nav-container">
+    <nav className="navigation" style={{ overflow: "visible" }}>
+      <div className="nav-container" style={{ overflow: "visible" }}>
         {/* Logo/Brand */}
         <div className="nav-brand">
           <Link to="/" onClick={closeMenus}>
@@ -53,11 +55,31 @@ export const Navigation: React.FC = () => {
         </button>
 
         {/* Navigation Links */}
-        <div className={`nav-links ${showMobileMenu ? "mobile-open" : ""}`}>
+        <div
+          className={`nav-links ${showMobileMenu ? "mobile-open" : ""}`}
+          style={{
+            overflow: "visible",
+            gap: "2px",
+            flexWrap: "nowrap",
+          }}
+        >
           <Link
             to="/dashboard"
             className={isActiveRoute("/dashboard") ? "active" : ""}
             onClick={closeMenus}
+            style={{
+              color: "rgba(255, 255, 255, 0.9)",
+              textDecoration: "none",
+              fontWeight: "600",
+              fontSize: "11px",
+              padding: "8px 12px",
+              borderRadius: "16px",
+              background: "rgba(255, 255, 255, 0.05)",
+              border: "1px solid rgba(255, 255, 255, 0.1)",
+              backdropFilter: "blur(5px)",
+              whiteSpace: "nowrap",
+              flexShrink: 0,
+            }}
           >
             Dashboard
           </Link>
@@ -73,18 +95,18 @@ export const Navigation: React.FC = () => {
                 My Vehicles
               </Link>
               <Link
-                to="/my-appointments"
-                className={isActiveRoute("/my-appointments") ? "active" : ""}
+                to="/appointments"
+                className={isActiveRoute("/appointments") ? "active" : ""}
                 onClick={closeMenus}
               >
-                My Appointments
+                Appointments
               </Link>
               <Link
                 to="/my-repair-orders"
                 className={isActiveRoute("/my-repair-orders") ? "active" : ""}
                 onClick={closeMenus}
               >
-                My Repair Orders
+                Repair Orders
               </Link>
             </>
           )}
@@ -92,37 +114,106 @@ export const Navigation: React.FC = () => {
           {/* Employee Features */}
           {hasPermission("employee") && (
             <>
-              <div className="nav-dropdown">
+              <div style={{ position: "relative", display: "inline-block" }}>
                 <button
-                  className="nav-dropdown-toggle"
-                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  style={{
+                    background: "rgba(255, 255, 255, 0.05)",
+                    border: "1px solid rgba(255, 255, 255, 0.1)",
+                    color: "rgba(255, 255, 255, 0.9)",
+                    fontWeight: "600",
+                    fontSize: "11px",
+                    padding: "8px 12px",
+                    borderRadius: "16px",
+                    cursor: "pointer",
+                    backdropFilter: "blur(5px)",
+                    whiteSpace: "nowrap",
+                  }}
+                  onClick={() => {
+                    console.log("Customer Management clicked", {
+                      showCustomerMenu,
+                      user: user?.role,
+                    });
+                    setShowCustomerMenu(!showCustomerMenu);
+                    setShowServiceMenu(false);
+                    setShowReportsMenu(false);
+                  }}
                 >
-                  Customer Management ▼
+                  Customer Mgmt {showCustomerMenu ? "▲" : "▼"}
+                  {showCustomerMenu && (
+                    <span style={{ color: "red" }}> OPEN</span>
+                  )}
                 </button>
-                <div
-                  className={`nav-dropdown-menu ${showUserMenu ? "open" : ""}`}
-                >
-                  <Link
-                    to="/customers"
-                    className={isActiveRoute("/customers") ? "active" : ""}
-                    onClick={closeMenus}
+                {showCustomerMenu && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "calc(100% + 8px)",
+                      left: "0",
+                      background: "white",
+                      color: "#333",
+                      padding: "8px 0",
+                      zIndex: 999999,
+                      minWidth: "200px",
+                      border: "1px solid #ddd",
+                      borderRadius: "8px",
+                      boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
+                    }}
+                    ref={(el) => {
+                      if (el)
+                        console.log(
+                          "Customer Management dropdown rendered",
+                          el
+                        );
+                    }}
                   >
-                    Customers
-                  </Link>
-                  <Link
-                    to="/vehicles"
-                    className={isActiveRoute("/vehicles") ? "active" : ""}
-                    onClick={closeMenus}
-                  >
-                    Vehicles
-                  </Link>
-                </div>
+                    <Link
+                      to="/customers"
+                      className={isActiveRoute("/customers") ? "active" : ""}
+                      onClick={closeMenus}
+                      style={{
+                        display: "block",
+                        padding: "12px 16px",
+                        textDecoration: "none",
+                        color: "#333",
+                        borderBottom: "1px solid #eee",
+                      }}
+                    >
+                      👥 Customers
+                    </Link>
+                    <Link
+                      to="/vehicles"
+                      className={isActiveRoute("/vehicles") ? "active" : ""}
+                      onClick={closeMenus}
+                      style={{
+                        display: "block",
+                        padding: "12px 16px",
+                        textDecoration: "none",
+                        color: "#333",
+                      }}
+                    >
+                      🚗 Vehicles
+                    </Link>
+                  </div>
+                )}
               </div>
 
               <Link
                 to="/appointments"
                 className={isActiveRoute("/appointments") ? "active" : ""}
                 onClick={closeMenus}
+                style={{
+                  color: "rgba(255, 255, 255, 0.9)",
+                  textDecoration: "none",
+                  fontWeight: "600",
+                  fontSize: "11px",
+                  padding: "8px 12px",
+                  borderRadius: "16px",
+                  background: "rgba(255, 255, 255, 0.05)",
+                  border: "1px solid rgba(255, 255, 255, 0.1)",
+                  backdropFilter: "blur(5px)",
+                  whiteSpace: "nowrap",
+                  flexShrink: 0,
+                }}
               >
                 Appointments
               </Link>
@@ -131,37 +222,90 @@ export const Navigation: React.FC = () => {
                 to="/repair-orders"
                 className={isActiveRoute("/repair-orders") ? "active" : ""}
                 onClick={closeMenus}
+                style={{
+                  color: "rgba(255, 255, 255, 0.9)",
+                  textDecoration: "none",
+                  fontWeight: "600",
+                  fontSize: "11px",
+                  padding: "8px 12px",
+                  borderRadius: "16px",
+                  background: "rgba(255, 255, 255, 0.05)",
+                  border: "1px solid rgba(255, 255, 255, 0.1)",
+                  backdropFilter: "blur(5px)",
+                  whiteSpace: "nowrap",
+                  flexShrink: 0,
+                }}
               >
                 Repair Orders
               </Link>
 
-              <div className="nav-dropdown">
+              <div style={{ position: "relative", display: "inline-block" }}>
                 <button
-                  className="nav-dropdown-toggle"
-                  onClick={() => setShowServiceMenu(!showServiceMenu)}
+                  style={{
+                    background: "rgba(255, 255, 255, 0.05)",
+                    border: "1px solid rgba(255, 255, 255, 0.1)",
+                    color: "rgba(255, 255, 255, 0.9)",
+                    fontWeight: "600",
+                    fontSize: "11px",
+                    padding: "8px 12px",
+                    borderRadius: "16px",
+                    cursor: "pointer",
+                    backdropFilter: "blur(5px)",
+                    whiteSpace: "nowrap",
+                  }}
+                  onClick={() => {
+                    setShowServiceMenu(!showServiceMenu);
+                    setShowCustomerMenu(false);
+                    setShowReportsMenu(false);
+                  }}
                 >
-                  Services & Parts ▼
+                  Services & Parts {showServiceMenu ? "▲" : "▼"}
                 </button>
-                <div
-                  className={`nav-dropdown-menu ${
-                    showServiceMenu ? "open" : ""
-                  }`}
-                >
-                  <Link
-                    to="/services"
-                    className={isActiveRoute("/services") ? "active" : ""}
-                    onClick={closeMenus}
+                {showServiceMenu && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "calc(100% + 8px)",
+                      left: "0",
+                      background: "white",
+                      color: "#333",
+                      padding: "8px 0",
+                      zIndex: 999999,
+                      minWidth: "200px",
+                      border: "1px solid #ddd",
+                      borderRadius: "8px",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                    }}
                   >
-                    Services
-                  </Link>
-                  <Link
-                    to="/parts"
-                    className={isActiveRoute("/parts") ? "active" : ""}
-                    onClick={closeMenus}
-                  >
-                    Parts
-                  </Link>
-                </div>
+                    <Link
+                      to="/services"
+                      className={isActiveRoute("/services") ? "active" : ""}
+                      onClick={closeMenus}
+                      style={{
+                        display: "block",
+                        padding: "12px 16px",
+                        textDecoration: "none",
+                        color: "#333",
+                        borderBottom: "1px solid #eee",
+                      }}
+                    >
+                      🔧 Services
+                    </Link>
+                    <Link
+                      to="/parts"
+                      className={isActiveRoute("/parts") ? "active" : ""}
+                      onClick={closeMenus}
+                      style={{
+                        display: "block",
+                        padding: "12px 16px",
+                        textDecoration: "none",
+                        color: "#333",
+                      }}
+                    >
+                      🔩 Parts
+                    </Link>
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -173,58 +317,131 @@ export const Navigation: React.FC = () => {
                 to="/employees"
                 className={isActiveRoute("/employees") ? "active" : ""}
                 onClick={closeMenus}
+                style={{
+                  color: "rgba(255, 255, 255, 0.9)",
+                  textDecoration: "none",
+                  fontWeight: "600",
+                  fontSize: "11px",
+                  padding: "8px 12px",
+                  borderRadius: "16px",
+                  background: "rgba(255, 255, 255, 0.05)",
+                  border: "1px solid rgba(255, 255, 255, 0.1)",
+                  backdropFilter: "blur(5px)",
+                  whiteSpace: "nowrap",
+                  flexShrink: 0,
+                }}
               >
                 Employees
               </Link>
 
-              <div className="nav-dropdown">
+              <div style={{ position: "relative", display: "inline-block" }}>
                 <button
-                  className="nav-dropdown-toggle"
-                  onClick={() => setShowReportsMenu(!showReportsMenu)}
+                  style={{
+                    background: "rgba(255, 255, 255, 0.05)",
+                    border: "1px solid rgba(255, 255, 255, 0.1)",
+                    color: "rgba(255, 255, 255, 0.9)",
+                    fontWeight: "600",
+                    fontSize: "11px",
+                    padding: "8px 12px",
+                    borderRadius: "16px",
+                    cursor: "pointer",
+                    backdropFilter: "blur(5px)",
+                    whiteSpace: "nowrap",
+                  }}
+                  onClick={() => {
+                    setShowReportsMenu(!showReportsMenu);
+                    setShowCustomerMenu(false);
+                    setShowServiceMenu(false);
+                  }}
                 >
-                  Reports ▼
+                  Reports {showReportsMenu ? "▲" : "▼"}
                 </button>
-                <div
-                  className={`nav-dropdown-menu ${
-                    showReportsMenu ? "open" : ""
-                  }`}
-                >
-                  <Link
-                    to="/reports/financial"
-                    className={
-                      isActiveRoute("/reports/financial") ? "active" : ""
-                    }
-                    onClick={closeMenus}
+                {showReportsMenu && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "calc(100% + 8px)",
+                      left: "0",
+                      background: "white",
+                      color: "#333",
+                      padding: "8px 0",
+                      zIndex: 999999,
+                      minWidth: "200px",
+                      border: "1px solid #ddd",
+                      borderRadius: "8px",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                    }}
                   >
-                    Financial Reports
-                  </Link>
-                  <Link
-                    to="/reports/customers"
-                    className={
-                      isActiveRoute("/reports/customers") ? "active" : ""
-                    }
-                    onClick={closeMenus}
-                  >
-                    Customer Reports
-                  </Link>
-                  <Link
-                    to="/reports/inventory"
-                    className={
-                      isActiveRoute("/reports/inventory") ? "active" : ""
-                    }
-                    onClick={closeMenus}
-                  >
-                    Inventory Reports
-                  </Link>
-                </div>
+                    <Link
+                      to="/reports/financial"
+                      className={
+                        isActiveRoute("/reports/financial") ? "active" : ""
+                      }
+                      onClick={closeMenus}
+                      style={{
+                        display: "block",
+                        padding: "12px 16px",
+                        textDecoration: "none",
+                        color: "#333",
+                        borderBottom: "1px solid #eee",
+                      }}
+                    >
+                      💰 Financial Reports
+                    </Link>
+                    <Link
+                      to="/reports/customers"
+                      className={
+                        isActiveRoute("/reports/customers") ? "active" : ""
+                      }
+                      onClick={closeMenus}
+                      style={{
+                        display: "block",
+                        padding: "12px 16px",
+                        textDecoration: "none",
+                        color: "#333",
+                        borderBottom: "1px solid #eee",
+                      }}
+                    >
+                      👥 Customer Reports
+                    </Link>
+                    <Link
+                      to="/reports/inventory"
+                      className={
+                        isActiveRoute("/reports/inventory") ? "active" : ""
+                      }
+                      onClick={closeMenus}
+                      style={{
+                        display: "block",
+                        padding: "12px 16px",
+                        textDecoration: "none",
+                        color: "#333",
+                      }}
+                    >
+                      📦 Inventory Reports
+                    </Link>
+                  </div>
+                )}
               </div>
 
               <Link
                 to="/shop-settings"
                 className={isActiveRoute("/shop-settings") ? "active" : ""}
                 onClick={closeMenus}
+                style={{
+                  color: "rgba(255, 255, 255, 0.9)",
+                  textDecoration: "none",
+                  fontWeight: "600",
+                  fontSize: "11px",
+                  padding: "8px 12px",
+                  borderRadius: "16px",
+                  background: "rgba(255, 255, 255, 0.05)",
+                  border: "1px solid rgba(255, 255, 255, 0.1)",
+                  backdropFilter: "blur(5px)",
+                  whiteSpace: "nowrap",
+                  flexShrink: 0,
+                }}
               >
-                Shop Settings
+                Settings
               </Link>
             </>
           )}
