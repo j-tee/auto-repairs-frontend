@@ -13,7 +13,6 @@ import type {
   Vehicle,
   Service,
   Part,
-  Customer,
 } from "../../types/entities";
 import { apiPost, apiGet } from "../../utils/api";
 
@@ -73,30 +72,15 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
   const loadData = async () => {
     setLoadingData(true);
     try {
-      const [
-        vehiclesResponse,
-        customersResponse,
-        servicesResponse,
-        partsResponse,
-      ] = await Promise.all([
-        apiGet<Vehicle[]>("/vehicles/"),
-        apiGet<Customer[]>("/customers/"),
-        apiGet<Service[]>("/services/"),
-        apiGet<Part[]>("/parts/"),
-      ]);
+      const [vehiclesResponse, servicesResponse, partsResponse] =
+        await Promise.all([
+          apiGet<Vehicle[]>("/shop/vehicles/"),
+          apiGet<Service[]>("/shop/services/"),
+          apiGet<Part[]>("/parts/"),
+        ]);
 
-      // Combine vehicle data with customer names
-      const vehiclesWithCustomers = vehiclesResponse.map((vehicle) => {
-        const customer = customersResponse.find(
-          (c) => c.id === vehicle.customer
-        );
-        return {
-          ...vehicle,
-          customer_name: customer?.name || "Unknown Customer",
-        };
-      });
-
-      setVehicles(vehiclesWithCustomers);
+      // ✅ Backend now provides customer_name directly - no need for manual combination!
+      setVehicles(vehiclesResponse as (Vehicle & { customer_name: string })[]);
       setAvailableServices(servicesResponse);
       setAvailableParts(partsResponse.filter((p) => p.stock_quantity > 0)); // Only show parts in stock
     } catch (err) {
@@ -222,7 +206,7 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
         })),
       };
 
-      const response = await apiPost("/repair-orders/", finalFormData);
+      const response = await apiPost("/shop/repair-orders/", finalFormData);
       onSuccess(response);
       handleClose();
     } catch (err) {

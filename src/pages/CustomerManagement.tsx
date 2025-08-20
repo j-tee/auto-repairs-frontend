@@ -37,8 +37,8 @@ export const CustomerManagement: React.FC = () => {
     setLoading(true);
     try {
       const [customersResponse, vehiclesResponse] = await Promise.all([
-        apiGet<Customer[]>("/customers/"),
-        apiGet<Vehicle[]>("/vehicles/"),
+        apiGet<Customer[]>("/shop/customers/"),
+        apiGet<Vehicle[]>("/shop/vehicles/"),
       ]);
 
       setCustomers(customersResponse);

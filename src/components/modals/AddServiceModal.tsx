@@ -85,7 +85,7 @@ export const AddServiceModal: React.FC<AddServiceModalProps> = ({
     setError(null);
 
     try {
-      const response = await apiPost("/services/", formData);
+      const response = await apiPost("/shop/services/", formData);
       onSuccess(response);
       handleClose();
     } catch (err) {

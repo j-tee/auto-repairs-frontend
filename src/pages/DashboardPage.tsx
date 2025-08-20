@@ -1,11 +1,24 @@
 import React, { useState } from "react";
-import { Container, Row, Col, Card, Button, Alert } from "react-bootstrap";
+import {
+  Container,
+  Row,
+  Col,
+  Card,
+  Button,
+  Alert,
+  Tab,
+  Tabs,
+} from "react-bootstrap";
 import { useAuth } from "../hooks/useAuth";
 import {
   CounterComponent,
   AutoRepairsDashboard,
   AxiosQueryDemo,
 } from "../components";
+import {
+  RebuildDashboard,
+  DashboardTestComponent,
+} from "../components/RebuildDashboard";
 import {
   AddCustomerModal,
   AddVehicleModal,
@@ -69,11 +82,7 @@ export const DashboardPage: React.FC = () => {
       ];
     }
 
-    if (
-      user?.role === "mechanic" ||
-      user?.role === "manager" ||
-      user?.role === "admin"
-    ) {
+    if (user?.role === "employee" || user?.role === "owner") {
       return [
         ...commonActions,
         {
@@ -155,16 +164,25 @@ export const DashboardPage: React.FC = () => {
       </Row>
 
       <div style={{ marginTop: "30px" }}>
-        <h2>🏪 Auto Repairs Management System</h2>
+        <Tabs defaultActiveKey="rebuilt" id="dashboard-tabs" className="mb-4">
+          <Tab eventKey="rebuilt" title="🔄 Rebuilt Dashboard">
+            <RebuildDashboard />
+            <DashboardTestComponent />
+          </Tab>
 
-        {/* Axios + Query String Demo */}
-        <AxiosQueryDemo />
+          <Tab eventKey="original" title="📊 Original Dashboard">
+            <h2>🏪 Auto Repairs Management System</h2>
 
-        {/* Redux Counter Component */}
-        <CounterComponent />
+            {/* Axios + Query String Demo */}
+            <AxiosQueryDemo />
 
-        {/* Auto Repairs Dashboard Component */}
-        <AutoRepairsDashboard />
+            {/* Redux Counter Component */}
+            <CounterComponent />
+
+            {/* Auto Repairs Dashboard Component */}
+            <AutoRepairsDashboard />
+          </Tab>
+        </Tabs>
       </div>
 
       {/* Modals */}

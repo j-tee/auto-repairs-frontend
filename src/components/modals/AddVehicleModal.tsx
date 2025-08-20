@@ -49,7 +49,7 @@ export const AddVehicleModal: React.FC<AddVehicleModalProps> = ({
   const loadCustomers = async () => {
     setLoadingCustomers(true);
     try {
-      const response = await apiGet<Customer[]>("/customers/");
+      const response = await apiGet<Customer[]>("/shop/customers/");
       setCustomers(response);
     } catch (err) {
       setError("Failed to load customers");
@@ -114,7 +114,7 @@ export const AddVehicleModal: React.FC<AddVehicleModalProps> = ({
     }
 
     try {
-      const response = await apiPost("/vehicles/", formData);
+      const response = await apiPost("/shop/vehicles/", formData);
       onSuccess(response);
       handleClose();
     } catch (err) {

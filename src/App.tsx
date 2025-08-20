@@ -9,7 +9,17 @@ import { Navigation } from "./components/navigation/Navigation";
 import { AuthPage } from "./components/auth/AuthPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { DashboardPage } from "./pages/DashboardPage";
+import { AutoRepairDashboard } from "./pages/AutoRepairDashboard";
 import { ModalsDemo } from "./components/ModalsDemo";
+import { UserManagement } from "./pages/UserManagement";
+import { SystemSettings } from "./pages/SystemSettings";
+import { ShopManagement } from "./pages/ShopManagement";
+import { FinancialReports } from "./pages/FinancialReports";
+import { VehicleManagement } from "./pages/VehicleManagement";
+import { CustomerManagement } from "./pages/CustomerManagement";
+import { RepairManagement } from "./pages/RepairManagement";
+import { ServiceCatalogManagement } from "./pages/ServiceCatalogManagement";
+import { RBACTestSuite } from "./components/RBACTestSuite";
 import { useAuth } from "./hooks/useAuth";
 import "./App.scss";
 import "./styles/watermark.scss";
@@ -31,6 +41,14 @@ const AppContent: React.FC = () => {
             path="/dashboard"
             element={
               <ProtectedRoute>
+                <AutoRepairDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/legacy-dashboard"
+            element={
+              <ProtectedRoute>
                 <DashboardPage />
               </ProtectedRoute>
             }
@@ -43,83 +61,7 @@ const AppContent: React.FC = () => {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/repairs"
-            element={
-              <ProtectedRoute requiredRole="mechanic">
-                <div style={{ padding: "20px" }}>
-                  <h1>Repairs Management</h1>
-                  <p>Repair tickets and status tracking</p>
-                </div>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/vehicles"
-            element={
-              <ProtectedRoute requiredRole="mechanic">
-                <div style={{ padding: "20px" }}>
-                  <h1>Vehicle Management</h1>
-                  <p>Vehicle information and history</p>
-                </div>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/reports"
-            element={
-              <ProtectedRoute requiredRole="manager">
-                <div style={{ padding: "20px" }}>
-                  <h1>Reports & Analytics</h1>
-                  <p>Business insights and performance metrics</p>
-                </div>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/users"
-            element={
-              <ProtectedRoute requiredRole="admin">
-                <div style={{ padding: "20px" }}>
-                  <h1>User Administration</h1>
-                  <p>Manage users, roles, and permissions</p>
-                </div>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/system"
-            element={
-              <ProtectedRoute requiredRole="admin">
-                <div style={{ padding: "20px" }}>
-                  <h1>System Settings</h1>
-                  <p>Configure system-wide settings</p>
-                </div>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <div style={{ padding: "20px" }}>
-                  <h1>Profile Settings</h1>
-                  <p>Update your personal information</p>
-                </div>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/my-repairs"
-            element={
-              <ProtectedRoute>
-                <div style={{ padding: "20px" }}>
-                  <h1>My Repairs</h1>
-                  <p>Track your repair requests and history</p>
-                </div>
-              </ProtectedRoute>
-            }
-          />
+          {/* Customer Routes */}
           <Route
             path="/my-vehicles"
             element={
@@ -132,6 +74,145 @@ const AppContent: React.FC = () => {
             }
           />
           <Route
+            path="/my-appointments"
+            element={
+              <ProtectedRoute>
+                <div style={{ padding: "20px" }}>
+                  <h1>My Appointments</h1>
+                  <p>View and schedule appointments</p>
+                </div>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-repair-orders"
+            element={
+              <ProtectedRoute>
+                <div style={{ padding: "20px" }}>
+                  <h1>My Repair Orders</h1>
+                  <p>Track your repair orders and history</p>
+                </div>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Employee Routes */}
+          <Route
+            path="/customers"
+            element={
+              <ProtectedRoute requiredRole="employee">
+                <CustomerManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/vehicles"
+            element={
+              <ProtectedRoute requiredRole="employee">
+                <VehicleManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/appointments"
+            element={
+              <ProtectedRoute requiredRole="employee">
+                <div style={{ padding: "20px" }}>
+                  <h1>Appointments</h1>
+                  <p>Manage customer appointments</p>
+                </div>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/repair-orders"
+            element={
+              <ProtectedRoute requiredRole="employee">
+                <RepairManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/services"
+            element={
+              <ProtectedRoute requiredRole="employee">
+                <ServiceCatalogManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/parts"
+            element={
+              <ProtectedRoute requiredRole="employee">
+                <div style={{ padding: "20px" }}>
+                  <h1>Parts Inventory</h1>
+                  <p>Manage parts inventory and orders</p>
+                </div>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Owner Routes */}
+          <Route
+            path="/employees"
+            element={
+              <ProtectedRoute requiredRole="owner">
+                <UserManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports/financial"
+            element={
+              <ProtectedRoute requiredRole="owner">
+                <FinancialReports />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports/customers"
+            element={
+              <ProtectedRoute requiredRole="owner">
+                <div style={{ padding: "20px" }}>
+                  <h1>Customer Reports</h1>
+                  <p>Customer analytics and insights</p>
+                </div>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports/inventory"
+            element={
+              <ProtectedRoute requiredRole="owner">
+                <div style={{ padding: "20px" }}>
+                  <h1>Inventory Reports</h1>
+                  <p>Parts and inventory analytics</p>
+                </div>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/shop-settings"
+            element={
+              <ProtectedRoute requiredRole="owner">
+                <ShopManagement />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Profile and Settings */}
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <div style={{ padding: "20px" }}>
+                  <h1>Profile Settings</h1>
+                  <p>Update your personal information</p>
+                </div>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/settings"
             element={
               <ProtectedRoute>
@@ -139,6 +220,14 @@ const AppContent: React.FC = () => {
                   <h1>Preferences</h1>
                   <p>Customize your app experience</p>
                 </div>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/rbac-test"
+            element={
+              <ProtectedRoute>
+                <RBACTestSuite />
               </ProtectedRoute>
             }
           />

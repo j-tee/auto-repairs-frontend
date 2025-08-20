@@ -39,7 +39,7 @@ export const AddCustomerModal: React.FC<AddCustomerModalProps> = ({
     setError(null);
 
     try {
-      const response = await apiPost("/customers/", formData);
+      const response = await apiPost("/shop/customers/", formData);
       onSuccess(response);
       handleClose();
     } catch (err) {

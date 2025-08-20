@@ -9,6 +9,8 @@ export const Navigation: React.FC = () => {
   const location = useLocation();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showServiceMenu, setShowServiceMenu] = useState(false);
+  const [showReportsMenu, setShowReportsMenu] = useState(false);
 
   const handleLogout = async () => {
     await logout();
@@ -23,6 +25,8 @@ export const Navigation: React.FC = () => {
   const closeMenus = () => {
     setShowUserMenu(false);
     setShowMobileMenu(false);
+    setShowServiceMenu(false);
+    setShowReportsMenu(false);
   };
 
   if (!user) {
@@ -58,71 +62,171 @@ export const Navigation: React.FC = () => {
             Dashboard
           </Link>
 
-          <Link
-            to="/modals"
-            className={isActiveRoute("/modals") ? "active" : ""}
-            onClick={closeMenus}
-          >
-            Add Data
-          </Link>
-
-          {user.role !== "customer" && (
-            <Link
-              to="/repairs"
-              className={isActiveRoute("/repairs") ? "active" : ""}
-              onClick={closeMenus}
-            >
-              Repairs
-            </Link>
-          )}
-
-          {hasPermission("mechanic") && (
-            <Link
-              to="/vehicles"
-              className={isActiveRoute("/vehicles") ? "active" : ""}
-              onClick={closeMenus}
-            >
-              Vehicles
-            </Link>
-          )}
-
-          {hasPermission("manager") && (
-            <Link
-              to="/reports"
-              className={isActiveRoute("/reports") ? "active" : ""}
-              onClick={closeMenus}
-            >
-              Reports
-            </Link>
-          )}
-
-          {isAdmin() && (
-            <div className="nav-dropdown">
-              <button
-                className="nav-dropdown-toggle"
-                onClick={() => setShowUserMenu(!showUserMenu)}
+          {/* Customer Features */}
+          {user.role === "customer" && (
+            <>
+              <Link
+                to="/my-vehicles"
+                className={isActiveRoute("/my-vehicles") ? "active" : ""}
+                onClick={closeMenus}
               >
-                Admin ▼
-              </button>
-              <div
-                className={`nav-dropdown-menu ${showUserMenu ? "open" : ""}`}
+                My Vehicles
+              </Link>
+              <Link
+                to="/my-appointments"
+                className={isActiveRoute("/my-appointments") ? "active" : ""}
+                onClick={closeMenus}
               >
-                <Link
-                  to="/admin/users"
-                  className={isActiveRoute("/admin/users") ? "active" : ""}
-                  onClick={closeMenus}
+                My Appointments
+              </Link>
+              <Link
+                to="/my-repair-orders"
+                className={isActiveRoute("/my-repair-orders") ? "active" : ""}
+                onClick={closeMenus}
+              >
+                My Repair Orders
+              </Link>
+            </>
+          )}
+
+          {/* Employee Features */}
+          {hasPermission("employee") && (
+            <>
+              <div className="nav-dropdown">
+                <button
+                  className="nav-dropdown-toggle"
+                  onClick={() => setShowUserMenu(!showUserMenu)}
                 >
-                  User Management
-                </Link>
-                <Link
-                  to="/admin/system"
-                  className={isActiveRoute("/admin/system") ? "active" : ""}
-                  onClick={closeMenus}
+                  Customer Management ▼
+                </button>
+                <div
+                  className={`nav-dropdown-menu ${showUserMenu ? "open" : ""}`}
                 >
-                  System Settings
-                </Link>
+                  <Link
+                    to="/customers"
+                    className={isActiveRoute("/customers") ? "active" : ""}
+                    onClick={closeMenus}
+                  >
+                    Customers
+                  </Link>
+                  <Link
+                    to="/vehicles"
+                    className={isActiveRoute("/vehicles") ? "active" : ""}
+                    onClick={closeMenus}
+                  >
+                    Vehicles
+                  </Link>
+                </div>
               </div>
-            </div>
+
+              <Link
+                to="/appointments"
+                className={isActiveRoute("/appointments") ? "active" : ""}
+                onClick={closeMenus}
+              >
+                Appointments
+              </Link>
+
+              <Link
+                to="/repair-orders"
+                className={isActiveRoute("/repair-orders") ? "active" : ""}
+                onClick={closeMenus}
+              >
+                Repair Orders
+              </Link>
+
+              <div className="nav-dropdown">
+                <button
+                  className="nav-dropdown-toggle"
+                  onClick={() => setShowServiceMenu(!showServiceMenu)}
+                >
+                  Services & Parts ▼
+                </button>
+                <div
+                  className={`nav-dropdown-menu ${
+                    showServiceMenu ? "open" : ""
+                  }`}
+                >
+                  <Link
+                    to="/services"
+                    className={isActiveRoute("/services") ? "active" : ""}
+                    onClick={closeMenus}
+                  >
+                    Services
+                  </Link>
+                  <Link
+                    to="/parts"
+                    className={isActiveRoute("/parts") ? "active" : ""}
+                    onClick={closeMenus}
+                  >
+                    Parts
+                  </Link>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Owner Features */}
+          {hasPermission("owner") && (
+            <>
+              <Link
+                to="/employees"
+                className={isActiveRoute("/employees") ? "active" : ""}
+                onClick={closeMenus}
+              >
+                Employees
+              </Link>
+
+              <div className="nav-dropdown">
+                <button
+                  className="nav-dropdown-toggle"
+                  onClick={() => setShowReportsMenu(!showReportsMenu)}
+                >
+                  Reports ▼
+                </button>
+                <div
+                  className={`nav-dropdown-menu ${
+                    showReportsMenu ? "open" : ""
+                  }`}
+                >
+                  <Link
+                    to="/reports/financial"
+                    className={
+                      isActiveRoute("/reports/financial") ? "active" : ""
+                    }
+                    onClick={closeMenus}
+                  >
+                    Financial Reports
+                  </Link>
+                  <Link
+                    to="/reports/customers"
+                    className={
+                      isActiveRoute("/reports/customers") ? "active" : ""
+                    }
+                    onClick={closeMenus}
+                  >
+                    Customer Reports
+                  </Link>
+                  <Link
+                    to="/reports/inventory"
+                    className={
+                      isActiveRoute("/reports/inventory") ? "active" : ""
+                    }
+                    onClick={closeMenus}
+                  >
+                    Inventory Reports
+                  </Link>
+                </div>
+              </div>
+
+              <Link
+                to="/shop-settings"
+                className={isActiveRoute("/shop-settings") ? "active" : ""}
+                onClick={closeMenus}
+              >
+                Shop Settings
+              </Link>
+            </>
           )}
         </div>
 

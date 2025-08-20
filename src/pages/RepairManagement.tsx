@@ -21,40 +21,34 @@ import type {
   Customer,
 } from "../types/entities";
 import { apiGet } from "../utils/api";
-import {
-  AddRepairOrderModal,
-  AddAppointmentModal,
-  AddServiceModal,
-} from "../components/modals";
 
-export const ServiceManagement: React.FC = () => {
-  console.log("ServiceManagement component rendering...");
+export const RepairManagement: React.FC = () => {
   const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // State for data
   const [repairOrders, setRepairOrders] = useState<RepairOrder[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  // Note: customers array still loaded for potential future use
-  const [, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<string>("repair-orders");
+  const [customers, setCustomers] = useState<Customer[]>([]);
 
   // Modal states
   const [showRepairOrderModal, setShowRepairOrderModal] = useState(false);
   const [showAppointmentModal, setShowAppointmentModal] = useState(false);
-  const [showServiceModal, setShowServiceModal] = useState(false);
 
   useEffect(() => {
-    console.log("ServiceManagement component mounted, calling loadData...");
     loadData();
   }, []);
 
   const loadData = async () => {
-    setLoading(true);
     try {
-      console.log("Loading ServiceManagement data...");
+      setLoading(true);
+      setError(null);
+
+      console.log("RepairManagement component mounting...");
       console.log("Auth token:", localStorage.getItem("auth_token"));
       console.log("User data:", localStorage.getItem("user_data"));
 
@@ -72,7 +66,7 @@ export const ServiceManagement: React.FC = () => {
         apiGet<Customer[]>("/shop/customers/"),
       ]);
 
-      console.log("ServiceManagement API responses:", {
+      console.log("RepairManagement API responses:", {
         repairOrders: repairOrdersResponse.length,
         appointments: appointmentsResponse.length,
         services: servicesResponse.length,
@@ -95,7 +89,7 @@ export const ServiceManagement: React.FC = () => {
       setVehicles(vehiclesResponse);
       setCustomers(customersResponse);
     } catch (err) {
-      console.error("ServiceManagement loadData error:", err);
+      console.error("RepairManagement loadData error:", err);
       setError(
         `Failed to load data: ${
           err instanceof Error ? err.message : "Unknown error"
@@ -146,7 +140,7 @@ export const ServiceManagement: React.FC = () => {
         <Spinner animation="border" role="status">
           <span className="visually-hidden">Loading...</span>
         </Spinner>
-        <p className="mt-2">Loading service data...</p>
+        <p className="mt-2">Loading repair data...</p>
       </Container>
     );
   }
@@ -171,94 +165,69 @@ export const ServiceManagement: React.FC = () => {
 
       <Row className="mb-4">
         <Col>
-          <div className="d-flex justify-content-between align-items-center">
-            <h1 className="mb-0">🔧 Service Management</h1>
-            <div className="d-flex gap-2">
-              <Button
-                variant="info"
-                onClick={() => setShowServiceModal(true)}
-                className="d-flex align-items-center gap-2"
-              >
-                ⚙️ Add Service
-              </Button>
-              <Button
-                variant="primary"
-                onClick={() => setShowAppointmentModal(true)}
-                className="d-flex align-items-center gap-2"
-              >
-                📅 Schedule Appointment
-              </Button>
-              <Button
-                variant="success"
-                onClick={() => setShowRepairOrderModal(true)}
-                className="d-flex align-items-center gap-2"
-              >
-                📋 Create Repair Order
-              </Button>
-            </div>
-          </div>
+          <h1 className="mb-0">🔧 Repair Management</h1>
+          <p className="text-muted">Manage repair orders and appointments</p>
         </Col>
       </Row>
 
-      {/* Statistics Cards */}
+      {/* Summary Cards */}
       <Row className="mb-4">
         <Col md={3}>
           <Card className="text-center">
             <Card.Body>
-              <h3 className="text-warning">
-                {repairOrders.filter((ro) => ro.status === "pending").length}
-              </h3>
-              <p className="mb-0">Pending Orders</p>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="text-center">
-            <Card.Body>
-              <h3 className="text-primary">
+              <h3 className="text-warning mb-1">
                 {
-                  repairOrders.filter((ro) => ro.status === "in_progress")
+                  repairOrders.filter((order) => order.status === "pending")
                     .length
                 }
               </h3>
-              <p className="mb-0">In Progress</p>
+              <Card.Text>Pending Orders</Card.Text>
             </Card.Body>
           </Card>
         </Col>
         <Col md={3}>
           <Card className="text-center">
             <Card.Body>
-              <h3 className="text-info">
+              <h3 className="text-primary mb-1">
+                {
+                  repairOrders.filter((order) => order.status === "in_progress")
+                    .length
+                }
+              </h3>
+              <Card.Text>In Progress</Card.Text>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col md={3}>
+          <Card className="text-center">
+            <Card.Body>
+              <h3 className="text-info mb-1">
                 {appointments.filter((apt) => apt.status === "pending").length}
               </h3>
-              <p className="mb-0">Pending</p>
+              <Card.Text>Pending</Card.Text>
             </Card.Body>
           </Card>
         </Col>
         <Col md={3}>
           <Card className="text-center">
             <Card.Body>
-              <h3 className="text-success">{services.length}</h3>
-              <p className="mb-0">Available Services</p>
+              <h3 className="text-success mb-1">0</h3>
+              <Card.Text>Available Services</Card.Text>
             </Card.Body>
           </Card>
         </Col>
       </Row>
 
-      {/* Tabs for different views */}
-      <Tabs
-        activeKey={activeTab}
-        onSelect={(k) => setActiveTab(k || "repair-orders")}
-        className="mb-4"
-      >
+      {/* Main Content Tabs */}
+      <Tabs defaultActiveKey="repair-orders" className="mb-3">
         <Tab eventKey="repair-orders" title="🔧 Repair Orders">
           <Card>
-            <Card.Body className="p-0">
+            <Card.Body>
               {repairOrders.length === 0 ? (
                 <div className="text-center py-5">
                   <h5>No repair orders yet</h5>
                   <p className="text-muted">
-                    Start by creating your first repair order!
+                    Create your first repair order to get started.
                   </p>
                   <Button
                     variant="success"
@@ -315,29 +284,23 @@ export const ServiceManagement: React.FC = () => {
                             : "N/A"}
                         </td>
                         <td>
-                          <div className="d-flex gap-1">
-                            <Button
-                              size="sm"
-                              variant="outline-primary"
-                              title="View Details"
-                            >
-                              👁️
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline-warning"
-                              title="Edit Order"
-                            >
-                              ✏️
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline-success"
-                              title="Update Status"
-                            >
-                              🔄
-                            </Button>
-                          </div>
+                          <Button
+                            variant="outline-primary"
+                            size="sm"
+                            className="me-1"
+                          >
+                            👁️
+                          </Button>
+                          <Button variant="outline-secondary" size="sm">
+                            🗑️
+                          </Button>
+                          <Button
+                            variant="outline-success"
+                            size="sm"
+                            className="ms-1"
+                          >
+                            ✓
+                          </Button>
                         </td>
                       </tr>
                     ))}
@@ -350,13 +313,15 @@ export const ServiceManagement: React.FC = () => {
 
         <Tab eventKey="appointments" title="📅 Appointments">
           <Card>
-            <Card.Body className="p-0">
+            <Card.Body>
               {appointments.length === 0 ? (
                 <div className="text-center py-5">
                   <h5>No appointments scheduled</h5>
-                  <p className="text-muted">Schedule the first appointment!</p>
+                  <p className="text-muted">
+                    Schedule the first appointment to get started.
+                  </p>
                   <Button
-                    variant="primary"
+                    variant="success"
                     onClick={() => setShowAppointmentModal(true)}
                   >
                     Schedule First Appointment
@@ -408,41 +373,25 @@ export const ServiceManagement: React.FC = () => {
                               : "PENDING"}
                           </Badge>
                         </td>
+                        <td>{appointment.notes || "No notes"}</td>
                         <td>
-                          {appointment.notes ? (
-                            <span title={appointment.notes}>
-                              {appointment.notes.length > 30
-                                ? `${appointment.notes.substring(0, 30)}...`
-                                : appointment.notes}
-                            </span>
-                          ) : (
-                            <span className="text-muted">No notes</span>
-                          )}
-                        </td>
-                        <td>
-                          <div className="d-flex gap-1">
-                            <Button
-                              size="sm"
-                              variant="outline-primary"
-                              title="View Details"
-                            >
-                              👁️
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline-warning"
-                              title="Reschedule"
-                            >
-                              📅
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline-success"
-                              title="Complete"
-                            >
-                              ✅
-                            </Button>
-                          </div>
+                          <Button
+                            variant="outline-primary"
+                            size="sm"
+                            className="me-1"
+                          >
+                            👁️
+                          </Button>
+                          <Button variant="outline-secondary" size="sm">
+                            🗑️
+                          </Button>
+                          <Button
+                            variant="outline-success"
+                            size="sm"
+                            className="ms-1"
+                          >
+                            ✓
+                          </Button>
                         </td>
                       </tr>
                     ))}
@@ -452,111 +401,7 @@ export const ServiceManagement: React.FC = () => {
             </Card.Body>
           </Card>
         </Tab>
-
-        <Tab eventKey="services" title="⚙️ Services">
-          <Row>
-            {services.length === 0 ? (
-              <Col>
-                <Card>
-                  <Card.Body className="text-center py-5">
-                    <h5>No services defined</h5>
-                    <p className="text-muted">
-                      Add your first service offering!
-                    </p>
-                    <Button
-                      variant="info"
-                      onClick={() => setShowServiceModal(true)}
-                    >
-                      Add First Service
-                    </Button>
-                  </Card.Body>
-                </Card>
-              </Col>
-            ) : (
-              services.map((service) => (
-                <Col key={service.id} md={6} lg={4} className="mb-4">
-                  <Card className="h-100">
-                    <Card.Header className="bg-info text-white">
-                      <h6 className="mb-0">⚙️ {service.name}</h6>
-                    </Card.Header>
-                    <Card.Body>
-                      <div className="mb-3">
-                        <h4 className="text-success">
-                          $
-                          {service.price
-                            ? parseFloat(service.price.toString()).toFixed(2)
-                            : service.labor_cost
-                            ? parseFloat(service.labor_cost).toFixed(2)
-                            : "0.00"}
-                        </h4>
-                      </div>
-                      {service.description && (
-                        <p className="text-muted">{service.description}</p>
-                      )}
-                      <div className="mb-2">
-                        <small className="text-muted">
-                          <strong>Category:</strong>{" "}
-                          {service.category || "General"}
-                        </small>
-                      </div>
-                    </Card.Body>
-                    <Card.Footer className="bg-light">
-                      <div className="d-flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline-primary"
-                          className="flex-grow-1"
-                        >
-                          📅 Schedule
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline-secondary"
-                          title="Edit Service"
-                        >
-                          ✏️
-                        </Button>
-                      </div>
-                    </Card.Footer>
-                  </Card>
-                </Col>
-              ))
-            )}
-          </Row>
-        </Tab>
       </Tabs>
-
-      {/* Role-based access information */}
-      {user?.role === "customer" && (
-        <Row className="mt-4">
-          <Col>
-            <Alert variant="info">
-              <strong>Customer View:</strong> You can view your appointments and
-              service history. Contact us to schedule new services or check
-              repair order status.
-            </Alert>
-          </Col>
-        </Row>
-      )}
-
-      {/* Modals */}
-      <AddServiceModal
-        show={showServiceModal}
-        onHide={() => setShowServiceModal(false)}
-        onSuccess={(data) => handleSuccess("Service", data)}
-      />
-
-      <AddAppointmentModal
-        show={showAppointmentModal}
-        onHide={() => setShowAppointmentModal(false)}
-        onSuccess={(data) => handleSuccess("Appointment", data)}
-      />
-
-      <AddRepairOrderModal
-        show={showRepairOrderModal}
-        onHide={() => setShowRepairOrderModal(false)}
-        onSuccess={(data) => handleSuccess("Repair Order", data)}
-      />
     </Container>
   );
 };

@@ -69,15 +69,15 @@ export const useAuth = () => {
 
   // Helper functions
   const isAdmin = useCallback(() => {
-    return auth.user?.role === 'admin';
+    return auth.user?.role === 'owner';
   }, [auth.user]);
 
   const isManager = useCallback(() => {
-    return auth.user?.role === 'manager' || auth.user?.role === 'admin';
+    return auth.user?.role === 'employee' || auth.user?.role === 'owner';
   }, [auth.user]);
 
   const isMechanic = useCallback(() => {
-    return auth.user?.role === 'mechanic' || auth.user?.role === 'manager' || auth.user?.role === 'admin';
+    return auth.user?.role === 'employee' || auth.user?.role === 'owner';
   }, [auth.user]);
 
   const hasPermission = useCallback((requiredRole: User['role']) => {
@@ -85,9 +85,8 @@ export const useAuth = () => {
     
     const roleHierarchy = {
       'customer': 0,
-      'mechanic': 1,
-      'manager': 2,
-      'admin': 3
+      'employee': 1,
+      'owner': 2
     };
     
     return roleHierarchy[auth.user.role] >= roleHierarchy[requiredRole];

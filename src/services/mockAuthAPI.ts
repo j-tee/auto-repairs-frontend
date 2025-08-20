@@ -6,7 +6,7 @@ export interface MockUser {
   email: string;
   firstName: string;
   lastName: string;
-  role: 'admin' | 'manager' | 'mechanic' | 'customer';
+  role: 'owner' | 'employee' | 'customer';
   avatar?: string;
   phone?: string;
   address?: string;
@@ -33,30 +33,30 @@ export interface MockRegisterData {
 const mockUsers: MockUser[] = [
   {
     id: '1',
-    email: 'admin@autorepairs.com',
+    email: 'owner@autorepairshop.com',
     firstName: 'John',
-    lastName: 'Admin',
-    role: 'admin',
+    lastName: 'Owner',
+    role: 'owner',
     isActive: true,
     createdAt: '2024-01-01T00:00:00Z',
     lastLogin: new Date().toISOString(),
   },
   {
     id: '2',
-    email: 'manager@autorepairs.com',
-    firstName: 'Sarah',
-    lastName: 'Manager',
-    role: 'manager',
+    email: 'john.mechanic@autorepair.com',
+    firstName: 'John',
+    lastName: 'Mechanic',
+    role: 'employee',
     isActive: true,
     createdAt: '2024-01-01T00:00:00Z',
     lastLogin: new Date().toISOString(),
   },
   {
     id: '3',
-    email: 'mechanic@autorepairs.com',
-    firstName: 'Mike',
-    lastName: 'Mechanic',
-    role: 'mechanic',
+    email: 'alice.cooper@customer.com',
+    firstName: 'Alice',
+    lastName: 'Cooper',
+    role: 'customer',
     isActive: true,
     createdAt: '2024-01-01T00:00:00Z',
     lastLogin: new Date().toISOString(),
@@ -205,8 +205,7 @@ export const mockAuthAPI = {
 
 // Demo credentials for easy testing
 export const demoCredentials = {
-  admin: { email: 'admin@autorepairs.com', password: 'admin123' },
-  manager: { email: 'manager@autorepairs.com', password: 'manager123' },
-  mechanic: { email: 'mechanic@autorepairs.com', password: 'mechanic123' },
-  customer: { email: 'customer@autorepairs.com', password: 'customer123' },
+  owner: { email: 'owner@autorepairshop.com', password: 'owner123' },
+  employee: { email: 'john.mechanic@autorepair.com', password: 'password123' },
+  customer: { email: 'alice.cooper@customer.com', password: 'password123' },
 };

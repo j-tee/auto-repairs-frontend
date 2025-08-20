@@ -32,7 +32,10 @@ export interface Customer {
 
 export interface Vehicle {
   id?: number;
-  customer: number; // Foreign key to Customer
+  customer: number | object; // Foreign key to Customer OR full customer object from backend
+  customer_name?: string; // ✅ Backend-provided customer name (use this!)
+  customer_email?: string; // ✅ Backend-provided customer email
+  customer_phone?: string; // ✅ Backend-provided customer phone
   make: string;
   model: string;
   year: number;
@@ -54,7 +57,9 @@ export interface Service {
   shop: number; // Foreign key to Shop
   name: string;
   description?: string;
+  category?: string; // Service category
   labor_cost: string; // Decimal field as string
+  price?: string; // Alternative price field (may be same as labor_cost)
   taxable: boolean;
   warranty_months: number;
 }
@@ -80,6 +85,9 @@ export interface Appointment {
   reported_problem?: number; // Foreign key to VehicleProblem
   description?: string;
   date: string;
+  time?: string; // Time field for appointments
+  service?: number; // Foreign key to Service
+  notes?: string; // Notes field for appointments
   status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
 }
 
@@ -92,7 +100,9 @@ export interface RepairOrder {
   discount_percent: string; // Decimal field as string
   tax_percent: string; // Decimal field as string
   total_cost: string; // Decimal field as string
+  status: 'pending' | 'in_progress' | 'completed' | 'cancelled'; // Status field
   date_created?: string;
+  created_date?: string; // Alternative date field name
   notes?: string;
 }
 

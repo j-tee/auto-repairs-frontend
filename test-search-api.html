@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Search API</title>
+</head>
+<body>
+    <h1>Search API Test</h1>
+    <button onclick="testSearch()">Test Toyota Search</button>
+    <div id="results"></div>
+
+    <script>
+        async function testSearch() {
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                document.getElementById('results').innerHTML = 'No auth token found. Please login first.';
+                return;
+            }
+
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = 'Testing...';
+
+            try {
+                // Test 1: Individual vehicle search
+                console.log('Testing vehicle search...');
+                const vehicleResponse = await fetch('http://127.0.0.1:8000/api/shop/vehicles?search=toyota', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                let html = '<h2>Results:</h2>';
+
+                if (vehicleResponse.ok) {
+                    const vehicles = await vehicleResponse.json();
+                    console.log('Vehicle search response:', vehicles);
+                    
+                    html += `<h3>Vehicle Search (/shop/vehicles?search=toyota)</h3>`;
+                    html += `<p>Count: ${vehicles.length}</p>`;
+                    html += '<ul>';
+                    vehicles.forEach(v => {
+                        html += `<li>${v.year} ${v.make} ${v.model} - Customer: ${v.customer_name || 'Unknown'}</li>`;
+                    });
+                    html += '</ul>';
+                } else {
+                    html += `<p>Vehicle search failed: ${vehicleResponse.status} ${vehicleResponse.statusText}</p>`;
+                }
+
+                // Test 2: Global search
+                try {
+                    console.log('Testing global search...');
+                    const globalResponse = await fetch('http://127.0.0.1:8000/api/shop/search/?q=toyota', {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (globalResponse.ok) {
+                        const globalResults = await globalResponse.json();
+                        console.log('Global search response:', globalResults);
+                        
+                        html += `<h3>Global Search (/shop/search/?q=toyota)</h3>`;
+                        html += `<p>Total Results: ${globalResults.total_results || 'N/A'}</p>`;
+                        
+                        if (globalResults.vehicles) {
+                            html += `<p>Vehicles: ${globalResults.vehicles.length}</p>`;
+                            html += '<ul>';
+                            globalResults.vehicles.forEach(v => {
+                                html += `<li>${v.year} ${v.make} ${v.model} - Customer: ${v.customer_name || 'Unknown'}</li>`;
+                            });
+                            html += '</ul>';
+                        }
+                    } else {
+                        html += `<p>Global search failed: ${globalResponse.status} ${globalResponse.statusText}</p>`;
+                    }
+                } catch (error) {
+                    html += `<p>Global search error: ${error.message}</p>`;
+                }
+
+                resultsDiv.innerHTML = html;
+
+            } catch (error) {
+                console.error('Test error:', error);
+                resultsDiv.innerHTML = `Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

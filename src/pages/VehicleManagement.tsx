@@ -46,20 +46,21 @@ export const VehicleManagement: React.FC = () => {
     setLoading(true);
     try {
       const [vehiclesResponse, customersResponse] = await Promise.all([
-        apiGet<Vehicle[]>("/vehicles/"),
-        apiGet<Customer[]>("/customers/"),
+        apiGet<Vehicle[]>("/shop/vehicles/"),
+        apiGet<Customer[]>("/shop/customers/"),
       ]);
 
       setCustomers(customersResponse);
 
-      // Combine vehicle data with customer names
+      // Debug: Log data to see new structure
+      console.log("Loaded vehicles:", vehiclesResponse.length);
+      console.log("First vehicle data:", vehiclesResponse[0]);
+
+      // ✅ Backend now provides customer_name directly - no need for complex lookup!
       const vehiclesWithCustomers = vehiclesResponse.map((vehicle) => {
-        const customer = customersResponse.find(
-          (c) => c.id === vehicle.customer
-        );
         return {
           ...vehicle,
-          customer_name: customer?.name || "Unknown Customer",
+          customer_name: vehicle.customer_name || "Unknown Customer", // Use backend-provided customer_name
         };
       });
 

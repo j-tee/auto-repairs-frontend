@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Direct API Test</title>
+</head>
+<body>
+    <h1>Direct API Test</h1>
+    <button onclick="testDirectAPI()">Test Direct API Call</button>
+    <div id="results"></div>
+
+    <script>
+        async function testDirectAPI() {
+            const token = localStorage.getItem('auth_token');
+            const resultsDiv = document.getElementById('results');
+            
+            if (!token) {
+                resultsDiv.innerHTML = 'No auth token found. Please login first.';
+                return;
+            }
+
+            resultsDiv.innerHTML = 'Testing...';
+            
+            try {
+                // Test the exact same call our service makes
+                const url = 'http://127.0.0.1:8000/api/shop/vehicles?search=toyota&_t=' + Date.now();
+                console.log('🌐 Testing URL:', url);
+                
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                console.log('📡 Response status:', response.status);
+                console.log('📡 Response headers:', [...response.headers.entries()]);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('📦 Response data:', data);
+                    
+                    let html = `<h2>API Response</h2>`;
+                    html += `<p><strong>URL:</strong> ${url}</p>`;
+                    html += `<p><strong>Status:</strong> ${response.status}</p>`;
+                    html += `<p><strong>Vehicle Count:</strong> ${data.length}</p>`;
+                    
+                    if (data.length > 0) {
+                        html += `<h3>Vehicles Found:</h3><ul>`;
+                        data.forEach(vehicle => {
+                            html += `<li>${vehicle.year} ${vehicle.make} ${vehicle.model} (ID: ${vehicle.id})</li>`;
+                        });
+                        html += `</ul>`;
+                        
+                        if (data.length === 1 && data[0].make === 'Toyota') {
+                            html += `<p style="color: green;"><strong>✅ CORRECT: Only Toyota found!</strong></p>`;
+                        } else {
+                            html += `<p style="color: red;"><strong>❌ WRONG: Expected 1 Toyota, got ${data.length} vehicles</strong></p>`;
+                        }
+                    } else {
+                        html += `<p>No vehicles found</p>`;
+                    }
+                    
+                    resultsDiv.innerHTML = html;
+                } else {
+                    const errorText = await response.text();
+                    resultsDiv.innerHTML = `<p style="color: red;">Error: ${response.status} ${response.statusText}<br>${errorText}</p>`;
+                }
+                
+            } catch (error) {
+                console.error('Test error:', error);
+                resultsDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

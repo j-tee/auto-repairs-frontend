@@ -1,10 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Modal, Button, Form, Alert } from "react-bootstrap";
-import type {
-  VehicleProblemFormData,
-  Vehicle,
-  Customer,
-} from "../../types/entities";
+import type { VehicleProblemFormData, Vehicle } from "../../types/entities";
 import { apiPost, apiGet } from "../../utils/api";
 
 interface AddVehicleProblemModalProps {
@@ -47,22 +43,11 @@ export const AddVehicleProblemModal: React.FC<AddVehicleProblemModalProps> = ({
   const loadVehicles = async () => {
     setLoadingData(true);
     try {
-      const [vehiclesResponse, customersResponse] = await Promise.all([
-        apiGet<Vehicle[]>("/vehicles/"),
-        apiGet<Customer[]>("/customers/"),
-      ]);
+      // ✅ Backend now provides customer_name directly - no need for separate customer API call!
+      const vehiclesResponse = await apiGet<Vehicle[]>("/shop/vehicles/");
 
-      const vehiclesWithCustomers = vehiclesResponse.map((vehicle) => {
-        const customer = customersResponse.find(
-          (c) => c.id === vehicle.customer
-        );
-        return {
-          ...vehicle,
-          customer_name: customer?.name || "Unknown Customer",
-        };
-      });
-
-      setVehicles(vehiclesWithCustomers);
+      // Backend provides customer_name, customer_email, customer_phone directly
+      setVehicles(vehiclesResponse as (Vehicle & { customer_name: string })[]);
     } catch (err) {
       setError("Failed to load vehicles");
     } finally {
