@@ -20,6 +20,7 @@ import { ServiceCatalogManagement } from "./pages/ServiceCatalogManagement";
 import { useAuth } from "./hooks/useAuth";
 import { useAppDispatch } from "./store";
 import { initializeAuth } from "./store/slices/autoRepairsSlice";
+import { displayEnvironmentStatus } from "./utils/environmentConfig";
 import "./App.scss";
 import "./styles/watermark.scss";
 
@@ -31,6 +32,11 @@ const AppContent: React.FC = () => {
   // Initialize authentication state from localStorage on app start
   useEffect(() => {
     dispatch(initializeAuth());
+
+    // Display environment status in development
+    if (import.meta.env.DEV) {
+      displayEnvironmentStatus();
+    }
   }, [dispatch]);
 
   return (

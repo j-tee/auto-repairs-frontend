@@ -186,14 +186,14 @@ export const refreshToken = createAsyncThunk(
       
       if (response.access) {
         setAuthToken(response.access);
-        localStorage.setItem('token', response.access);
+        localStorage.setItem('auth_token', response.access);
         return { token: response.access };
       }
       
       throw new Error('Invalid response format');
     } catch (error: any) {
       removeAuthToken();
-      localStorage.removeItem('token');
+      localStorage.removeItem('auth_token');
       localStorage.removeItem('refreshToken');
       return rejectWithValue(error.response?.data?.message || 'Token refresh failed');
     }
@@ -216,7 +216,7 @@ export const checkAuth = createAsyncThunk(
       };
     } catch (error: any) {
       removeAuthToken();
-      localStorage.removeItem('token');
+      localStorage.removeItem('auth_token');
       localStorage.removeItem('refreshToken');
       return rejectWithValue(error.response?.data?.message || 'Authentication failed');
     }
@@ -231,7 +231,7 @@ export const initializeAuth = createAsyncThunk(
   'autoRepairs/initializeAuth',
   async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token'); // Changed from 'token' to 'auth_token'
       const userStr = localStorage.getItem('user');
       
       if (!token || !userStr) {
@@ -244,7 +244,7 @@ export const initializeAuth = createAsyncThunk(
         user = JSON.parse(userStr);
       } catch {
         // Invalid user data, clear everything
-        localStorage.removeItem('token');
+        localStorage.removeItem('auth_token'); // Changed from 'token' to 'auth_token'
         localStorage.removeItem('user');
         localStorage.removeItem('refreshToken');
         return { user: null, token: null, isAuthenticated: false };
@@ -263,7 +263,7 @@ export const initializeAuth = createAsyncThunk(
     } catch (error: any) {
       // Clear invalid auth data
       removeAuthToken();
-      localStorage.removeItem('token');
+      localStorage.removeItem('auth_token'); // Changed from 'token' to 'auth_token'
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
       
@@ -568,7 +568,7 @@ export const fetchShops = createAsyncThunk(
 // Function to get initial auth state from localStorage
 const getInitialAuthState = () => {
   try {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('auth_token'); // Changed from 'token' to 'auth_token'
     const userStr = localStorage.getItem('user');
     
     if (token && userStr) {
@@ -584,7 +584,7 @@ const getInitialAuthState = () => {
   } catch (error) {
     console.error('Error restoring auth state from localStorage:', error);
     // Clear potentially corrupted data
-    localStorage.removeItem('token');
+    localStorage.removeItem('auth_token'); // Changed from 'token' to 'auth_token'
     localStorage.removeItem('user');
     localStorage.removeItem('refreshToken');
   }

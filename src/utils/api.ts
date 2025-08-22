@@ -4,9 +4,10 @@ import qs from 'qs';
 // API Configuration
 export const API_CONFIG = {
   BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api',
-  TIMEOUT: 10000,
+  TIMEOUT: Number(import.meta.env.VITE_API_TIMEOUT) || 10000,
   RETRY_ATTEMPTS: 3,
   RETRY_DELAY: 1000,
+  TOKEN_REFRESH_THRESHOLD: Number(import.meta.env.VITE_TOKEN_REFRESH_THRESHOLD) || 300000,
 };
 
 // Query string configuration for qs
