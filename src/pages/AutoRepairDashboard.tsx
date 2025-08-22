@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Row, Col, Card, Button, Alert, Tab, Tabs } from "react-bootstrap";
+import React, { useState, useEffect } from "react";
+import { Row, Col, Card, Button, Alert, Tab, Tabs, Spinner } from "react-bootstrap";
 import { useAuth } from "../hooks/useAuth";
 import { AutoRepairsDashboard } from "../components";
 import { RebuildDashboard } from "../components/RebuildDashboard";
@@ -9,6 +9,7 @@ import {
   AddRepairOrderModal,
   AddVehicleProblemModal,
 } from "../components/modals";
+import { dashboardService, type DashboardSummary } from "../services";
 
 export const AutoRepairDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -22,6 +23,37 @@ export const AutoRepairDashboard: React.FC = () => {
 
   // Success message
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Dashboard data state
+  const [dashboardData, setDashboardData] = useState<DashboardSummary | null>(null);
+  const [dashboardLoading, setDashboardLoading] = useState(true);
+  const [dashboardError, setDashboardError] = useState<string | null>(null);
+
+  // Load dashboard data on component mount
+  useEffect(() => {
+    if (user?.role) {
+      loadDashboardData();
+    }
+  }, [user?.role, user?.id]);
+
+  const loadDashboardData = async () => {
+    try {
+      setDashboardLoading(true);
+      setDashboardError(null);
+      
+      const data = await dashboardService.getDashboardStats(
+        user?.role || 'customer',
+        user?.id
+      );
+      
+      setDashboardData(data);
+    } catch (error: any) {
+      console.error('Error loading dashboard data:', error);
+      setDashboardError(error.message || 'Failed to load dashboard data');
+    } finally {
+      setDashboardLoading(false);
+    }
+  };
 
   const handleSuccess = (entityType: string, _data: any) => {
     setSuccessMessage(`${entityType} created successfully!`);
@@ -135,13 +167,52 @@ export const AutoRepairDashboard: React.FC = () => {
   };
 
   const getDashboardStats = () => {
-    // Mock data - in real app, these would come from API
+    if (dashboardLoading) {
+      return [
+        { title: "Loading...", value: "...", icon: "⏳", color: "secondary" },
+        { title: "Loading...", value: "...", icon: "⏳", color: "secondary" },
+        { title: "Loading...", value: "...", icon: "⏳", color: "secondary" },
+        { title: "Loading...", value: "...", icon: "⏳", color: "secondary" },
+      ];
+    }
+
+    if (dashboardError || !dashboardData) {
+      return [
+        { title: "Error", value: "N/A", icon: "❌", color: "danger" },
+        { title: "Error", value: "N/A", icon: "❌", color: "danger" },
+        { title: "Error", value: "N/A", icon: "❌", color: "danger" },
+        { title: "Error", value: "N/A", icon: "❌", color: "danger" },
+      ];
+    }
+
+    const { stats } = dashboardData;
+
     if (user?.role === "customer") {
       return [
-        { title: "My Vehicles", value: "2", icon: "🚗", color: "primary" },
-        { title: "Active Appointments", value: "1", icon: "📅", color: "info" },
-        { title: "Repair Orders", value: "0", icon: "📋", color: "warning" },
-        { title: "Total Spent", value: "$1,250", icon: "💰", color: "success" },
+        { 
+          title: "My Vehicles", 
+          value: stats.customerVehicles?.toString() || "0", 
+          icon: "🚗", 
+          color: "primary" 
+        },
+        { 
+          title: "Active Appointments", 
+          value: stats.customerActiveAppointments?.toString() || "0", 
+          icon: "📅", 
+          color: "info" 
+        },
+        { 
+          title: "Repair Orders", 
+          value: stats.customerRepairOrders?.toString() || "0", 
+          icon: "📋", 
+          color: "warning" 
+        },
+        { 
+          title: "Total Spent", 
+          value: stats.customerTotalSpent ? `$${stats.customerTotalSpent.toLocaleString()}` : "$0", 
+          icon: "💰", 
+          color: "success" 
+        },
       ];
     }
 
@@ -149,15 +220,25 @@ export const AutoRepairDashboard: React.FC = () => {
       return [
         {
           title: "Today's Appointments",
-          value: "8",
+          value: stats.todaysAppointments.toString(),
           icon: "📅",
           color: "primary",
         },
-        { title: "Active Repairs", value: "12", icon: "🔧", color: "warning" },
-        { title: "Customers", value: "156", icon: "👥", color: "info" },
+        { 
+          title: "Active Repairs", 
+          value: stats.activeRepairs.toString(), 
+          icon: "🔧", 
+          color: "warning" 
+        },
+        { 
+          title: "Total Customers", 
+          value: stats.totalCustomers.toString(), 
+          icon: "👥", 
+          color: "info" 
+        },
         {
           title: "Revenue Today",
-          value: "$3,450",
+          value: `$${stats.todaysRevenue.toLocaleString()}`,
           icon: "💰",
           color: "success",
         },
@@ -186,20 +267,58 @@ export const AutoRepairDashboard: React.FC = () => {
         </Alert>
       )}
 
+      {dashboardError && (
+        <Alert variant="danger" className="mb-4">
+          <div className="d-flex justify-content-between align-items-center">
+            <div>
+              <strong>Dashboard Error:</strong> {dashboardError}
+            </div>
+            <Button 
+              variant="outline-danger" 
+              size="sm" 
+              onClick={loadDashboardData}
+              disabled={dashboardLoading}
+            >
+              {dashboardLoading ? <Spinner size="sm" animation="border" /> : "Retry"}
+            </Button>
+          </div>
+        </Alert>
+      )}
+
       {/* Header */}
       <Row className="mb-4">
         <Col>
-          <div className="dashboard-header">
-            <h1 className="mb-2">
-              🔧{" "}
-              {user?.role === "customer"
-                ? "Customer Portal"
-                : "Auto Repair Shop Management"}
-            </h1>
-            <p className="text-muted">
-              Welcome back, <strong>{user?.firstName || user?.email}</strong> |
-              Role: <span className="badge bg-primary ms-1">{user?.role}</span>
-            </p>
+          <div className="dashboard-header d-flex justify-content-between align-items-start">
+            <div>
+              <h1 className="mb-2">
+                🔧{" "}
+                {user?.role === "customer"
+                  ? "Customer Portal"
+                  : "Auto Repair Shop Management"}
+              </h1>
+              <p className="text-muted">
+                Welcome back, <strong>{user?.firstName || user?.email}</strong> |
+                Role: <span className="badge bg-primary ms-1">{user?.role}</span>
+                {dashboardData && (
+                  <span className="ms-2">
+                    | Last updated: {new Date(dashboardData.lastUpdated).toLocaleTimeString()}
+                  </span>
+                )}
+              </p>
+            </div>
+            <Button 
+              variant="outline-primary" 
+              size="sm" 
+              onClick={loadDashboardData}
+              disabled={dashboardLoading}
+              className="ms-3"
+            >
+              {dashboardLoading ? (
+                <><Spinner size="sm" animation="border" className="me-2" />Refreshing...</>
+              ) : (
+                <>🔄 Refresh Data</>
+              )}
+            </Button>
           </div>
         </Col>
       </Row>
