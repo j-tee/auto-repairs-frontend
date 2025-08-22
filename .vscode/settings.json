@@ -1,3 +1,18 @@
 {
+    // Auto-save settings to prevent file loss
+    "files.autoSave": "afterDelay",
+    "files.autoSaveDelay": 30000,
+    
+    // Git settings for better workflow
+    "git.autofetch": true,
+    "git.confirmSync": false,
+    "git.enableSmartCommit": true,
+    "git.postCommitCommand": "push",
+    
+    // Source control settings
+    "scm.autoReveal": true,
+    "scm.alwaysShowActions": true,
+    
+    // Existing settings
     "postman.settings.dotenv-detection-notification-visibility": false
 }
