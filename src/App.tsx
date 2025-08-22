@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -18,12 +18,20 @@ import { CustomerManagement } from "./pages/CustomerManagement";
 import { RepairManagement } from "./pages/RepairManagement";
 import { ServiceCatalogManagement } from "./pages/ServiceCatalogManagement";
 import { useAuth } from "./hooks/useAuth";
+import { useAppDispatch } from "./store";
+import { initializeAuth } from "./store/slices/autoRepairsSlice";
 import "./App.scss";
 import "./styles/watermark.scss";
 
 // App Content Component (needs to be inside Router)
 const AppContent: React.FC = () => {
   const { user } = useAuth();
+  const dispatch = useAppDispatch();
+
+  // Initialize authentication state from localStorage on app start
+  useEffect(() => {
+    dispatch(initializeAuth());
+  }, [dispatch]);
 
   return (
     <>

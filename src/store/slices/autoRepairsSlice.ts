@@ -226,6 +226,56 @@ export const checkAuth = createAsyncThunk(
 // Alias for useAuth compatibility
 export const getCurrentUser = checkAuth;
 
+// Initialize auth state from localStorage and validate token
+export const initializeAuth = createAsyncThunk(
+  'autoRepairs/initializeAuth',
+  async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const userStr = localStorage.getItem('user');
+      
+      if (!token || !userStr) {
+        return { user: null, token: null, isAuthenticated: false };
+      }
+      
+      // Parse user data from localStorage
+      let user;
+      try {
+        user = JSON.parse(userStr);
+      } catch {
+        // Invalid user data, clear everything
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('refreshToken');
+        return { user: null, token: null, isAuthenticated: false };
+      }
+      
+      // Set token in API client
+      setAuthToken(token);
+      
+      // Return the stored data immediately for better UX
+      // The token validation will happen in the background if needed
+      return {
+        user,
+        token,
+        isAuthenticated: true
+      };
+    } catch (error: any) {
+      // Clear invalid auth data
+      removeAuthToken();
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+      
+      return {
+        user: null,
+        token: null,
+        isAuthenticated: false
+      };
+    }
+  }
+);
+
 export const requestPasswordReset = createAsyncThunk(
   'autoRepairs/requestPasswordReset',
   async (data: PasswordResetRequest, { rejectWithValue }) => {
@@ -515,11 +565,44 @@ export const fetchShops = createAsyncThunk(
 // INITIAL STATE
 // ============================================================================
 
+// Function to get initial auth state from localStorage
+const getInitialAuthState = () => {
+  try {
+    const token = localStorage.getItem('token');
+    const userStr = localStorage.getItem('user');
+    
+    if (token && userStr) {
+      const user = JSON.parse(userStr);
+      // Set the token in the API client
+      setAuthToken(token);
+      return {
+        user,
+        token,
+        isAuthenticated: true
+      };
+    }
+  } catch (error) {
+    console.error('Error restoring auth state from localStorage:', error);
+    // Clear potentially corrupted data
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('refreshToken');
+  }
+  
+  return {
+    user: null,
+    token: null,
+    isAuthenticated: false
+  };
+};
+
+const initialAuthState = getInitialAuthState();
+
 const initialState: EnhancedAutoRepairsState = {
-  // Auth state
-  user: null,
-  token: null,
-  isAuthenticated: false,
+  // Auth state (restored from localStorage)
+  user: initialAuthState.user,
+  token: initialAuthState.token,
+  isAuthenticated: initialAuthState.isAuthenticated,
   passwordResetEmail: null,
   
   // Core entities
@@ -624,6 +707,21 @@ export const autoRepairsSlice = createSlice({
       .addCase(login.rejected, (state, action) => {
         state.loading.login = false;
         state.error.login = action.payload as string;
+        state.isAuthenticated = false;
+      })
+      
+      // Initialize Auth
+      .addCase(initializeAuth.pending, () => {
+        // Don't show loading state for initialization to avoid flicker
+      })
+      .addCase(initializeAuth.fulfilled, (state, action) => {
+        state.token = action.payload.token;
+        state.user = action.payload.user;
+        state.isAuthenticated = action.payload.isAuthenticated;
+      })
+      .addCase(initializeAuth.rejected, (state) => {
+        state.token = null;
+        state.user = null;
         state.isAuthenticated = false;
       })
       
