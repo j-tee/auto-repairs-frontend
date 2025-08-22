@@ -1,0 +1,219 @@
+// DashboardStats.scss
+.dashboard-stats {
+  .stat-card {
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    margin-bottom: 1rem;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .stat-icon {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+      opacity: 0.8;
+    }
+
+    .stat-value {
+      font-size: 2.5rem;
+      font-weight: bold;
+      margin: 0.5rem 0;
+      line-height: 1;
+    }
+
+    .stat-label {
+      font-size: 0.9rem;
+      color: #6c757d;
+      margin: 0;
+      font-weight: 500;
+    }
+
+    &.stat-card-primary {
+      background: linear-gradient(135deg, #007bff, #0056b3);
+      color: white;
+
+      .stat-icon {
+        color: rgba(255, 255, 255, 0.9);
+      }
+    }
+
+    &.stat-card-success {
+      background: linear-gradient(135deg, #28a745, #1e7e34);
+      color: white;
+
+      .stat-icon {
+        color: rgba(255, 255, 255, 0.9);
+      }
+    }
+
+    &.stat-card-warning {
+      background: linear-gradient(135deg, #ffc107, #e0a800);
+      color: #212529;
+
+      .stat-icon {
+        color: rgba(33, 37, 41, 0.8);
+      }
+    }
+
+    &.stat-card-danger {
+      background: linear-gradient(135deg, #dc3545, #bd2130);
+      color: white;
+
+      .stat-icon {
+        color: rgba(255, 255, 255, 0.9);
+      }
+    }
+
+    &.stat-card-info {
+      background: linear-gradient(135deg, #17a2b8, #138496);
+      color: white;
+
+      .stat-icon {
+        color: rgba(255, 255, 255, 0.9);
+      }
+    }
+
+    &.stat-card-secondary {
+      background: linear-gradient(135deg, #6c757d, #545b62);
+      color: white;
+
+      .stat-icon {
+        color: rgba(255, 255, 255, 0.9);
+      }
+    }
+  }
+
+  .status-stat {
+    padding: 1rem;
+    border-radius: 8px;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    transition: all 0.2s ease-in-out;
+
+    &:hover {
+      background: #e9ecef;
+      transform: translateY(-1px);
+    }
+
+    .status-count {
+      font-size: 1.8rem;
+      font-weight: bold;
+      margin-bottom: 0.25rem;
+    }
+
+    .status-label {
+      font-size: 0.8rem;
+      color: #6c757d;
+      font-weight: 500;
+      text-transform: capitalize;
+    }
+
+    &.status-scheduled {
+      border-left: 4px solid #007bff;
+      
+      .status-count {
+        color: #007bff;
+      }
+    }
+
+    &.status-confirmed {
+      border-left: 4px solid #28a745;
+      
+      .status-count {
+        color: #28a745;
+      }
+    }
+
+    &.status-in_progress {
+      border-left: 4px solid #ffc107;
+      
+      .status-count {
+        color: #e0a800;
+      }
+    }
+
+    &.status-completed {
+      border-left: 4px solid #17a2b8;
+      
+      .status-count {
+        color: #17a2b8;
+      }
+    }
+
+    &.status-cancelled,
+    &.status-no_show {
+      border-left: 4px solid #dc3545;
+      
+      .status-count {
+        color: #dc3545;
+      }
+    }
+
+    &.status-pending {
+      border-left: 4px solid #6c757d;
+      
+      .status-count {
+        color: #6c757d;
+      }
+    }
+  }
+
+  // Responsive adjustments
+  @media (max-width: 768px) {
+    .stat-card {
+      .stat-value {
+        font-size: 2rem;
+      }
+
+      .stat-icon {
+        font-size: 1.5rem;
+      }
+    }
+
+    .status-stat {
+      padding: 0.75rem;
+      margin-bottom: 0.5rem;
+
+      .status-count {
+        font-size: 1.5rem;
+      }
+
+      .status-label {
+        font-size: 0.75rem;
+      }
+    }
+  }
+
+  // Loading state
+  .loading-container {
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+
+  // Error state
+  .alert {
+    border-radius: 8px;
+  }
+}
+
+// Animation for number counting (future enhancement)
+@keyframes countUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stat-value {
+  animation: countUp 0.6s ease-out;
+}

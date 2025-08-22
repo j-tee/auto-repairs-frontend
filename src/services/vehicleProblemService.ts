@@ -32,10 +32,17 @@ export interface VehicleProblemListResponse {
 }
 
 export const vehicleProblemService = {
-  // Get vehicle problems with filtering
+  // Get vehicle problems with filtering using enhanced backend endpoints
   getVehicleProblems: async (query: VehicleProblemQuery = {}): Promise<VehicleProblemListResponse> => {
     try {
-      const endpoint = '/shop/vehicle-problems/';
+      let endpoint = '/shop/vehicle-problems/';
+      
+      // Use specialized endpoints for better performance when available
+      if (query.resolved === false && !query.vehicleId) {
+        // Get all unresolved problems
+        endpoint = '/shop/vehicle-problems/unresolved/';
+      }
+      
       const response = await apiGet<any>(endpoint, query);
       
       // Handle different response structures - API might return array directly or wrapped
@@ -52,6 +59,7 @@ export const vehicleProblemService = {
         total: response.count || problemArray.length
       };
     } catch (error: any) {
+      console.error('Error fetching vehicle problems:', error);
       throw error;
     }
   },
@@ -134,5 +142,68 @@ export const vehicleProblemService = {
   // Delete vehicle problem
   deleteVehicleProblem: async (problemId: string): Promise<void> => {
     await apiDelete(`/shop/vehicle-problems/${problemId}/`);
+  },
+
+  // ====== NEW ENHANCED API METHODS ======
+
+  // Get all unresolved problems using specialized endpoint
+  getAllUnresolvedProblems: async (): Promise<VehicleProblem[]> => {
+    try {
+      const response = await vehicleProblemService.getVehicleProblems({ resolved: false });
+      return response.problems;
+    } catch (error: any) {
+      console.error('Error fetching unresolved problems:', error);
+      throw error;
+    }
+  },
+
+  // Get recent problems (last 30 days) for dashboard display
+  getRecentProblems: async (days: number = 30): Promise<VehicleProblem[]> => {
+    try {
+      const response = await vehicleProblemService.getVehicleProblems({ 
+        limit: 50,
+        // Note: Backend would need to support date filtering for this to work optimally
+      });
+      
+      // Client-side filtering for recent problems if backend doesn't support it yet
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - days);
+      
+      return response.problems.filter(problem => {
+        const problemDate = new Date(problem.reportedDate);
+        return problemDate >= cutoffDate;
+      });
+    } catch (error: any) {
+      console.error('Error fetching recent problems:', error);
+      throw error;
+    }
+  },
+
+  // Get problem statistics for dashboard
+  getProblemStats: async (): Promise<{
+    totalProblems: number;
+    unresolvedProblems: number;
+    resolvedProblems: number;
+    recentProblems: number;
+  }> => {
+    try {
+      // For now, we need to make separate calls. In future, backend could provide a /stats/ endpoint
+      const allProblems = await vehicleProblemService.getVehicleProblems({ limit: 1000 });
+      const recentProblems = await vehicleProblemService.getRecentProblems(7);
+      
+      const totalProblems = allProblems.total;
+      const unresolvedProblems = allProblems.problems.filter(p => !p.resolved).length;
+      const resolvedProblems = allProblems.problems.filter(p => p.resolved).length;
+      
+      return {
+        totalProblems,
+        unresolvedProblems,
+        resolvedProblems,
+        recentProblems: recentProblems.length
+      };
+    } catch (error: any) {
+      console.error('Error fetching problem stats:', error);
+      throw error;
+    }
   }
 };

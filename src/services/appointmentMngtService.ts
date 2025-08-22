@@ -19,7 +19,7 @@ export interface Appointment {
   scheduledDate: string;
   scheduledTime: string;
   duration: number; // in minutes
-  status: 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no_show';
+  status: 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no_show' | 'pending';
   priority: 'low' | 'medium' | 'high' | 'urgent';
   description?: string;
   notes?: string;
@@ -27,6 +27,7 @@ export interface Appointment {
   assignedTechnician?: string;
   createdAt: string;
   updatedAt: string;
+  reportedProblemId?: string; // Link to vehicle problem
   customer?: EmbeddedCustomer | Customer;
   vehicle?: {
     id: string;
@@ -34,6 +35,14 @@ export interface Appointment {
     model: string;
     year: number;
     licensePlate: string;
+    vin?: string;
+    color?: string;
+  };
+  reportedProblem?: {
+    id: string;
+    description: string;
+    resolved: boolean;
+    reportedDate: string;
   };
   technician?: {
     id: string;
@@ -154,6 +163,7 @@ export const appointmentMngtService = {
           assignedTechnician: '', // Default since not in backend schema
           createdAt: appointment.date || '',
           updatedAt: appointment.date || '',
+          reportedProblemId: appointment.reported_problem_id?.toString() || '',
           // Map the enhanced customer data from backend
           customer: appointment.customer ? {
             id: appointment.customer.id?.toString() || '',
@@ -172,7 +182,16 @@ export const appointmentMngtService = {
             make: appointment.vehicle.make || '',
             model: appointment.vehicle.model || '',
             year: appointment.vehicle.year || 2020,
-            licensePlate: appointment.vehicle.license_plate || ''
+            licensePlate: appointment.vehicle.license_plate || '',
+            vin: appointment.vehicle.vin || '',
+            color: appointment.vehicle.color || ''
+          } : undefined,
+          // Map the enhanced vehicle problem data from backend
+          reportedProblem: appointment.reported_problem ? {
+            id: appointment.reported_problem.id?.toString() || '',
+            description: appointment.reported_problem.description || '',
+            resolved: appointment.reported_problem.resolved || false,
+            reportedDate: appointment.reported_problem.reported_date || ''
           } : undefined
         })) || [],
         total: response.count || (response.results || response || []).length,
@@ -486,5 +505,145 @@ export const appointmentMngtService = {
     
     const response = await appointmentMngtService.getAppointments(query);
     return response.appointments;
+  },
+
+  // ====== NEW ENHANCED API METHODS ======
+
+  // Get upcoming appointments using specialized endpoint
+  getUpcomingAppointments: async (): Promise<Appointment[]> => {
+    try {
+      const response = await apiGet<any>('/shop/appointments/upcoming/');
+      
+      return (response || []).map((appointment: any) => ({
+        id: appointment.id?.toString() || '',
+        customerId: appointment.customer_id?.toString() || '',
+        vehicleId: appointment.vehicle_id?.toString() || '',
+        serviceType: 'General Service', // Default since not in backend schema
+        scheduledDate: appointment.date ? appointment.date.split('T')[0] : '',
+        scheduledTime: appointment.date ? appointment.date.split('T')[1]?.substring(0, 5) : '',
+        duration: 60, // Default duration
+        status: appointment.status || 'pending',
+        priority: 'medium', // Default since not in backend schema
+        description: appointment.description || '',
+        notes: appointment.notes || '',
+        estimatedCost: 0, // Default since not in backend schema
+        assignedTechnician: '', // Default since not in backend schema
+        createdAt: appointment.date || '',
+        updatedAt: appointment.date || '',
+        // Use embedded data - no additional API calls needed!
+        customer: appointment.customer ? {
+          id: appointment.customer.id?.toString() || '',
+          name: appointment.customer.name || 
+                (appointment.customer.first_name && appointment.customer.last_name ? 
+                 `${appointment.customer.first_name} ${appointment.customer.last_name}` : '') ||
+                appointment.customer.username || 
+                'Unknown Customer',
+          email: appointment.customer.email || '',
+          phone_number: appointment.customer.phone_number || appointment.customer.phone || '',
+          address: appointment.customer.address || ''
+        } : undefined,
+        vehicle: appointment.vehicle ? {
+          id: appointment.vehicle.id?.toString() || '',
+          make: appointment.vehicle.make || '',
+          model: appointment.vehicle.model || '',
+          year: appointment.vehicle.year || 2020,
+          licensePlate: appointment.vehicle.license_plate || ''
+        } : undefined
+      }));
+    } catch (error: any) {
+      console.error('Error fetching upcoming appointments:', error);
+      throw error;
+    }
+  },
+
+  // Get appointment statistics using specialized endpoint
+  getAppointmentStats: async (): Promise<AppointmentStats> => {
+    try {
+      const response = await apiGet<any>('/shop/appointments/stats/');
+      
+      return {
+        totalAppointments: response.total_appointments || 0,
+        todaysAppointments: response.todays_appointments || 0,
+        upcomingAppointments: response.upcoming_appointments || 0,
+        completedThisMonth: response.completed_this_month || 0,
+        cancelledThisMonth: response.cancelled_this_month || 0,
+        averageDuration: response.average_duration || 60,
+        appointmentsByStatus: {
+          scheduled: response.appointments_by_status?.scheduled || 0,
+          confirmed: response.appointments_by_status?.confirmed || 0,
+          in_progress: response.appointments_by_status?.in_progress || 0,
+          completed: response.appointments_by_status?.completed || 0,
+          cancelled: response.appointments_by_status?.cancelled || 0,
+          no_show: response.appointments_by_status?.no_show || 0
+        },
+        revenueThisMonth: response.revenue_this_month || 0
+      };
+    } catch (error: any) {
+      console.error('Error fetching appointment stats:', error);
+      throw error;
+    }
+  },
+
+  // Get appointments for a specific customer using backend filtering
+  getCustomerAppointments: async (customerId: string, options: { status?: string; limit?: number } = {}): Promise<Appointment[]> => {
+    try {
+      const query: AppointmentQuery = {
+        customerId,
+        limit: options.limit || 50,
+        sortBy: 'date',
+        sortOrder: 'desc'
+      };
+      
+      if (options.status) {
+        query.status = options.status as Appointment['status'];
+      }
+      
+      const response = await appointmentMngtService.getAppointments(query);
+      return response.appointments;
+    } catch (error: any) {
+      console.error('Error fetching customer appointments:', error);
+      throw error;
+    }
+  },
+
+  // Get appointments for a specific vehicle using backend filtering
+  getVehicleAppointments: async (vehicleId: string, options: { status?: string; limit?: number } = {}): Promise<Appointment[]> => {
+    try {
+      const query: AppointmentQuery = {
+        vehicleId,
+        limit: options.limit || 50,
+        sortBy: 'date',
+        sortOrder: 'desc'
+      };
+      
+      if (options.status) {
+        query.status = options.status as Appointment['status'];
+      }
+      
+      const response = await appointmentMngtService.getAppointments(query);
+      return response.appointments;
+    } catch (error: any) {
+      console.error('Error fetching vehicle appointments:', error);
+      throw error;
+    }
+  },
+
+  // Get today's appointments using backend filtering
+  getTodaysAppointments: async (): Promise<Appointment[]> => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const query: AppointmentQuery = {
+        dateFrom: today,
+        dateTo: today,
+        sortBy: 'date',
+        sortOrder: 'asc'
+      };
+      
+      const response = await appointmentMngtService.getAppointments(query);
+      return response.appointments;
+    } catch (error: any) {
+      console.error('Error fetching today\'s appointments:', error);
+      throw error;
+    }
   }
 };

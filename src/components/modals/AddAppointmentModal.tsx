@@ -53,6 +53,11 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
   const [loadingVehicles, setLoadingVehicles] = useState(false);
   const [loadingProblems, setLoadingProblems] = useState(false);
 
+  // New problem creation state
+  const [showNewProblemForm, setShowNewProblemForm] = useState(false);
+  const [newProblemDescription, setNewProblemDescription] = useState("");
+  const [creatingNewProblem, setCreatingNewProblem] = useState(false);
+
   // Service types (could be fetched from API in the future)
   const serviceTypes = [
     "Oil Change",
@@ -112,6 +117,11 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
     setCustomers([]);
     setVehicles([]);
     setVehicleProblems([]);
+
+    // Reset new problem creation state
+    setShowNewProblemForm(false);
+    setNewProblemDescription("");
+    setCreatingNewProblem(false);
   };
 
   const loadCustomers = async () => {
@@ -183,11 +193,16 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
     try {
       setLoadingVehicles(true);
       console.log(`Loading vehicles for customer: ${customerId}`);
-      
+
       // Use the specialized method that handles filtering
-      const customerVehicles = await vehicleMngtService.getCustomerVehicles(customerId);
-      
-      console.log(`Found ${customerVehicles.length} vehicles for customer ${customerId}:`, customerVehicles);
+      const customerVehicles = await vehicleMngtService.getCustomerVehicles(
+        customerId
+      );
+
+      console.log(
+        `Found ${customerVehicles.length} vehicles for customer ${customerId}:`,
+        customerVehicles
+      );
       setVehicles(customerVehicles);
     } catch (error: any) {
       console.error("Error loading vehicles:", error);
@@ -220,6 +235,56 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
     }
   };
 
+  // Create a new vehicle problem
+  const createNewVehicleProblem = async (): Promise<string | null> => {
+    if (!formData.vehicleId || !newProblemDescription.trim()) {
+      return null;
+    }
+
+    try {
+      setCreatingNewProblem(true);
+      console.log(
+        `Creating new problem for vehicle ${formData.vehicleId}: ${newProblemDescription}`
+      );
+
+      const newProblem = await vehicleProblemService.createVehicleProblem({
+        vehicleId: formData.vehicleId,
+        description: newProblemDescription.trim(),
+      });
+
+      console.log("New problem created:", newProblem);
+
+      // Add the new problem to the existing list
+      setVehicleProblems((prev) => [newProblem, ...prev]);
+
+      // Clear the new problem form
+      setNewProblemDescription("");
+      setShowNewProblemForm(false);
+
+      return newProblem.id;
+    } catch (error: any) {
+      console.error("Error creating new vehicle problem:", error);
+      throw error;
+    } finally {
+      setCreatingNewProblem(false);
+    }
+  };
+
+  // Handle problem selection change
+  const handleProblemSelectionChange = (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    const value = e.target.value;
+
+    if (value === "CREATE_NEW") {
+      setShowNewProblemForm(true);
+      setFormData((prev) => ({ ...prev, reportedProblemId: "" }));
+    } else {
+      setShowNewProblemForm(false);
+      setFormData((prev) => ({ ...prev, reportedProblemId: value }));
+    }
+  };
+
   const handleInputChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
@@ -240,12 +305,20 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
       })); // Reset vehicle and problem selection
       loadCustomerVehicles(value);
       setVehicleProblems([]);
+
+      // Reset new problem form
+      setShowNewProblemForm(false);
+      setNewProblemDescription("");
     }
 
     // When vehicle changes, load vehicle problems
     if (name === "vehicleId") {
       setFormData((prev) => ({ ...prev, reportedProblemId: "" })); // Reset problem selection
       loadVehicleProblems(value);
+
+      // Reset new problem form
+      setShowNewProblemForm(false);
+      setNewProblemDescription("");
     }
   };
 
@@ -271,15 +344,33 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
       if (!formData.scheduledTime) {
         throw new Error("Please select a time");
       }
-      if (!formData.reportedProblemId && !formData.description) {
+
+      // Check if we need to create a new problem
+      let problemId: string | undefined = formData.reportedProblemId;
+      if (showNewProblemForm && newProblemDescription.trim()) {
+        console.log("Creating new problem before appointment...");
+        const newProblemId = await createNewVehicleProblem();
+        if (!newProblemId) {
+          throw new Error("Failed to create new vehicle problem");
+        }
+        problemId = newProblemId;
+      }
+
+      // Validate that we have either a problem or a description
+      if (!problemId && !formData.description) {
         throw new Error(
-          "Please provide a description for the service or select an existing vehicle problem"
+          "Please provide a description for the service or select/create a vehicle problem"
         );
       }
 
-      // Create appointment
+      // Create appointment with the problem ID (new or existing)
+      const appointmentData = {
+        ...formData,
+        reportedProblemId: problemId || "",
+      };
+
       const newAppointment = await appointmentMngtService.createAppointment(
-        formData
+        appointmentData
       );
 
       onSuccess(newAppointment);
@@ -403,42 +494,118 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
 
           {/* Vehicle Problem Selection - Show when vehicle is selected */}
           {formData.vehicleId && (
-            <Row>
-              <Col md={12}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Vehicle Problem (Optional)</Form.Label>
-                  <Form.Select
-                    name="reportedProblemId"
-                    value={formData.reportedProblemId}
-                    onChange={handleInputChange}
-                    disabled={loadingProblems}
-                  >
-                    <option value="">
-                      {loadingProblems
-                        ? "Loading problems..."
-                        : vehicleProblems.length > 0
-                        ? "Select existing problem or leave blank for general service"
-                        : "No reported problems - General service appointment"}
-                    </option>
-                    {vehicleProblems.map((problem) => (
-                      <option key={problem.id} value={problem.id}>
-                        {problem.description}
-                        {problem.resolved
-                          ? " (Previously Resolved)"
-                          : " (Unresolved)"}
-                        {" - Reported: " +
-                          new Date(problem.reportedDate).toLocaleDateString()}
+            <>
+              <Row>
+                <Col md={12}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Vehicle Problem (Optional)</Form.Label>
+                    <Form.Select
+                      name="reportedProblemId"
+                      value={
+                        showNewProblemForm
+                          ? "CREATE_NEW"
+                          : formData.reportedProblemId
+                      }
+                      onChange={handleProblemSelectionChange}
+                      disabled={loadingProblems}
+                    >
+                      <option value="">
+                        {loadingProblems
+                          ? "Loading problems..."
+                          : vehicleProblems.length > 0
+                          ? "Select existing problem or leave blank for general service"
+                          : "No reported problems - General service appointment"}
                       </option>
-                    ))}
-                  </Form.Select>
-                  <Form.Text className="text-muted">
-                    {vehicleProblems.length > 0
-                      ? "Select a specific problem to address, or leave blank for general maintenance"
-                      : "No existing problems reported for this vehicle"}
-                  </Form.Text>
-                </Form.Group>
-              </Col>
-            </Row>
+                      {vehicleProblems.map((problem) => (
+                        <option key={problem.id} value={problem.id}>
+                          {problem.description}
+                          {problem.resolved
+                            ? " (Previously Resolved)"
+                            : " (Unresolved)"}
+                          {" - Reported: " +
+                            new Date(problem.reportedDate).toLocaleDateString()}
+                        </option>
+                      ))}
+                      <option
+                        value="CREATE_NEW"
+                        style={{
+                          fontWeight: "bold",
+                          backgroundColor: "#e3f2fd",
+                        }}
+                      >
+                        ➕ Create New Problem for this Vehicle
+                      </option>
+                    </Form.Select>
+                    <Form.Text className="text-muted">
+                      {vehicleProblems.length > 0
+                        ? "Select a specific problem to address, create a new problem, or leave blank for general maintenance"
+                        : "Create a new problem for this vehicle or leave blank for general maintenance"}
+                    </Form.Text>
+                  </Form.Group>
+                </Col>
+              </Row>
+
+              {/* New Problem Creation Form */}
+              {showNewProblemForm && (
+                <Row>
+                  <Col md={12}>
+                    <div className="border p-3 rounded bg-light mb-3">
+                      <h6 className="mb-3">
+                        <i className="fas fa-plus-circle me-2"></i>
+                        Create New Vehicle Problem
+                      </h6>
+                      <Form.Group className="mb-3">
+                        <Form.Label>Problem Description *</Form.Label>
+                        <Form.Control
+                          as="textarea"
+                          rows={3}
+                          value={newProblemDescription}
+                          onChange={(e) =>
+                            setNewProblemDescription(e.target.value)
+                          }
+                          placeholder="Describe the vehicle problem in detail..."
+                          required={showNewProblemForm}
+                          disabled={creatingNewProblem}
+                        />
+                        <Form.Text className="text-muted">
+                          This problem will be saved and linked to the
+                          appointment
+                        </Form.Text>
+                      </Form.Group>
+                      <div className="d-flex gap-2">
+                        <Button
+                          variant="outline-secondary"
+                          size="sm"
+                          onClick={() => {
+                            setShowNewProblemForm(false);
+                            setNewProblemDescription("");
+                            setFormData((prev) => ({
+                              ...prev,
+                              reportedProblemId: "",
+                            }));
+                          }}
+                          disabled={creatingNewProblem}
+                        >
+                          Cancel
+                        </Button>
+                        {creatingNewProblem && (
+                          <Button variant="outline-primary" size="sm" disabled>
+                            <Spinner
+                              as="span"
+                              animation="border"
+                              size="sm"
+                              role="status"
+                              className="me-2"
+                            />
+                            Creating...
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </Col>
+                </Row>
+              )}
+            </>
           )}
 
           <Row>

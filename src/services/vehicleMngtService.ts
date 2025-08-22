@@ -20,6 +20,7 @@ export interface Vehicle {
   updatedAt: string;
   customer?: {
     id: string;
+    name: string; // Combined firstName + lastName from backend
     firstName: string;
     lastName: string;
     email: string;
@@ -151,10 +152,11 @@ export const vehicleMngtService = {
         updatedAt: vehicle.updated_at || new Date().toISOString(),
         customer: vehicle.customer ? {
           id: vehicle.customer.id?.toString() || '',
+          name: vehicle.customer.name || `${vehicle.customer.first_name || ''} ${vehicle.customer.last_name || ''}`.trim(),
           firstName: vehicle.customer.first_name || '',
           lastName: vehicle.customer.last_name || '',
           email: vehicle.customer.email || '',
-          phone: vehicle.customer.phone || ''
+          phone: vehicle.customer.phone_number || vehicle.customer.phone || ''
         } : undefined,
         lastServiceDate: vehicle.last_service_date,
         nextServiceDue: vehicle.next_service_due,
@@ -167,36 +169,102 @@ export const vehicleMngtService = {
     };
   },
 
-  // Get vehicles for a specific customer (with client-side filtering if backend doesn't support it)
+  // Get vehicles for a specific customer using enhanced backend filtering
   getCustomerVehicles: async (customerId: string): Promise<Vehicle[]> => {
     try {
-      // First try with customer_id parameter (in case backend supports it)
-      const response = await vehicleMngtService.getVehicles({
-        customerId,
-        limit: 1000
-      });
+      console.log(`Loading vehicles for customer: ${customerId}`);
       
-      const allVehicles = response.vehicles || [];
-      
-      // Check if backend filtering worked by verifying all returned vehicles belong to the customer
-      const belongsToCustomer = allVehicles.every(vehicle => 
-        vehicle.customerId === customerId
-      );
-      
-      if (belongsToCustomer && allVehicles.length > 0) {
-        // Backend filtering worked
-        return allVehicles;
-      } else if (allVehicles.length === 0) {
-        // No vehicles found (either no vehicles exist or customer has no vehicles)
-        return [];
-      } else {
-        // Backend didn't filter, apply client-side filtering
-        console.log(`Backend returned ${allVehicles.length} vehicles, filtering for customer ${customerId}`);
-        const filteredVehicles = allVehicles.filter(vehicle => 
-          vehicle.customerId === customerId
-        );
-        console.log(`Found ${filteredVehicles.length} vehicles for customer ${customerId}`);
-        return filteredVehicles;
+      // Try the new nested route approach first (recommended by backend team)
+      try {
+        const response = await apiGet<any[]>(`/shop/customers/${customerId}/vehicles/`);
+        
+        const customerVehicles = response.map((vehicle: any) => ({
+          id: vehicle.id?.toString() || '',
+          customerId: vehicle.customer_id?.toString() || '',
+          make: vehicle.make || '',
+          model: vehicle.model || '',
+          year: vehicle.year || new Date().getFullYear(),
+          vin: vehicle.vin || '',
+          licensePlate: vehicle.license_plate || '',
+          color: vehicle.color,
+          engine: vehicle.engine,
+          transmission: vehicle.transmission,
+          mileage: vehicle.mileage,
+          fuelType: vehicle.fuel_type,
+          notes: vehicle.notes,
+          isActive: vehicle.is_active ?? true,
+          createdAt: vehicle.created_at || new Date().toISOString(),
+          updatedAt: vehicle.updated_at || new Date().toISOString(),
+          customer: vehicle.customer ? {
+            id: vehicle.customer.id?.toString() || '',
+            name: vehicle.customer.name || `${vehicle.customer.first_name || ''} ${vehicle.customer.last_name || ''}`.trim(),
+            firstName: vehicle.customer.first_name || '',
+            lastName: vehicle.customer.last_name || '',
+            email: vehicle.customer.email || '',
+            phone: vehicle.customer.phone_number || vehicle.customer.phone || ''
+          } : undefined,
+          lastServiceDate: vehicle.last_service_date,
+          nextServiceDue: vehicle.next_service_due,
+          repairHistory: vehicle.repair_history || []
+        }));
+        
+        console.log(`Nested route returned ${customerVehicles.length} vehicles for customer ${customerId}`);
+        return customerVehicles;
+      } catch (nestedError) {
+        console.log('Nested route failed, trying alternative endpoint...');
+        
+        // Fallback to action endpoint
+        try {
+          const response = await apiGet<any[]>(`/shop/vehicles/by_customer/`, { customer_id: customerId });
+          
+          const customerVehicles = response.map((vehicle: any) => ({
+            id: vehicle.id?.toString() || '',
+            customerId: vehicle.customer_id?.toString() || '',
+            make: vehicle.make || '',
+            model: vehicle.model || '',
+            year: vehicle.year || new Date().getFullYear(),
+            vin: vehicle.vin || '',
+            licensePlate: vehicle.license_plate || '',
+            color: vehicle.color,
+            engine: vehicle.engine,
+            transmission: vehicle.transmission,
+            mileage: vehicle.mileage,
+            fuelType: vehicle.fuel_type,
+            notes: vehicle.notes,
+            isActive: vehicle.is_active ?? true,
+            createdAt: vehicle.created_at || new Date().toISOString(),
+            updatedAt: vehicle.updated_at || new Date().toISOString(),
+            customer: vehicle.customer ? {
+              id: vehicle.customer.id?.toString() || '',
+              name: vehicle.customer.name || `${vehicle.customer.first_name || ''} ${vehicle.customer.last_name || ''}`.trim(),
+              firstName: vehicle.customer.first_name || '',
+              lastName: vehicle.customer.last_name || '',
+              email: vehicle.customer.email || '',
+              phone: vehicle.customer.phone_number || vehicle.customer.phone || ''
+            } : undefined,
+            lastServiceDate: vehicle.last_service_date,
+            nextServiceDue: vehicle.next_service_due,
+            repairHistory: vehicle.repair_history || []
+          }));
+          
+          console.log(`Action endpoint returned ${customerVehicles.length} vehicles for customer ${customerId}`);
+          return customerVehicles;
+        } catch (actionError) {
+          console.log('Action endpoint failed, trying query parameter approach...');
+          
+          // Final fallback to original query parameter approach
+          const response = await vehicleMngtService.getVehicles({
+            customerId,
+            isActive: true,
+            sortBy: 'created_at',
+            sortOrder: 'desc',
+            limit: 100
+          });
+          
+          const customerVehicles = response.vehicles || [];
+          console.log(`Query parameter approach returned ${customerVehicles.length} vehicles for customer ${customerId}`);
+          return customerVehicles;
+        }
       }
     } catch (error: any) {
       console.error('Error loading customer vehicles:', error);
@@ -225,10 +293,11 @@ export const vehicleMngtService = {
       updatedAt: response.updated_at || new Date().toISOString(),
       customer: response.customer ? {
         id: response.customer.id?.toString() || '',
+        name: response.customer.name || `${response.customer.first_name || ''} ${response.customer.last_name || ''}`.trim(),
         firstName: response.customer.first_name || '',
         lastName: response.customer.last_name || '',
         email: response.customer.email || '',
-        phone: response.customer.phone || ''
+        phone: response.customer.phone_number || response.customer.phone || ''
       } : undefined,
       lastServiceDate: response.last_service_date,
       nextServiceDue: response.next_service_due,
@@ -274,10 +343,11 @@ export const vehicleMngtService = {
       updatedAt: response.updated_at || new Date().toISOString(),
       customer: response.customer ? {
         id: response.customer.id?.toString() || '',
+        name: response.customer.name || `${response.customer.first_name || ''} ${response.customer.last_name || ''}`.trim(),
         firstName: response.customer.first_name || '',
         lastName: response.customer.last_name || '',
         email: response.customer.email || '',
-        phone: response.customer.phone || ''
+        phone: response.customer.phone_number || response.customer.phone || ''
       } : undefined,
       lastServiceDate: response.last_service_date,
       nextServiceDue: response.next_service_due,
@@ -331,10 +401,11 @@ export const vehicleMngtService = {
       updatedAt: response.updated_at || new Date().toISOString(),
       customer: response.customer ? {
         id: response.customer.id?.toString() || '',
+        name: response.customer.name || `${response.customer.first_name || ''} ${response.customer.last_name || ''}`.trim(),
         firstName: response.customer.first_name || '',
         lastName: response.customer.last_name || '',
         email: response.customer.email || '',
-        phone: response.customer.phone || ''
+        phone: response.customer.phone_number || response.customer.phone || ''
       } : undefined,
       lastServiceDate: response.last_service_date,
       nextServiceDue: response.next_service_due,
@@ -460,10 +531,11 @@ export const vehicleMngtService = {
       updatedAt: vehicle.updated_at || new Date().toISOString(),
       customer: vehicle.customer ? {
         id: vehicle.customer.id?.toString() || '',
+        name: vehicle.customer.name || `${vehicle.customer.first_name || ''} ${vehicle.customer.last_name || ''}`.trim(),
         firstName: vehicle.customer.first_name || '',
         lastName: vehicle.customer.last_name || '',
         email: vehicle.customer.email || '',
-        phone: vehicle.customer.phone || ''
+        phone: vehicle.customer.phone_number || vehicle.customer.phone || ''
       } : undefined,
       lastServiceDate: vehicle.last_service_date,
       nextServiceDue: vehicle.next_service_due,
@@ -500,10 +572,11 @@ export const vehicleMngtService = {
         updatedAt: response.updated_at || new Date().toISOString(),
         customer: response.customer ? {
           id: response.customer.id?.toString() || '',
+          name: response.customer.name || `${response.customer.first_name || ''} ${response.customer.last_name || ''}`.trim(),
           firstName: response.customer.first_name || '',
           lastName: response.customer.last_name || '',
           email: response.customer.email || '',
-          phone: response.customer.phone || ''
+          phone: response.customer.phone_number || response.customer.phone || ''
         } : undefined,
         lastServiceDate: response.last_service_date,
         nextServiceDue: response.next_service_due,
