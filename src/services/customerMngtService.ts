@@ -143,18 +143,15 @@ export const customerMngtService = {
 
   // Create new customer
   createCustomer: async (customerData: CreateCustomerData): Promise<Customer> => {
-    const createData = {
+    // Only send fields that exist in the database
+    const createData: any = {
       name: customerData.name,
-      email: customerData.email,
-      phone: customerData.phone,
-      address: customerData.address,
-      city: customerData.city,
-      state: customerData.state,
-      zip_code: customerData.zipCode,
-      emergency_contact: customerData.emergencyContact,
-      emergency_phone: customerData.emergencyPhone,
-      preferred_contact: customerData.preferredContact
+      phone_number: customerData.phone, // Map to phone_number field
     };
+    
+    // Add optional fields if they have values
+    if (customerData.email) createData.email = customerData.email;
+    if (customerData.address) createData.address = customerData.address;
     
     const response = await apiPost<any>('/shop/customers/', createData);
     
@@ -162,41 +159,29 @@ export const customerMngtService = {
       id: response.id?.toString() || '',
       name: response.name || '',
       email: response.email || '',
-      phone: response.phone_number || response.phone || '', // Handle both field names
+      phone: response.phone_number || '', // Map from phone_number field
       address: response.address || '',
-      city: response.city,
-      state: response.state,
-      zipCode: response.zip_code,
-      emergencyContact: response.emergency_contact,
-      emergencyPhone: response.emergency_phone,
-      preferredContact: response.preferred_contact,
-      isActive: response.user?.is_active ?? true, // Get from User relationship
-      createdAt: response.created_at || new Date().toISOString(),
-      updatedAt: response.updated_at || new Date().toISOString()
+      city: '', // Not in database
+      state: '', // Not in database
+      zipCode: '', // Not in database
+      emergencyContact: '', // Not in database
+      emergencyPhone: '', // Not in database
+      preferredContact: undefined, // Not in database
+      isActive: true, // Default
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
   },
 
   // Update customer
   updateCustomer: async (customerId: string, customerData: UpdateCustomerData): Promise<Customer> => {
-    const updateData = {
-      name: customerData.name,
-      email: customerData.email,
-      phone: customerData.phone,
-      address: customerData.address,
-      city: customerData.city,
-      state: customerData.state,
-      zip_code: customerData.zipCode,
-      emergency_contact: customerData.emergencyContact,
-      emergency_phone: customerData.emergencyPhone,
-      preferred_contact: customerData.preferredContact
-    };
+    // Only send fields that exist in the database
+    const updateData: any = {};
     
-    // Remove undefined fields
-    Object.keys(updateData).forEach(key => {
-      if (updateData[key as keyof typeof updateData] === undefined) {
-        delete updateData[key as keyof typeof updateData];
-      }
-    });
+    if (customerData.name !== undefined) updateData.name = customerData.name;
+    if (customerData.phone !== undefined) updateData.phone_number = customerData.phone; // Map to phone_number
+    if (customerData.email !== undefined) updateData.email = customerData.email;
+    if (customerData.address !== undefined) updateData.address = customerData.address;
     
     const response = await apiPut<any>(`/shop/customers/${customerId}/`, updateData);
     
@@ -204,17 +189,17 @@ export const customerMngtService = {
       id: response.id?.toString() || '',
       name: response.name || '',
       email: response.email || '',
-      phone: response.phone_number || response.phone || '', // Handle both field names
+      phone: response.phone_number || '', // Map from phone_number field
       address: response.address || '',
-      city: response.city,
-      state: response.state,
-      zipCode: response.zip_code,
-      emergencyContact: response.emergency_contact,
-      emergencyPhone: response.emergency_phone,
-      preferredContact: response.preferred_contact,
-      isActive: response.user?.is_active ?? true, // Get from User relationship
-      createdAt: response.created_at || new Date().toISOString(),
-      updatedAt: response.updated_at || new Date().toISOString()
+      city: '', // Not in database
+      state: '', // Not in database
+      zipCode: '', // Not in database
+      emergencyContact: '', // Not in database
+      emergencyPhone: '', // Not in database
+      preferredContact: undefined, // Not in database
+      isActive: true, // Default
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
   },
 

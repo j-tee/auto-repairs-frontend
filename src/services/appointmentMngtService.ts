@@ -58,6 +58,7 @@ export interface CreateAppointmentData {
   notes?: string;
   estimatedCost?: number;
   assignedTechnician?: string;
+  reportedProblemId?: string; // Link to vehicle problem
 }
 
 export interface UpdateAppointmentData {
@@ -236,12 +237,17 @@ export const appointmentMngtService = {
     // Combine date and time for the backend
     const combinedDateTime = `${appointmentData.scheduledDate}T${appointmentData.scheduledTime}:00`;
     
-    const createData = {
+    const createData: any = {
       vehicle_id: parseInt(appointmentData.vehicleId),
       date: combinedDateTime,
       description: appointmentData.description || `${appointmentData.serviceType} service`,
       status: 'pending'
     };
+    
+    // Add reported problem ID if provided
+    if (appointmentData.reportedProblemId) {
+      createData.reported_problem_id = parseInt(appointmentData.reportedProblemId);
+    }
     
     const response = await apiPost<any>('/shop/appointments/', createData);
     
