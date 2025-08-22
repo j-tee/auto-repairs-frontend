@@ -1,4 +1,14 @@
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api';
+import type { Customer } from '../types/autoRepairs';
+
+// Type for embedded customer data from the enhanced API
+interface EmbeddedCustomer {
+  id: string;
+  name: string;
+  email: string;
+  phone_number: string;
+  address?: string;
+}
 
 // Appointment types
 export interface Appointment {
@@ -17,13 +27,7 @@ export interface Appointment {
   assignedTechnician?: string;
   createdAt: string;
   updatedAt: string;
-  customer?: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone: string;
-  };
+  customer?: EmbeddedCustomer | Customer;
   vehicle?: {
     id: string;
     make: string;
@@ -87,6 +91,7 @@ export interface AppointmentQuery {
   serviceType?: string;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
+  [key: string]: any; // Index signature for API compatibility
 }
 
 export interface AppointmentListResponse {
@@ -151,10 +156,14 @@ export const appointmentMngtService = {
           // Map the enhanced customer data from backend
           customer: appointment.customer ? {
             id: appointment.customer.id?.toString() || '',
-            firstName: appointment.customer.name?.split(' ')[0] || '',
-            lastName: appointment.customer.name?.split(' ').slice(1).join(' ') || '',
+            name: appointment.customer.name || 
+                  (appointment.customer.first_name && appointment.customer.last_name ? 
+                   `${appointment.customer.first_name} ${appointment.customer.last_name}` : '') ||
+                  appointment.customer.username || 
+                  'Unknown Customer',
             email: appointment.customer.email || '',
-            phone: appointment.customer.phone_number || ''
+            phone_number: appointment.customer.phone_number || appointment.customer.phone || '',
+            address: appointment.customer.address || ''
           } : undefined,
           // Map the enhanced vehicle data from backend
           vehicle: appointment.vehicle ? {
@@ -198,10 +207,10 @@ export const appointmentMngtService = {
       updatedAt: response.updated_at || new Date().toISOString(),
       customer: response.customer ? {
         id: response.customer.id?.toString() || '',
-        firstName: response.customer.first_name || '',
-        lastName: response.customer.last_name || '',
+        name: response.customer.name || '',
         email: response.customer.email || '',
-        phone: response.customer.phone || ''
+        phone_number: response.customer.phone_number || '',
+        address: response.customer.address || ''
       } : undefined,
       vehicle: response.vehicle ? {
         id: response.vehicle.id?.toString() || '',
@@ -308,10 +317,10 @@ export const appointmentMngtService = {
       updatedAt: response.updated_at || new Date().toISOString(),
       customer: response.customer ? {
         id: response.customer.id?.toString() || '',
-        firstName: response.customer.first_name || '',
-        lastName: response.customer.last_name || '',
+        name: response.customer.name || '',
         email: response.customer.email || '',
-        phone: response.customer.phone || ''
+        phone_number: response.customer.phone_number || '',
+        address: response.customer.address || ''
       } : undefined,
       vehicle: response.vehicle ? {
         id: response.vehicle.id?.toString() || '',
