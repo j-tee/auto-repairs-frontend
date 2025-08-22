@@ -167,7 +167,42 @@ export const vehicleMngtService = {
     };
   },
 
-  // Get vehicle by ID
+  // Get vehicles for a specific customer (with client-side filtering if backend doesn't support it)
+  getCustomerVehicles: async (customerId: string): Promise<Vehicle[]> => {
+    try {
+      // First try with customer_id parameter (in case backend supports it)
+      const response = await vehicleMngtService.getVehicles({
+        customerId,
+        limit: 1000
+      });
+      
+      const allVehicles = response.vehicles || [];
+      
+      // Check if backend filtering worked by verifying all returned vehicles belong to the customer
+      const belongsToCustomer = allVehicles.every(vehicle => 
+        vehicle.customerId === customerId
+      );
+      
+      if (belongsToCustomer && allVehicles.length > 0) {
+        // Backend filtering worked
+        return allVehicles;
+      } else if (allVehicles.length === 0) {
+        // No vehicles found (either no vehicles exist or customer has no vehicles)
+        return [];
+      } else {
+        // Backend didn't filter, apply client-side filtering
+        console.log(`Backend returned ${allVehicles.length} vehicles, filtering for customer ${customerId}`);
+        const filteredVehicles = allVehicles.filter(vehicle => 
+          vehicle.customerId === customerId
+        );
+        console.log(`Found ${filteredVehicles.length} vehicles for customer ${customerId}`);
+        return filteredVehicles;
+      }
+    } catch (error: any) {
+      console.error('Error loading customer vehicles:', error);
+      throw error;
+    }
+  },
   getVehicleById: async (vehicleId: string): Promise<Vehicle> => {
     const response = await apiGet<any>(`/shop/vehicles/${vehicleId}/`);
     

@@ -183,14 +183,12 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
     try {
       setLoadingVehicles(true);
       console.log(`Loading vehicles for customer: ${customerId}`);
-      const response = await vehicleMngtService.getVehicles({
-        customerId,
-        limit: 1000,
-      });
-      console.log("Vehicle service response:", response);
-      console.log("Response.vehicles:", response.vehicles);
-      console.log("Vehicles array length:", response.vehicles?.length || 0);
-      setVehicles(response.vehicles || []);
+      
+      // Use the specialized method that handles filtering
+      const customerVehicles = await vehicleMngtService.getCustomerVehicles(customerId);
+      
+      console.log(`Found ${customerVehicles.length} vehicles for customer ${customerId}:`, customerVehicles);
+      setVehicles(customerVehicles);
     } catch (error: any) {
       console.error("Error loading vehicles:", error);
       setVehicles([]);
@@ -209,7 +207,9 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
     try {
       setLoadingProblems(true);
       console.log(`Loading problems for vehicle: ${vehicleId}`);
-      const problems = await vehicleProblemService.getVehicleProblemsForVehicle(vehicleId);
+      const problems = await vehicleProblemService.getVehicleProblemsForVehicle(
+        vehicleId
+      );
       console.log("Vehicle problems response:", problems);
       setVehicleProblems(problems || []);
     } catch (error: any) {
@@ -233,7 +233,11 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
 
     // When customer changes, load their vehicles
     if (name === "customerId") {
-      setFormData((prev) => ({ ...prev, vehicleId: "", reportedProblemId: "" })); // Reset vehicle and problem selection
+      setFormData((prev) => ({
+        ...prev,
+        vehicleId: "",
+        reportedProblemId: "",
+      })); // Reset vehicle and problem selection
       loadCustomerVehicles(value);
       setVehicleProblems([]);
     }
@@ -268,7 +272,9 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
         throw new Error("Please select a time");
       }
       if (!formData.reportedProblemId && !formData.description) {
-        throw new Error("Please provide a description for the service or select an existing vehicle problem");
+        throw new Error(
+          "Please provide a description for the service or select an existing vehicle problem"
+        );
       }
 
       // Create appointment
@@ -408,26 +414,27 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
                     disabled={loadingProblems}
                   >
                     <option value="">
-                      {loadingProblems 
-                        ? "Loading problems..." 
+                      {loadingProblems
+                        ? "Loading problems..."
                         : vehicleProblems.length > 0
                         ? "Select existing problem or leave blank for general service"
-                        : "No reported problems - General service appointment"
-                      }
+                        : "No reported problems - General service appointment"}
                     </option>
                     {vehicleProblems.map((problem) => (
                       <option key={problem.id} value={problem.id}>
-                        {problem.description} 
-                        {problem.resolved ? " (Previously Resolved)" : " (Unresolved)"}
-                        {" - Reported: " + new Date(problem.reportedDate).toLocaleDateString()}
+                        {problem.description}
+                        {problem.resolved
+                          ? " (Previously Resolved)"
+                          : " (Unresolved)"}
+                        {" - Reported: " +
+                          new Date(problem.reportedDate).toLocaleDateString()}
                       </option>
                     ))}
                   </Form.Select>
                   <Form.Text className="text-muted">
-                    {vehicleProblems.length > 0 
+                    {vehicleProblems.length > 0
                       ? "Select a specific problem to address, or leave blank for general maintenance"
-                      : "No existing problems reported for this vehicle"
-                    }
+                      : "No existing problems reported for this vehicle"}
                   </Form.Text>
                 </Form.Group>
               </Col>
@@ -529,7 +536,10 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
           {/* Description */}
           <Form.Group className="mb-3">
             <Form.Label>
-              Description {!formData.reportedProblemId && <span className="text-danger">*</span>}
+              Description{" "}
+              {!formData.reportedProblemId && (
+                <span className="text-danger">*</span>
+              )}
             </Form.Label>
             <Form.Control
               as="textarea"
@@ -538,7 +548,7 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
               value={formData.description}
               onChange={handleInputChange}
               placeholder={
-                formData.reportedProblemId 
+                formData.reportedProblemId
                   ? "Additional details about the service (optional)..."
                   : "Describe the service needed (required if no problem selected)..."
               }
@@ -546,7 +556,8 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
             />
             {formData.reportedProblemId && (
               <Form.Text className="text-muted">
-                Since you selected a specific problem, this description is optional.
+                Since you selected a specific problem, this description is
+                optional.
               </Form.Text>
             )}
           </Form.Group>
