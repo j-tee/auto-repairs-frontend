@@ -140,7 +140,7 @@ export const partMngtService = {
       is_active: partData.isActive ?? true
     };
     
-    const response = await apiPost<any>('/parts/', createData);
+    const response = await apiPost<any>('/shop/parts/', createData);
     
     return {
       id: response.id?.toString() || '',

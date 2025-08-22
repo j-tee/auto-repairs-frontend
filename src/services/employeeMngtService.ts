@@ -149,7 +149,7 @@ export const employeeMngtService = {
     if (query.sortOrder) params.append('sort_order', query.sortOrder);
     
     const queryString = params.toString();
-    const endpoint = `/employees/${queryString ? `?${queryString}` : ''}`;
+    const endpoint = `/shop/employees/${queryString ? `?${queryString}` : ''}`;
     
     const response = await apiGet<any>(endpoint);
     
@@ -199,7 +199,7 @@ export const employeeMngtService = {
 
   // Get employee by ID
   getEmployeeById: async (employeeId: string): Promise<Employee> => {
-    const response = await apiGet<any>(`/employees/${employeeId}/`);
+    const response = await apiGet<any>(`/shop/employees/${employeeId}/`);
     
     return {
       id: response.id?.toString() || '',
@@ -261,7 +261,7 @@ export const employeeMngtService = {
       notes: employeeData.notes
     };
     
-    const response = await apiPost<any>('/employees/', createData);
+    const response = await apiPost<any>('/shop/employees/', createData);
     
     return {
       id: response.id?.toString() || '',
@@ -331,7 +331,7 @@ export const employeeMngtService = {
       }
     });
     
-    const response = await apiPut<any>(`/employees/${employeeId}/`, updateData);
+    const response = await apiPut<any>(`/shop/employees/${employeeId}/`, updateData);
     
     return {
       id: response.id?.toString() || '',
@@ -373,7 +373,7 @@ export const employeeMngtService = {
 
   // Delete employee
   deleteEmployee: async (employeeId: string): Promise<void> => {
-    await apiDelete(`/employees/${employeeId}/`);
+    await apiDelete(`/shop/employees/${employeeId}/`);
   },
 
   // Deactivate employee
@@ -423,7 +423,7 @@ export const employeeMngtService = {
 
   // Get employee statistics
   getEmployeeStats: async (): Promise<EmployeeStats> => {
-    const response = await apiGet<any>('/employees/stats/');
+    const response = await apiGet<any>('/shop/employees/stats/');
     
     return {
       totalEmployees: response.total_employees || 0,
@@ -480,7 +480,7 @@ export const employeeMngtService = {
 
   // Get employee performance
   getEmployeePerformance: async (employeeId: string, period: string = 'month'): Promise<EmployeePerformance> => {
-    const response = await apiGet<any>(`/employees/${employeeId}/performance/?period=${period}`);
+    const response = await apiGet<any>(`/shop/employees/${employeeId}/performance/?period=${period}`);
     
     return {
       employeeId,
@@ -521,7 +521,7 @@ export const employeeMngtService = {
     if (date) params.append('date', date);
     
     const queryString = params.toString();
-    const endpoint = `/employees/${employeeId}/schedule/${queryString ? `?${queryString}` : ''}`;
+    const endpoint = `/shop/employees/${employeeId}/schedule/${queryString ? `?${queryString}` : ''}`;
     
     return await apiGet<any>(endpoint);
   },
@@ -538,7 +538,7 @@ export const employeeMngtService = {
     params.append('time', time);
     if (serviceType) params.append('service_type', serviceType);
     
-    const response = await apiGet<any>(`/employees/available-technicians/?${params.toString()}`);
+    const response = await apiGet<any>(`/shop/employees/available-technicians/?${params.toString()}`);
     
     return response.technicians?.map((employee: any) => ({
       id: employee.id?.toString() || '',

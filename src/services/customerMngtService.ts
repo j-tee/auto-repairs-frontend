@@ -90,7 +90,7 @@ export const customerMngtService = {
     if (query.sortBy) params.append('sort_by', query.sortBy);
     if (query.sortOrder) params.append('sort_order', query.sortOrder);
 
-    const response = await apiGet<any>(`/customers/?${params.toString()}`);
+    const response = await apiGet<any>(`/shop/customers/?${params.toString()}`);
     
     return {
       customers: (response.results || response.customers || []).map((customer: any) => ({
@@ -118,7 +118,7 @@ export const customerMngtService = {
 
   // Get customer by ID
   getCustomerById: async (customerId: string): Promise<Customer> => {
-    const response = await apiGet<any>(`/customers/${customerId}/`);
+    const response = await apiGet<any>(`/shop/customers/${customerId}/`);
     
     return {
       id: response.id?.toString() || '',
@@ -153,7 +153,7 @@ export const customerMngtService = {
       preferred_contact: customerData.preferredContact
     };
     
-    const response = await apiPost<any>('/customers/', createData);
+    const response = await apiPost<any>('/shop/customers/', createData);
     
     return {
       id: response.id?.toString() || '',
@@ -195,7 +195,7 @@ export const customerMngtService = {
       }
     });
     
-    const response = await apiPut<any>(`/customers/${customerId}/`, updateData);
+    const response = await apiPut<any>(`/shop/customers/${customerId}/`, updateData);
     
     return {
       id: response.id?.toString() || '',
@@ -217,12 +217,12 @@ export const customerMngtService = {
 
   // Delete customer (hard delete - use with caution)
   deleteCustomer: async (customerId: string): Promise<void> => {
-    await apiDelete(`/customers/${customerId}/`);
+    await apiDelete(`/shop/customers/${customerId}/`);
   },
 
   // Deactivate customer (set User.is_active = false)
   deactivateCustomer: async (customerId: string): Promise<Customer> => {
-    const response = await apiPut<any>(`/customers/${customerId}/deactivate/`, {});
+    const response = await apiPut<any>(`/shop/customers/${customerId}/deactivate/`, {});
     
     return {
       id: response.id?.toString() || '',
@@ -244,7 +244,7 @@ export const customerMngtService = {
 
   // Activate customer (set User.is_active = true)
   activateCustomer: async (customerId: string): Promise<Customer> => {
-    const response = await apiPut<any>(`/customers/${customerId}/activate/`, {});
+    const response = await apiPut<any>(`/shop/customers/${customerId}/activate/`, {});
     
     return {
       id: response.id?.toString() || '',
@@ -281,7 +281,7 @@ export const customerMngtService = {
 
   // Get customer statistics
   getCustomerStats: async (): Promise<CustomerStats> => {
-    const response = await apiGet<any>('/customers/stats/');
+    const response = await apiGet<any>('/shop/customers/stats/');
     
     return {
       totalCustomers: response.total_customers || 0,
@@ -295,7 +295,7 @@ export const customerMngtService = {
 
   // Get customer history (appointments, repairs, etc.)
   getCustomerHistory: async (customerId: string): Promise<CustomerHistory> => {
-    const response = await apiGet<any>(`/customers/${customerId}/history/`);
+    const response = await apiGet<any>(`/shop/customers/${customerId}/history/`);
     
     return {
       customerId,

@@ -124,7 +124,7 @@ export const vehicleMngtService = {
     if (query.lastServiceAfter) params.append('last_service_after', query.lastServiceAfter);
     
     const queryString = params.toString();
-    const endpoint = `/vehicles/${queryString ? `?${queryString}` : ''}`;
+    const endpoint = `/shop/vehicles/${queryString ? `?${queryString}` : ''}`;
     
     const response = await apiGet<any>(endpoint);
     
@@ -166,7 +166,7 @@ export const vehicleMngtService = {
 
   // Get vehicle by ID
   getVehicleById: async (vehicleId: string): Promise<Vehicle> => {
-    const response = await apiGet<any>(`/vehicles/${vehicleId}/`);
+    const response = await apiGet<any>(`/shop/vehicles/${vehicleId}/`);
     
     return {
       id: response.id?.toString() || '',
@@ -215,7 +215,7 @@ export const vehicleMngtService = {
       notes: vehicleData.notes
     };
     
-    const response = await apiPost<any>('/vehicles/', createData);
+    const response = await apiPost<any>('/shop/vehicles/', createData);
     
     return {
       id: response.id?.toString() || '',
@@ -272,7 +272,7 @@ export const vehicleMngtService = {
       }
     });
     
-    const response = await apiPut<any>(`/vehicles/${vehicleId}/`, updateData);
+    const response = await apiPut<any>(`/shop/vehicles/${vehicleId}/`, updateData);
     
     return {
       id: response.id?.toString() || '',
@@ -306,7 +306,7 @@ export const vehicleMngtService = {
 
   // Delete vehicle
   deleteVehicle: async (vehicleId: string): Promise<void> => {
-    await apiDelete(`/vehicles/${vehicleId}/`);
+    await apiDelete(`/shop/vehicles/${vehicleId}/`);
   },
 
   // Deactivate vehicle
@@ -350,7 +350,7 @@ export const vehicleMngtService = {
 
   // Get vehicle statistics
   getVehicleStats: async (): Promise<VehicleStats> => {
-    const response = await apiGet<any>('/vehicles/stats/');
+    const response = await apiGet<any>('/shop/vehicles/stats/');
     
     return {
       totalVehicles: response.total_vehicles || 0,
@@ -387,7 +387,7 @@ export const vehicleMngtService = {
 
   // Get vehicle service history
   getVehicleServiceHistory: async (vehicleId: string): Promise<VehicleServiceHistory> => {
-    const response = await apiGet<any>(`/vehicles/${vehicleId}/service-history/`);
+    const response = await apiGet<any>(`/shop/vehicles/${vehicleId}/service-history/`);
     
     return {
       vehicleId,
@@ -401,7 +401,7 @@ export const vehicleMngtService = {
 
   // Get vehicles due for service
   getVehiclesDueForService: async (days: number = 30): Promise<Vehicle[]> => {
-    const response = await apiGet<any>(`/vehicles/service-due/?days=${days}`);
+    const response = await apiGet<any>(`/shop/vehicles/service-due/?days=${days}`);
     
     return response.vehicles?.map((vehicle: any) => ({
       id: vehicle.id?.toString() || '',
@@ -441,7 +441,7 @@ export const vehicleMngtService = {
   // Get vehicle by VIN
   getVehicleByVin: async (vin: string): Promise<Vehicle | null> => {
     try {
-      const response = await apiGet<any>(`/vehicles/vin/${vin}/`);
+      const response = await apiGet<any>(`/shop/vehicles/vin/${vin}/`);
       
       return {
         id: response.id?.toString() || '',

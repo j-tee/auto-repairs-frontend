@@ -166,7 +166,7 @@ export const repairOrderMngtService = {
     if (query.maxAmount) params.append('max_amount', query.maxAmount.toString());
     
     const queryString = params.toString();
-    const endpoint = `/repair-orders/${queryString ? `?${queryString}` : ''}`;
+    const endpoint = `/shop/repair-orders/${queryString ? `?${queryString}` : ''}`;
     
     const response = await apiGet<any>(endpoint);
     
@@ -244,7 +244,7 @@ export const repairOrderMngtService = {
 
   // Get repair order by ID
   getRepairOrderById: async (repairOrderId: string): Promise<RepairOrder> => {
-    const response = await apiGet<any>(`/repair-orders/${repairOrderId}/`);
+    const response = await apiGet<any>(`/shop/repair-orders/${repairOrderId}/`);
     
     return {
       id: response.id?.toString() || '',
@@ -340,7 +340,7 @@ export const repairOrderMngtService = {
       warranty: repairOrderData.warranty
     };
     
-    const response = await apiPost<any>('/repair-orders/', createData);
+    const response = await apiPost<any>('/shop/repair-orders/', createData);
     
     return {
       id: response.id?.toString() || '',
@@ -426,7 +426,7 @@ export const repairOrderMngtService = {
       }
     });
     
-    const response = await apiPut<any>(`/repair-orders/${repairOrderId}/`, updateData);
+    const response = await apiPut<any>(`/shop/repair-orders/${repairOrderId}/`, updateData);
     
     return {
       id: response.id?.toString() || '',
@@ -496,7 +496,7 @@ export const repairOrderMngtService = {
 
   // Delete repair order
   deleteRepairOrder: async (repairOrderId: string): Promise<void> => {
-    await apiDelete(`/repair-orders/${repairOrderId}/`);
+    await apiDelete(`/shop/repair-orders/${repairOrderId}/`);
   },
 
   // Approve repair order
@@ -557,7 +557,7 @@ export const repairOrderMngtService = {
 
   // Get repair order statistics
   getRepairOrderStats: async (): Promise<RepairOrderStats> => {
-    const response = await apiGet<any>('/repair-orders/stats/');
+    const response = await apiGet<any>('/shop/repair-orders/stats/');
     
     return {
       totalOrders: response.total_orders || 0,
@@ -599,7 +599,7 @@ export const repairOrderMngtService = {
 
   // Generate repair order PDF
   generateRepairOrderPDF: async (repairOrderId: string): Promise<Blob> => {
-    const response = await fetch(`/repair-orders/${repairOrderId}/pdf/`, {
+    const response = await fetch(`/shop/repair-orders/${repairOrderId}/pdf/`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`

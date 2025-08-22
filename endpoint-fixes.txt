@@ -1,0 +1,20 @@
+API Endpoint Fixes Needed:
+
+Based on API_DOCUMENTATION.md, all endpoints should be prefixed with /shop/
+
+Current Pattern: /endpoint/
+Correct Pattern: /shop/endpoint/
+
+Files to fix:
+1. vehicleMngtService.ts - All /vehicles/ endpoints
+2. customerMngtService.ts - All /customers/ endpoints
+3. appointmentMngtService.ts - All /appointments/ endpoints
+4. repairOrderMngtService.ts - All /repair-orders/ endpoints
+5. employeeMngtService.ts - All /employees/ endpoints
+6. shopMngtService.ts - All /shops/ endpoints
+
+Critical endpoints causing 404 errors:
+- GET /vehicles/ → GET /shop/vehicles/
+- GET /customers/ → GET /shop/customers/
+- GET /appointments/ → GET /shop/appointments/
+- GET /repair-orders/ → GET /shop/repair-orders/

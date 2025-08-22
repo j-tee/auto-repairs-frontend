@@ -73,7 +73,7 @@ export const vehicleProblemMngtService = {
     if (query.limit) params.append('limit', query.limit.toString());
     if (query.offset) params.append('offset', query.offset.toString());
     
-    const endpoint = `/vehicle-problems/${params.toString() ? `?${params.toString()}` : ''}`;
+    const endpoint = `/shop/vehicle-problems/${params.toString() ? `?${params.toString()}` : ''}`;
     const response = await apiGet<any>(endpoint);
     
     // Handle both paginated and non-paginated responses
@@ -106,7 +106,7 @@ export const vehicleProblemMngtService = {
 
   // Get vehicle problem by ID
   getVehicleProblemById: async (problemId: string): Promise<VehicleProblem> => {
-    const response = await apiGet<any>(`/vehicle-problems/${problemId}/`);
+    const response = await apiGet<any>(`/shop/vehicle-problems/${problemId}/`);
     
     return {
       id: response.id?.toString() || '',
@@ -146,7 +146,7 @@ export const vehicleProblemMngtService = {
       reported_date: new Date().toISOString()
     };
     
-    const response = await apiPost<any>('/vehicle-problems/', createData);
+    const response = await apiPost<any>('/shop/vehicle-problems/', createData);
     
     return {
       id: response.id?.toString() || '',
@@ -180,7 +180,7 @@ export const vehicleProblemMngtService = {
     if (problemData.notes !== undefined) updateData.notes = problemData.notes;
     if (problemData.resolvedDate !== undefined) updateData.resolved_date = problemData.resolvedDate;
     
-    const response = await apiPut<any>(`/vehicle-problems/${problemId}/`, updateData);
+    const response = await apiPut<any>(`/shop/vehicle-problems/${problemId}/`, updateData);
     
     return {
       id: response.id?.toString() || '',
@@ -202,12 +202,12 @@ export const vehicleProblemMngtService = {
 
   // Delete vehicle problem
   deleteVehicleProblem: async (problemId: string): Promise<void> => {
-    await apiDelete(`/vehicle-problems/${problemId}/`);
+    await apiDelete(`/shop/vehicle-problems/${problemId}/`);
   },
 
   // Get unresolved problems
   getUnresolvedProblems: async (): Promise<VehicleProblem[]> => {
-    const response = await apiGet<any>('/vehicle-problems/unresolved/');
+    const response = await apiGet<any>('/shop/vehicle-problems/unresolved/');
     const problems = response.results || response;
     
     return problems.map((problem: any): VehicleProblem => ({

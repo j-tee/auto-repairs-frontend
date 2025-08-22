@@ -144,7 +144,7 @@ export const appointmentMngtService = {
     if (query.sortOrder) params.append('sort_order', query.sortOrder);
     
     const queryString = params.toString();
-    const endpoint = `/appointments/${queryString ? `?${queryString}` : ''}`;
+    const endpoint = `/shop/appointments/${queryString ? `?${queryString}` : ''}`;
     
     const response = await apiGet<any>(endpoint);
     
@@ -198,7 +198,7 @@ export const appointmentMngtService = {
 
   // Get appointment by ID
   getAppointmentById: async (appointmentId: string): Promise<Appointment> => {
-    const response = await apiGet<any>(`/appointments/${appointmentId}/`);
+    const response = await apiGet<any>(`/shop/appointments/${appointmentId}/`);
     
     return {
       id: response.id?.toString() || '',
@@ -258,7 +258,7 @@ export const appointmentMngtService = {
       assigned_technician: appointmentData.assignedTechnician
     };
     
-    const response = await apiPost<any>('/appointments/', createData);
+    const response = await apiPost<any>('/shop/appointments/', createData);
     
     return {
       id: response.id?.toString() || '',
@@ -308,7 +308,7 @@ export const appointmentMngtService = {
       }
     });
     
-    const response = await apiPut<any>(`/appointments/${appointmentId}/`, updateData);
+    const response = await apiPut<any>(`/shop/appointments/${appointmentId}/`, updateData);
     
     return {
       id: response.id?.toString() || '',
@@ -354,7 +354,7 @@ export const appointmentMngtService = {
 
   // Delete appointment
   deleteAppointment: async (appointmentId: string): Promise<void> => {
-    await apiDelete(`/appointments/${appointmentId}/`);
+    await apiDelete(`/shop/appointments/${appointmentId}/`);
   },
 
   // Cancel appointment
@@ -422,7 +422,7 @@ export const appointmentMngtService = {
 
   // Get appointment statistics
   getAppointmentStats: async (): Promise<AppointmentStats> => {
-    const response = await apiGet<any>('/appointments/stats/');
+    const response = await apiGet<any>('/shop/appointments/stats/');
     
     return {
       totalAppointments: response.total_appointments || 0,
@@ -450,7 +450,7 @@ export const appointmentMngtService = {
     params.append('duration', duration.toString());
     if (technicianId) params.append('technician_id', technicianId);
     
-    const response = await apiGet<any>(`/appointments/available-slots/?${params.toString()}`);
+    const response = await apiGet<any>(`/shop/appointments/available-slots/?${params.toString()}`);
     
     return response.slots?.map((slot: any) => ({
       date: slot.date || '',
@@ -463,7 +463,7 @@ export const appointmentMngtService = {
 
   // Send appointment reminder
   sendAppointmentReminder: async (appointmentId: string): Promise<void> => {
-    await apiPost(`/appointments/${appointmentId}/send-reminder/`, {});
+    await apiPost(`/shop/appointments/${appointmentId}/send-reminder/`, {});
     await appointmentMngtService.updateAppointment(appointmentId, { reminderSent: true });
   },
 

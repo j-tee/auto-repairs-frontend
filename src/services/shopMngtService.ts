@@ -198,7 +198,7 @@ export const shopMngtService = {
     if (query.sortOrder) params.append('sort_order', query.sortOrder);
     
     const queryString = params.toString();
-    const endpoint = `/shops/${queryString ? `?${queryString}` : ''}`;
+    const endpoint = `/shop/shops/${queryString ? `?${queryString}` : ''}`;
     
     const response = await apiGet<any>(endpoint);
     
@@ -263,7 +263,7 @@ export const shopMngtService = {
 
   // Get shop by ID
   getShopById: async (shopId: string): Promise<Shop> => {
-    const response = await apiGet<any>(`/shops/${shopId}/`);
+    const response = await apiGet<any>(`/shop/shops/${shopId}/`);
     
     return {
       id: response.id?.toString() || '',
@@ -353,7 +353,7 @@ export const shopMngtService = {
       manager: shopData.manager
     };
     
-    const response = await apiPost<any>('/shops/', createData);
+    const response = await apiPost<any>('/shop/shops/', createData);
     
     return {
       id: response.id?.toString() || '',
@@ -425,7 +425,7 @@ export const shopMngtService = {
       }
     });
     
-    const response = await apiPut<any>(`/shops/${shopId}/`, updateData);
+    const response = await apiPut<any>(`/shop/shops/${shopId}/`, updateData);
     
     return {
       id: response.id?.toString() || '',
@@ -482,7 +482,7 @@ export const shopMngtService = {
 
   // Delete shop
   deleteShop: async (shopId: string): Promise<void> => {
-    await apiDelete(`/shops/${shopId}/`);
+    await apiDelete(`/shop/shops/${shopId}/`);
   },
 
   // Deactivate shop
@@ -514,7 +514,7 @@ export const shopMngtService = {
 
   // Get shop statistics
   getShopStats: async (shopId?: string): Promise<ShopStats> => {
-    const endpoint = shopId ? `/shops/${shopId}/stats/` : '/shops/stats/';
+    const endpoint = shopId ? `/shop/shops/${shopId}/stats/` : '/shops/stats/';
     const response = await apiGet<any>(endpoint);
     
     return {
@@ -535,7 +535,7 @@ export const shopMngtService = {
 
   // Get shop availability
   getShopAvailability: async (shopId: string, date: string): Promise<ShopAvailability> => {
-    const response = await apiGet<any>(`/shops/${shopId}/availability/?date=${date}`);
+    const response = await apiGet<any>(`/shop/shops/${shopId}/availability/?date=${date}`);
     
     return {
       shopId,
@@ -566,7 +566,7 @@ export const shopMngtService = {
 
   // Get dashboard data
   getDashboardData: async (shopId?: string): Promise<DashboardData> => {
-    const endpoint = shopId ? `/shops/${shopId}/dashboard/` : '/dashboard/';
+    const endpoint = shopId ? `/shop/shops/${shopId}/dashboard/` : '/dashboard/';
     const response = await apiGet<any>(endpoint);
     
     return {
@@ -628,7 +628,7 @@ export const shopMngtService = {
     const formData = new FormData();
     formData.append('logo', file);
     
-    const response = await fetch(`/shops/${shopId}/upload-logo/`, {
+    const response = await fetch(`/shop/shops/${shopId}/upload-logo/`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -650,7 +650,7 @@ export const shopMngtService = {
     if (datetime) params.append('datetime', datetime);
     
     const queryString = params.toString();
-    const endpoint = `/shops/${shopId}/is-open/${queryString ? `?${queryString}` : ''}`;
+    const endpoint = `/shop/shops/${shopId}/is-open/${queryString ? `?${queryString}` : ''}`;
     
     const response = await apiGet<any>(endpoint);
     return response.is_open || false;

@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Endpoint Test - After Fixes</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .endpoint {
+            margin: 10px 0;
+            padding: 15px;
+            border-left: 4px solid #007bff;
+            background-color: #f8f9fa;
+        }
+        .status {
+            font-weight: bold;
+            padding: 5px 10px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-left: 10px;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .testing { background-color: #fff3cd; color: #856404; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            max-height: 200px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔧 Auto Repairs API Endpoint Testing</h1>
+        <p>Testing API endpoints after adding /shop/ prefix to fix 404 errors</p>
+        
+        <button onclick="testAllEndpoints()">Test All Endpoints</button>
+        <button onclick="clearResults()">Clear Results</button>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:8000/api';
+        
+        const endpoints = [
+            { name: 'Vehicles', url: '/shop/vehicles/?limit=10' },
+            { name: 'Customers', url: '/shop/customers/?limit=10' },
+            { name: 'Appointments', url: '/shop/appointments/?limit=10' },
+            { name: 'Repair Orders', url: '/shop/repair-orders/?limit=10' },
+            { name: 'Employees', url: '/shop/employees/?limit=10' },
+            { name: 'Shops', url: '/shop/shops/?limit=10' },
+            { name: 'Vehicle Problems', url: '/shop/vehicle-problems/?limit=10' },
+            { name: 'Parts', url: '/shop/parts/?limit=10' },
+            { name: 'Vehicle Stats', url: '/shop/vehicles/stats/' },
+            { name: 'Appointment Stats', url: '/shop/appointments/stats/' },
+            { name: 'Customer Stats', url: '/shop/customers/stats/' },
+            { name: 'Employee Stats', url: '/shop/employees/stats/' },
+            { name: 'Repair Order Stats', url: '/shop/repair-orders/stats/' }
+        ];
+
+        async function testEndpoint(endpoint) {
+            const resultDiv = document.getElementById(`result-${endpoint.name.replace(/\s+/g, '-').toLowerCase()}`);
+            
+            try {
+                resultDiv.innerHTML = `
+                    <div class="endpoint">
+                        <strong>${endpoint.name}</strong>: GET ${API_BASE}${endpoint.url}
+                        <span class="status testing">Testing...</span>
+                    </div>
+                `;
+
+                const response = await fetch(`${API_BASE}${endpoint.url}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        // Note: In real app, we'd need auth token here
+                    }
+                });
+
+                const status = response.status;
+                const statusText = response.statusText;
+                
+                let resultText = '';
+                let statusClass = '';
+                
+                if (status === 200) {
+                    statusClass = 'success';
+                    resultText = `✅ SUCCESS (${status})`;
+                    try {
+                        const data = await response.json();
+                        resultText += ` - ${JSON.stringify(data).substring(0, 100)}...`;
+                    } catch (e) {
+                        resultText += ' - Response received';
+                    }
+                } else if (status === 401) {
+                    statusClass = 'testing';
+                    resultText = `🔐 UNAUTHORIZED (${status}) - Endpoint exists but needs auth`;
+                } else if (status === 404) {
+                    statusClass = 'error';
+                    resultText = `❌ NOT FOUND (${status}) - Endpoint still missing`;
+                } else {
+                    statusClass = 'testing';
+                    resultText = `⚠️ ${statusText} (${status})`;
+                }
+
+                resultDiv.innerHTML = `
+                    <div class="endpoint">
+                        <strong>${endpoint.name}</strong>: GET ${API_BASE}${endpoint.url}
+                        <span class="status ${statusClass}">${resultText}</span>
+                    </div>
+                `;
+
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="endpoint">
+                        <strong>${endpoint.name}</strong>: GET ${API_BASE}${endpoint.url}
+                        <span class="status error">❌ ERROR: ${error.message}</span>
+                    </div>
+                `;
+            }
+        }
+
+        async function testAllEndpoints() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<h3>🧪 Testing Results:</h3>';
+            
+            // Create result divs for each endpoint
+            endpoints.forEach(endpoint => {
+                const div = document.createElement('div');
+                div.id = `result-${endpoint.name.replace(/\s+/g, '-').toLowerCase()}`;
+                resultsDiv.appendChild(div);
+            });
+
+            // Test all endpoints
+            const promises = endpoints.map(endpoint => testEndpoint(endpoint));
+            await Promise.all(promises);
+            
+            // Add summary
+            setTimeout(() => {
+                const summaryDiv = document.createElement('div');
+                summaryDiv.className = 'test-container';
+                summaryDiv.innerHTML = `
+                    <h3>📊 Test Summary</h3>
+                    <p>✅ Green = Working correctly</p>
+                    <p>🔐 Yellow = Exists but needs authentication</p>
+                    <p>❌ Red = Still returning 404 errors</p>
+                    <p><strong>Key Fix:</strong> All endpoints now use /shop/ prefix instead of direct paths</p>
+                `;
+                resultsDiv.appendChild(summaryDiv);
+            }, 1000);
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        // Auto-test on page load
+        window.onload = () => {
+            setTimeout(testAllEndpoints, 500);
+        };
+    </script>
+</body>
+</html>
