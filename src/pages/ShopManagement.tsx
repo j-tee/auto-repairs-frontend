@@ -9,13 +9,9 @@ import {
   Badge,
   Alert,
   Spinner,
-  Form,
-  InputGroup,
   Modal,
-  Tabs,
-  Tab,
 } from "react-bootstrap";
-import { useAuth } from "../hooks/useAuth";
+import { usePermissions } from "../components/PermissionGuard";
 
 interface Shop {
   id: string;
@@ -31,16 +27,15 @@ interface Shop {
 }
 
 export const ShopManagement: React.FC = () => {
-  const { user, canManageShops } = useAuth();
+  const { canManageShops } = usePermissions();
   const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
 
   useEffect(() => {
-    if (!canManageShops()) {
+    if (!canManageShops) {
       setError("Access denied. Owner privileges required for shop management.");
       setLoading(false);
       return;
@@ -86,7 +81,16 @@ export const ShopManagement: React.FC = () => {
     }
   };
 
-  if (!canManageShops()) {
+  useEffect(() => {
+    if (!canManageShops) {
+      setError("Access denied. Owner privileges required for shop management.");
+      setLoading(false);
+      return;
+    }
+    loadShops();
+  }, [canManageShops]);
+
+  if (!canManageShops) {
     return (
       <Container className="py-5">
         <Alert variant="danger">

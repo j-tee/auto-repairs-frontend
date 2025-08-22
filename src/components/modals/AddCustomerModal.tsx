@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Modal, Button, Form, Alert } from "react-bootstrap";
 import type { CustomerFormData } from "../../types/entities";
-import { apiPost } from "../../utils/api";
+import { useAutoRepairs } from "../../hooks/useAutoRepairs";
 
 interface AddCustomerModalProps {
   show: boolean;
@@ -14,6 +14,8 @@ export const AddCustomerModal: React.FC<AddCustomerModalProps> = ({
   onHide,
   onSuccess,
 }) => {
+  const { addCustomer } = useAutoRepairs();
+
   const [formData, setFormData] = useState<CustomerFormData>({
     name: "",
     phone_number: "",
@@ -39,7 +41,18 @@ export const AddCustomerModal: React.FC<AddCustomerModalProps> = ({
     setError(null);
 
     try {
-      const response = await apiPost("/shop/customers/", formData);
+      // Transform form data to match Customer type
+      const customerData = {
+        name: formData.name,
+        email: formData.email || "",
+        phone: formData.phone_number,
+        address: formData.address || "",
+        isActive: true, // New customers are active by default
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      const response = await addCustomer(customerData);
       onSuccess(response);
       handleClose();
     } catch (err) {

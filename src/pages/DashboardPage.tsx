@@ -10,15 +10,11 @@ import {
   Tabs,
 } from "react-bootstrap";
 import { useAuth } from "../hooks/useAuth";
-import { AutoRepairsDashboard, AxiosQueryDemo } from "../components";
-import {
-  RebuildDashboard,
-  DashboardTestComponent,
-} from "../components/RebuildDashboard";
+import { AutoRepairsDashboard } from "../components";
+import { RebuildDashboard } from "../components/RebuildDashboard";
 import {
   AddCustomerModal,
   AddVehicleModal,
-  AddAppointmentModal,
   AddRepairOrderModal,
   AddVehicleProblemModal,
 } from "../components/modals";
@@ -163,14 +159,10 @@ export const DashboardPage: React.FC = () => {
         <Tabs defaultActiveKey="rebuilt" id="dashboard-tabs" className="mb-4">
           <Tab eventKey="rebuilt" title="🔄 Rebuilt Dashboard">
             <RebuildDashboard />
-            <DashboardTestComponent />
           </Tab>
 
           <Tab eventKey="original" title="📊 Original Dashboard">
             <h2>🏪 Auto Repairs Management System</h2>
-
-            {/* Axios + Query String Demo */}
-            <AxiosQueryDemo />
 
             {/* Auto Repairs Dashboard Component */}
             <AutoRepairsDashboard />
@@ -191,11 +183,14 @@ export const DashboardPage: React.FC = () => {
         onSuccess={(data) => handleSuccess("Vehicle", data)}
       />
 
+      {/* TODO: AddAppointmentModal needs to be implemented */}
+      {/*
       <AddAppointmentModal
         show={showAppointmentModal}
         onHide={() => setShowAppointmentModal(false)}
-        onSuccess={(data) => handleSuccess("Appointment", data)}
+        onSuccess={(data: any) => handleSuccess("Appointment", data)}
       />
+      */}
 
       <AddRepairOrderModal
         show={showRepairOrderModal}

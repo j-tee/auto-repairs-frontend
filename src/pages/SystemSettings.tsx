@@ -12,7 +12,7 @@ import {
   Tabs,
 } from "react-bootstrap";
 import { useAuth } from "../hooks/useAuth";
-import { UserManagementAPI } from "../services/userManagementAPI";
+import { userMngtService } from "../services/userMngtService";
 import type { PasswordPolicy } from "../types/userManagement";
 
 export const SystemSettings: React.FC = () => {
@@ -44,7 +44,7 @@ export const SystemSettings: React.FC = () => {
   const loadPasswordPolicy = async () => {
     setLoading(true);
     try {
-      const policy = await UserManagementAPI.getPasswordPolicy();
+      const policy = await userMngtService.getPasswordPolicy();
       setPasswordPolicy(policy);
     } catch (err) {
       setError("Failed to load password policy");
@@ -62,7 +62,7 @@ export const SystemSettings: React.FC = () => {
     setError(null);
 
     try {
-      await UserManagementAPI.updatePasswordPolicy(passwordPolicy);
+      await userMngtService.updatePasswordPolicy(passwordPolicy);
       setSuccessMessage("Password policy updated successfully");
       setTimeout(() => setSuccessMessage(null), 5000);
     } catch (err: any) {

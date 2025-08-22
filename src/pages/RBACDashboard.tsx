@@ -9,7 +9,7 @@ import {
 } from "../components/PermissionGuard";
 
 export const RBACDashboard: React.FC = () => {
-  const { user, isOwner, isEmployee, isCustomer } = useAuth();
+  const { user } = useAuth();
 
   if (!user) {
     return (

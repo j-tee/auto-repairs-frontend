@@ -1,27 +1,164 @@
 import React, { useState, useEffect } from "react";
-import { useEnhancedAutoRepairs } from "../hooks/useEnhancedAutoRepairs";
-import type {
-  VehicleFilters,
-  RepairJobFilters,
-  CustomerFilters,
-} from "../services/autoRepairsService";
+import { useAutoRepairs } from "../hooks/useAutoRepairs";
+
+// Define filter types locally since they may not exist in services yet
+type VehicleFilters = {
+  make?: string;
+  model?: string;
+  year?: number;
+  search?: string;
+};
+
+type RepairJobFilters = {
+  status?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  estimatedCostMin?: number;
+  estimatedCostMax?: number;
+  search?: string;
+};
+
+type CustomerFilters = {
+  search?: string;
+  city?: string;
+  state?: string;
+};
 
 const AxiosQueryDemo: React.FC = () => {
   const {
     isLoading,
     searchResults,
     searchAll,
-    loadVehiclesWithFilters,
-    loadRepairJobsWithFilters,
-    loadCustomersWithFilters,
-    getJobsByStatus,
-    getJobsByDateRange,
-    getJobsByPriceRange,
-    getVehiclesByMakeModel,
-    getDashboardSummary,
-    getRevenueReport,
-    getJobStatistics,
-  } = useEnhancedAutoRepairs();
+    loadVehicles,
+    loadRepairOrders,
+    loadCustomers,
+    vehicles,
+    customers,
+    repairOrders,
+  } = useAutoRepairs();
+
+  // Create placeholder functions for missing functionality
+  const loadVehiclesWithFilters = async (
+    filters: any,
+    pagination?: any,
+    sorting?: any
+  ) => {
+    console.log("Loading vehicles with filters:", filters, pagination, sorting);
+    return await loadVehicles(filters);
+  };
+
+  const loadRepairJobsWithFilters = async (
+    filters: any,
+    pagination?: any,
+    sorting?: any
+  ) => {
+    console.log(
+      "Loading repair jobs with filters:",
+      filters,
+      pagination,
+      sorting
+    );
+    return await loadRepairOrders(filters);
+  };
+
+  const loadCustomersWithFilters = async (
+    filters: any,
+    pagination?: any,
+    sorting?: any
+  ) => {
+    console.log(
+      "Loading customers with filters:",
+      filters,
+      pagination,
+      sorting
+    );
+    return await loadCustomers(filters);
+  };
+
+  const getJobsByStatus = async (status: string) => {
+    console.log("Getting jobs by status:", status);
+    return repairOrders.filter((job) => job.status === status);
+  };
+
+  const getJobsByDateRange = async (from: string, to: string) => {
+    console.log("Getting jobs by date range:", from, to);
+    return {
+      data: repairOrders.filter((job) => {
+        const jobDate = job.createdAt ? new Date(job.createdAt) : new Date();
+        const fromDate = new Date(from);
+        const toDate = new Date(to);
+        return jobDate >= fromDate && jobDate <= toDate;
+      }),
+    };
+  };
+
+  const getJobsByPriceRange = async (min: number, max: number) => {
+    console.log("Getting jobs by price range:", min, max);
+    return {
+      data: repairOrders.filter((job) => {
+        const cost = (job as any).totalAmount || (job as any).totalCost || 0;
+        return cost >= min && cost <= max;
+      }),
+    };
+  };
+
+  const getVehiclesByMakeModel = async (make: string, model?: string) => {
+    console.log("Getting vehicles by make/model:", make, model);
+    return {
+      data: vehicles.filter(
+        (vehicle) =>
+          vehicle.make?.toLowerCase() === make.toLowerCase() &&
+          (!model || vehicle.model?.toLowerCase() === model.toLowerCase())
+      ),
+    };
+  };
+
+  const getDashboardSummary = async () => {
+    console.log("Getting dashboard summary");
+    return {
+      totalVehicles: vehicles.length,
+      totalCustomers: customers.length,
+      activeJobs: repairOrders.filter((job) => job.status === "in_progress")
+        .length,
+      revenueThisMonth: repairOrders.reduce(
+        (sum, job) =>
+          sum + ((job as any).totalAmount || (job as any).totalCost || 0),
+        0
+      ),
+    };
+  };
+
+  const getRevenueReport = async (from: string, to: string) => {
+    console.log("Getting revenue report:", from, to);
+    const jobsInRange = repairOrders.filter((job) => {
+      const jobDate = job.createdAt ? new Date(job.createdAt) : new Date();
+      const fromDate = new Date(from);
+      const toDate = new Date(to);
+      return jobDate >= fromDate && jobDate <= toDate;
+    });
+
+    const totalRevenue = jobsInRange.reduce(
+      (sum, job) =>
+        sum + ((job as any).totalAmount || (job as any).totalCost || 0),
+      0
+    );
+    return {
+      totalRevenue,
+      jobCount: jobsInRange.length,
+      averageJobValue:
+        jobsInRange.length > 0 ? totalRevenue / jobsInRange.length : 0,
+    };
+  };
+
+  const getJobStatistics = async (filters: any) => {
+    console.log("Getting job statistics:", filters);
+    return {
+      total: repairOrders.length,
+      pending: repairOrders.filter((job) => job.status === "draft").length, // Using 'draft' as the initial status
+      completed: repairOrders.filter((job) => job.status === "completed")
+        .length,
+    };
+  };
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterResults, setFilterResults] = useState<any>(null);
@@ -281,11 +418,11 @@ const AxiosQueryDemo: React.FC = () => {
 
         {(searchResults.vehicles.length > 0 ||
           searchResults.customers.length > 0 ||
-          searchResults.jobs.length > 0) && (
+          searchResults.repairOrders.length > 0) && (
           <div style={{ marginTop: "10px", fontSize: "0.9em" }}>
             Found: {searchResults.vehicles.length} vehicles,{" "}
             {searchResults.customers.length} customers,{" "}
-            {searchResults.jobs.length} jobs
+            {searchResults.repairOrders.length} repair orders
           </div>
         )}
       </div>

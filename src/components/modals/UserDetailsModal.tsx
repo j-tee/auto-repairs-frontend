@@ -12,12 +12,11 @@ import {
   Alert,
   Spinner,
 } from "react-bootstrap";
-import { UserManagementAPI } from "../../services/userManagementAPI";
-import type {
-  AdminUser,
-  UserActivityLog,
-  UserSession,
-} from "../../types/userManagement";
+import {
+  userMngtService,
+  type AdminUser,
+} from "../../services/userMngtService";
+import type { UserActivityLog, UserSession } from "../../types/userManagement";
 
 interface UserDetailsModalProps {
   show: boolean;
@@ -47,15 +46,16 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
 
     setLoading(true);
     try {
-      const [logs, sessions, userPermissions] = await Promise.all([
-        UserManagementAPI.getUserActivityLogs(user.id, 20),
-        UserManagementAPI.getUserSessions(user.id),
-        UserManagementAPI.getUserPermissions(user.id),
-      ]);
+      // Load activity logs using the available service method
+      const logs = await userMngtService.getUserActivityLog(user.id, {
+        page: 1,
+        limit: 20,
+      });
+      setActivityLogs(logs || []);
 
-      setActivityLogs(logs.logs);
-      setUserSessions(sessions);
-      setPermissions(userPermissions);
+      // For now, set empty arrays for sessions and permissions until backend provides these endpoints
+      setUserSessions([]);
+      setPermissions(user.permissions || []);
     } catch (err: any) {
       setError("Failed to load user details");
     } finally {
@@ -65,12 +65,10 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
 
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {
-      case "admin":
+      case "owner":
         return "danger";
-      case "manager":
+      case "employee":
         return "warning";
-      case "mechanic":
-        return "info";
       case "customer":
         return "secondary";
       default:
@@ -105,8 +103,12 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
     }
 
     try {
-      await UserManagementAPI.terminateUserSession(sessionId);
-      await loadUserDetails(); // Refresh the sessions
+      // For now, this functionality is not implemented in the backend
+      console.log(
+        "Terminate session functionality not yet implemented:",
+        sessionId
+      );
+      setError("Session termination feature is not yet available");
     } catch (err) {
       setError("Failed to terminate session");
     }
@@ -116,8 +118,12 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
     if (!user) return;
 
     try {
-      await UserManagementAPI.sendWelcomeEmail(user.id);
-      // You might want to show a success message here
+      // For now, this functionality is not implemented in the backend
+      console.log(
+        "Send welcome email functionality not yet implemented for user:",
+        user.id
+      );
+      setError("Welcome email feature is not yet available");
     } catch (err) {
       setError("Failed to send welcome email");
     }

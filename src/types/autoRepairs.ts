@@ -27,6 +27,7 @@ export interface Customer {
   emergencyContact?: string;
   emergencyPhone?: string;
   preferredContact?: 'email' | 'phone' | 'text';
+  isActive: boolean; // Derived from User.is_active through user relationship
   createdAt: string;
   updatedAt: string;
 }

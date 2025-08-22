@@ -10,16 +10,13 @@ import { AuthPage } from "./components/auth/AuthPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { DashboardPage } from "./pages/DashboardPage";
 import { AutoRepairDashboard } from "./pages/AutoRepairDashboard";
-import { ModalsDemo } from "./components/ModalsDemo";
 import { UserManagement } from "./pages/UserManagement";
-import { SystemSettings } from "./pages/SystemSettings";
 import { ShopManagement } from "./pages/ShopManagement";
 import { FinancialReports } from "./pages/FinancialReports";
 import { VehicleManagement } from "./pages/VehicleManagement";
 import { CustomerManagement } from "./pages/CustomerManagement";
 import { RepairManagement } from "./pages/RepairManagement";
 import { ServiceCatalogManagement } from "./pages/ServiceCatalogManagement";
-import { RBACTestSuite } from "./components/RBACTestSuite";
 import { useAuth } from "./hooks/useAuth";
 import "./App.scss";
 import "./styles/watermark.scss";
@@ -50,14 +47,6 @@ const AppContent: React.FC = () => {
             element={
               <ProtectedRoute>
                 <DashboardPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/modals"
-            element={
-              <ProtectedRoute>
-                <ModalsDemo />
               </ProtectedRoute>
             }
           />
@@ -220,14 +209,6 @@ const AppContent: React.FC = () => {
                   <h1>Preferences</h1>
                   <p>Customize your app experience</p>
                 </div>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/rbac-test"
-            element={
-              <ProtectedRoute>
-                <RBACTestSuite />
               </ProtectedRoute>
             }
           />

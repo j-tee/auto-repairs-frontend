@@ -6,5 +6,4 @@ export { AddVehicleProblemModal } from './AddVehicleProblemModal';
 export { AddServiceModal } from './AddServiceModal';
 export { AddPartModal } from './AddPartModal';
 export { AddEmployeeModal } from './AddEmployeeModal';
-export { AddAppointmentModal } from './AddAppointmentModal';
 export { AddRepairOrderModal } from './AddRepairOrderModal';

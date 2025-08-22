@@ -1,24 +1,11 @@
 import React, { useState } from "react";
-import {
-  Container,
-  Row,
-  Col,
-  Card,
-  Button,
-  Alert,
-  Tab,
-  Tabs,
-} from "react-bootstrap";
+import { Row, Col, Card, Button, Alert, Tab, Tabs } from "react-bootstrap";
 import { useAuth } from "../hooks/useAuth";
-import { AutoRepairsDashboard, AxiosQueryDemo } from "../components";
-import {
-  RebuildDashboard,
-  DashboardTestComponent,
-} from "../components/RebuildDashboard";
+import { AutoRepairsDashboard } from "../components";
+import { RebuildDashboard } from "../components/RebuildDashboard";
 import {
   AddCustomerModal,
   AddVehicleModal,
-  AddAppointmentModal,
   AddRepairOrderModal,
   AddVehicleProblemModal,
 } from "../components/modals";
@@ -442,14 +429,10 @@ export const AutoRepairDashboard: React.FC = () => {
 
           <Tab eventKey="legacy" title="🔄 Legacy Dashboard">
             <RebuildDashboard />
-            <DashboardTestComponent />
           </Tab>
 
           <Tab eventKey="original" title="📊 Original Components">
             <h2>🏪 Auto Repairs Management System</h2>
-
-            {/* Axios + Query String Demo */}
-            <AxiosQueryDemo />
 
             {/* Auto Repairs Dashboard Component */}
             <AutoRepairsDashboard />
@@ -461,31 +444,34 @@ export const AutoRepairDashboard: React.FC = () => {
       <AddCustomerModal
         show={showCustomerModal}
         onHide={() => setShowCustomerModal(false)}
-        onSuccess={(data) => handleSuccess("Customer", data)}
+        onSuccess={(data: any) => handleSuccess("Customer", data)}
       />
 
       <AddVehicleModal
         show={showVehicleModal}
         onHide={() => setShowVehicleModal(false)}
-        onSuccess={(data) => handleSuccess("Vehicle", data)}
+        onSuccess={(data: any) => handleSuccess("Vehicle", data)}
       />
 
+      {/* TODO: AddAppointmentModal needs to be implemented */}
+      {/*
       <AddAppointmentModal
         show={showAppointmentModal}
         onHide={() => setShowAppointmentModal(false)}
-        onSuccess={(data) => handleSuccess("Appointment", data)}
+        onSuccess={(data: any) => handleSuccess("Appointment", data)}
       />
+      */}
 
       <AddRepairOrderModal
         show={showRepairOrderModal}
         onHide={() => setShowRepairOrderModal(false)}
-        onSuccess={(data) => handleSuccess("Repair Order", data)}
+        onSuccess={(data: any) => handleSuccess("Repair Order", data)}
       />
 
       <AddVehicleProblemModal
         show={showProblemModal}
         onHide={() => setShowProblemModal(false)}
-        onSuccess={(data) => handleSuccess("Problem Report", data)}
+        onSuccess={(data: any) => handleSuccess("Problem Report", data)}
       />
     </div>
   );

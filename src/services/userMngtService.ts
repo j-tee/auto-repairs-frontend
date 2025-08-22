@@ -14,6 +14,20 @@ export interface AdminUser {
   createdAt: string;
   lastLogin?: string;
   permissions?: string[];
+  
+  // Extended properties for admin management
+  department?: string;
+  employeeId?: string;
+  hireDate?: string;
+  salary?: number;
+  manager?: string;
+  notes?: string;
+  loginAttempts?: number;
+  lastPasswordChange?: string;
+  passwordExpiresAt?: string;
+  twoFactorEnabled?: boolean;
+  shopId?: string; // For employees - which shop they work at
+  shopName?: string; // For display purposes
 }
 
 export interface CreateUserData {
@@ -71,6 +85,21 @@ export interface UserStats {
 // User Management Service
 export const userMngtService = {
   // Get all users with filtering and pagination
+  // Export users (CSV or other format)
+  exportUsers: async (query: UserQuery = {}) => {
+    const params = new URLSearchParams();
+    if (query.page) params.append('page', query.page.toString());
+    if (query.limit) params.append('limit', query.limit.toString());
+    if (query.search) params.append('search', query.search);
+    if (query.role) params.append('role', query.role);
+    if (query.isActive !== undefined) params.append('is_active', query.isActive.toString());
+    if (query.sortBy) params.append('sort_by', query.sortBy);
+    if (query.sortOrder) params.append('sort_order', query.sortOrder);
+
+    const queryString = params.toString();
+    const endpoint = `/admin/users/export/${queryString ? `?${queryString}` : ''}`;
+    return await apiGet<any>(endpoint);
+  },
   getUsers: async (query: UserQuery = {}): Promise<UserListResponse> => {
     const params = new URLSearchParams();
     
@@ -305,5 +334,120 @@ export const userMngtService = {
     
     const response = await apiGet<any>(endpoint);
     return response.results || [];
+  },
+
+  // Password Policy and System Settings Functions
+  // Get password policy settings
+  getPasswordPolicy: async (): Promise<any> => {
+    try {
+      const response = await apiGet<any>('/admin/settings/password-policy/');
+      return {
+        minLength: response.min_length || 8,
+        requireUppercase: response.require_uppercase ?? true,
+        requireLowercase: response.require_lowercase ?? true,
+        requireNumbers: response.require_numbers ?? true,
+        requireSpecialChars: response.require_special_chars ?? true,
+        passwordExpiry: response.password_expiry || 90,
+        preventReuse: response.prevent_reuse || 5,
+      };
+    } catch (error) {
+      // Return default policy if API call fails
+      return {
+        minLength: 8,
+        requireUppercase: true,
+        requireLowercase: true,
+        requireNumbers: true,
+        requireSpecialChars: true,
+        passwordExpiry: 90,
+        preventReuse: 5,
+      };
+    }
+  },
+
+  // Update password policy settings
+  updatePasswordPolicy: async (policy: any): Promise<void> => {
+    const updateData = {
+      min_length: policy.minLength,
+      require_uppercase: policy.requireUppercase,
+      require_lowercase: policy.requireLowercase,
+      require_numbers: policy.requireNumbers,
+      require_special_chars: policy.requireSpecialChars,
+      password_expiry: policy.passwordExpiry,
+      prevent_reuse: policy.preventReuse,
+    };
+
+    await apiPut('/admin/settings/password-policy/', updateData);
+  },
+
+  // Get system settings
+  getSystemSettings: async (): Promise<any> => {
+    try {
+      const response = await apiGet<any>('/admin/settings/system/');
+      return response;
+    } catch (error) {
+      return {};
+    }
+  },
+
+  // Update system settings
+  updateSystemSettings: async (settings: any): Promise<void> => {
+    await apiPut('/admin/settings/system/', settings);
+  },
+
+  // Get notification settings
+  getNotificationSettings: async (): Promise<any> => {
+    try {
+      const response = await apiGet<any>('/admin/settings/notifications/');
+      return response;
+    } catch (error) {
+      return {
+        emailNotifications: true,
+        smsNotifications: false,
+        appointmentReminders: true,
+        maintenanceAlerts: true,
+        systemUpdates: true,
+      };
+    }
+  },
+
+  // Update notification settings
+  updateNotificationSettings: async (settings: any): Promise<void> => {
+    await apiPut('/admin/settings/notifications/', settings);
+  },
+
+  // Get backup settings
+  getBackupSettings: async (): Promise<any> => {
+    try {
+      const response = await apiGet<any>('/admin/settings/backup/');
+      return response;
+    } catch (error) {
+      return {
+        autoBackup: true,
+        backupFrequency: 'daily',
+        retentionPeriod: 30,
+        backupLocation: 'cloud',
+      };
+    }
+  },
+
+  // Update backup settings
+  updateBackupSettings: async (settings: any): Promise<void> => {
+    await apiPut('/admin/settings/backup/', settings);
+  },
+
+  // Trigger manual backup
+  triggerBackup: async (): Promise<{ success: boolean; message: string }> => {
+    try {
+      const response = await apiPost<any>('/admin/backup/trigger/', {});
+      return {
+        success: true,
+        message: response.message || 'Backup initiated successfully',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Backup failed',
+      };
+    }
   }
 };

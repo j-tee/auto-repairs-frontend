@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { Modal, Form, Button, Row, Col, Alert, Spinner } from "react-bootstrap";
-import { UserManagementAPI } from "../../services/userManagementAPI";
-import type { UpdateUserData, AdminUser } from "../../types/userManagement";
+import {
+  userMngtService,
+  type AdminUser,
+} from "../../services/userMngtService";
+import type { UpdateUserData } from "../../types/userManagement";
 import type { User } from "../../store/slices/autoRepairsSlice";
 
 interface EditUserModalProps {
@@ -108,7 +111,10 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
     setError(null);
 
     try {
-      const updatedUser = await UserManagementAPI.updateUser(formData);
+      const updatedUser = await userMngtService.updateUser(
+        formData.id,
+        formData
+      );
       onSuccess(updatedUser);
       handleClose();
     } catch (err: any) {

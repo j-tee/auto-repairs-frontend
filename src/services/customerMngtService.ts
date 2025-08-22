@@ -1,61 +1,49 @@
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api';
 
-// Customer types
-export interface Customer {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  address: string;
-  dateOfBirth?: string;
-  notes?: string;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-  totalSpent?: number;
-  lastVisit?: string;
-  vehicleCount?: number;
-  preferences?: {
-    preferredContactMethod: 'email' | 'phone' | 'sms';
-    reminderPreferences: string[];
-    specialRequests?: string;
-  };
-}
+// Import backend-aligned Customer type
+import type { Customer } from '../types/autoRepairs';
+
+// Export Customer type for external use
+export type { Customer } from '../types/autoRepairs';
 
 export interface CreateCustomerData {
-  firstName: string;
-  lastName: string;
+  name: string;
   email: string;
   phone: string;
   address: string;
-  dateOfBirth?: string;
-  notes?: string;
-  preferences?: Customer['preferences'];
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  emergencyContact?: string;
+  emergencyPhone?: string;
+  preferredContact?: 'email' | 'phone' | 'text';
 }
 
 export interface UpdateCustomerData {
-  firstName?: string;
-  lastName?: string;
+  name?: string;
   email?: string;
   phone?: string;
   address?: string;
-  dateOfBirth?: string;
-  notes?: string;
-  isActive?: boolean;
-  preferences?: Customer['preferences'];
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  emergencyContact?: string;
+  emergencyPhone?: string;
+  preferredContact?: 'email' | 'phone' | 'text';
+  isActive?: boolean; // Can be updated through User relationship
 }
 
 export interface CustomerQuery {
   page?: number;
   limit?: number;
   search?: string;
+  email?: string;
+  phone?: string;
+  city?: string;
+  state?: string;
   isActive?: boolean;
-  sortBy?: string;
+  sortBy?: 'name' | 'email' | 'createdAt' | 'updatedAt';
   sortOrder?: 'asc' | 'desc';
-  hasVehicles?: boolean;
-  lastVisitAfter?: string;
-  lastVisitBefore?: string;
 }
 
 export interface CustomerListResponse {
@@ -69,63 +57,57 @@ export interface CustomerListResponse {
 export interface CustomerStats {
   totalCustomers: number;
   activeCustomers: number;
-  newThisMonth: number;
+  inactiveCustomers: number;
+  newCustomersThisMonth: number;
+  averageVisitsPerCustomer: number;
   totalRevenue: number;
-  averageSpending: number;
-  topCustomers: Customer[];
 }
 
 export interface CustomerHistory {
-  vehicles: any[];
+  customerId: string;
   appointments: any[];
   repairOrders: any[];
+  vehicles: any[];
   totalSpent: number;
-  lastVisit?: string;
+  lastVisit: string | null;
   visitCount: number;
 }
 
-// Customer Management Service
+// Service implementation
 export const customerMngtService = {
-  // Get all customers with filtering and pagination
+  // Get all customers with pagination and filtering
   getCustomers: async (query: CustomerQuery = {}): Promise<CustomerListResponse> => {
     const params = new URLSearchParams();
     
     if (query.page) params.append('page', query.page.toString());
     if (query.limit) params.append('limit', query.limit.toString());
     if (query.search) params.append('search', query.search);
+    if (query.email) params.append('email', query.email);
+    if (query.phone) params.append('phone', query.phone);
+    if (query.city) params.append('city', query.city);
+    if (query.state) params.append('state', query.state);
     if (query.isActive !== undefined) params.append('is_active', query.isActive.toString());
     if (query.sortBy) params.append('sort_by', query.sortBy);
     if (query.sortOrder) params.append('sort_order', query.sortOrder);
-    if (query.hasVehicles !== undefined) params.append('has_vehicles', query.hasVehicles.toString());
-    if (query.lastVisitAfter) params.append('last_visit_after', query.lastVisitAfter);
-    if (query.lastVisitBefore) params.append('last_visit_before', query.lastVisitBefore);
-    
-    const queryString = params.toString();
-    const endpoint = `/customers/${queryString ? `?${queryString}` : ''}`;
-    
-    const response = await apiGet<any>(endpoint);
+
+    const response = await apiGet<any>(`/customers/?${params.toString()}`);
     
     return {
-      customers: response.results?.map((customer: any) => ({
+      customers: (response.results || response.customers || []).map((customer: any) => ({
         id: customer.id?.toString() || '',
-        firstName: customer.first_name || '',
-        lastName: customer.last_name || '',
+        name: customer.name || '',
         email: customer.email || '',
         phone: customer.phone || '',
         address: customer.address || '',
-        dateOfBirth: customer.date_of_birth,
-        notes: customer.notes,
-        isActive: customer.is_active ?? true,
+        city: customer.city,
+        state: customer.state,
+        zipCode: customer.zip_code,
+        emergencyContact: customer.emergency_contact,
+        emergencyPhone: customer.emergency_phone,
+        preferredContact: customer.preferred_contact,
+        isActive: customer.user?.is_active ?? true, // Get from User relationship
         createdAt: customer.created_at || new Date().toISOString(),
-        updatedAt: customer.updated_at || new Date().toISOString(),
-        totalSpent: customer.total_spent || 0,
-        lastVisit: customer.last_visit,
-        vehicleCount: customer.vehicle_count || 0,
-        preferences: customer.preferences ? {
-          preferredContactMethod: customer.preferences.preferred_contact_method || 'email',
-          reminderPreferences: customer.preferences.reminder_preferences || [],
-          specialRequests: customer.preferences.special_requests
-        } : undefined
+        updatedAt: customer.updated_at || new Date().toISOString()
       })) || [],
       total: response.count || 0,
       page: query.page || 1,
@@ -140,85 +122,70 @@ export const customerMngtService = {
     
     return {
       id: response.id?.toString() || '',
-      firstName: response.first_name || '',
-      lastName: response.last_name || '',
+      name: response.name || '',
       email: response.email || '',
       phone: response.phone || '',
       address: response.address || '',
-      dateOfBirth: response.date_of_birth,
-      notes: response.notes,
-      isActive: response.is_active ?? true,
+      city: response.city,
+      state: response.state,
+      zipCode: response.zip_code,
+      emergencyContact: response.emergency_contact,
+      emergencyPhone: response.emergency_phone,
+      preferredContact: response.preferred_contact,
+      isActive: response.user?.is_active ?? true, // Get from User relationship
       createdAt: response.created_at || new Date().toISOString(),
-      updatedAt: response.updated_at || new Date().toISOString(),
-      totalSpent: response.total_spent || 0,
-      lastVisit: response.last_visit,
-      vehicleCount: response.vehicle_count || 0,
-      preferences: response.preferences ? {
-        preferredContactMethod: response.preferences.preferred_contact_method || 'email',
-        reminderPreferences: response.preferences.reminder_preferences || [],
-        specialRequests: response.preferences.special_requests
-      } : undefined
+      updatedAt: response.updated_at || new Date().toISOString()
     };
   },
 
   // Create new customer
   createCustomer: async (customerData: CreateCustomerData): Promise<Customer> => {
     const createData = {
-      first_name: customerData.firstName,
-      last_name: customerData.lastName,
+      name: customerData.name,
       email: customerData.email,
       phone: customerData.phone,
       address: customerData.address,
-      date_of_birth: customerData.dateOfBirth,
-      notes: customerData.notes,
-      preferences: customerData.preferences ? {
-        preferred_contact_method: customerData.preferences.preferredContactMethod,
-        reminder_preferences: customerData.preferences.reminderPreferences,
-        special_requests: customerData.preferences.specialRequests
-      } : undefined
+      city: customerData.city,
+      state: customerData.state,
+      zip_code: customerData.zipCode,
+      emergency_contact: customerData.emergencyContact,
+      emergency_phone: customerData.emergencyPhone,
+      preferred_contact: customerData.preferredContact
     };
     
     const response = await apiPost<any>('/customers/', createData);
     
     return {
       id: response.id?.toString() || '',
-      firstName: response.first_name || '',
-      lastName: response.last_name || '',
+      name: response.name || '',
       email: response.email || '',
       phone: response.phone || '',
       address: response.address || '',
-      dateOfBirth: response.date_of_birth,
-      notes: response.notes,
-      isActive: response.is_active ?? true,
+      city: response.city,
+      state: response.state,
+      zipCode: response.zip_code,
+      emergencyContact: response.emergency_contact,
+      emergencyPhone: response.emergency_phone,
+      preferredContact: response.preferred_contact,
+      isActive: response.user?.is_active ?? true, // Get from User relationship
       createdAt: response.created_at || new Date().toISOString(),
-      updatedAt: response.updated_at || new Date().toISOString(),
-      totalSpent: response.total_spent || 0,
-      lastVisit: response.last_visit,
-      vehicleCount: response.vehicle_count || 0,
-      preferences: response.preferences ? {
-        preferredContactMethod: response.preferences.preferred_contact_method || 'email',
-        reminderPreferences: response.preferences.reminder_preferences || [],
-        specialRequests: response.preferences.special_requests
-      } : undefined
+      updatedAt: response.updated_at || new Date().toISOString()
     };
   },
 
   // Update customer
   updateCustomer: async (customerId: string, customerData: UpdateCustomerData): Promise<Customer> => {
     const updateData = {
-      first_name: customerData.firstName,
-      last_name: customerData.lastName,
+      name: customerData.name,
       email: customerData.email,
       phone: customerData.phone,
       address: customerData.address,
-      date_of_birth: customerData.dateOfBirth,
-      notes: customerData.notes,
-      is_active: customerData.isActive,
-      preferences: customerData.preferences ? {
-        preferred_contact_method: customerData.preferences.preferredContactMethod,
-        reminder_preferences: customerData.preferences.reminderPreferences,
-        special_requests: customerData.preferences.specialRequests
-      } : undefined
+      city: customerData.city,
+      state: customerData.state,
+      zip_code: customerData.zipCode,
+      emergency_contact: customerData.emergencyContact,
+      emergency_phone: customerData.emergencyPhone,
+      preferred_contact: customerData.preferredContact
     };
     
     // Remove undefined fields
@@ -232,40 +199,69 @@ export const customerMngtService = {
     
     return {
       id: response.id?.toString() || '',
-      firstName: response.first_name || '',
-      lastName: response.last_name || '',
+      name: response.name || '',
       email: response.email || '',
       phone: response.phone || '',
       address: response.address || '',
-      dateOfBirth: response.date_of_birth,
-      notes: response.notes,
-      isActive: response.is_active ?? true,
+      city: response.city,
+      state: response.state,
+      zipCode: response.zip_code,
+      emergencyContact: response.emergency_contact,
+      emergencyPhone: response.emergency_phone,
+      preferredContact: response.preferred_contact,
+      isActive: response.user?.is_active ?? true, // Get from User relationship
       createdAt: response.created_at || new Date().toISOString(),
-      updatedAt: response.updated_at || new Date().toISOString(),
-      totalSpent: response.total_spent || 0,
-      lastVisit: response.last_visit,
-      vehicleCount: response.vehicle_count || 0,
-      preferences: response.preferences ? {
-        preferredContactMethod: response.preferences.preferred_contact_method || 'email',
-        reminderPreferences: response.preferences.reminder_preferences || [],
-        specialRequests: response.preferences.special_requests
-      } : undefined
+      updatedAt: response.updated_at || new Date().toISOString()
     };
   },
 
-  // Delete customer
+  // Delete customer (hard delete - use with caution)
   deleteCustomer: async (customerId: string): Promise<void> => {
     await apiDelete(`/customers/${customerId}/`);
   },
 
-  // Deactivate customer
+  // Deactivate customer (set User.is_active = false)
   deactivateCustomer: async (customerId: string): Promise<Customer> => {
-    return await customerMngtService.updateCustomer(customerId, { isActive: false });
+    const response = await apiPut<any>(`/customers/${customerId}/deactivate/`, {});
+    
+    return {
+      id: response.id?.toString() || '',
+      name: response.name || '',
+      email: response.email || '',
+      phone: response.phone || '',
+      address: response.address || '',
+      city: response.city,
+      state: response.state,
+      zipCode: response.zip_code,
+      emergencyContact: response.emergency_contact,
+      emergencyPhone: response.emergency_phone,
+      preferredContact: response.preferred_contact,
+      isActive: false, // Will be false after deactivation
+      createdAt: response.created_at || new Date().toISOString(),
+      updatedAt: response.updated_at || new Date().toISOString()
+    };
   },
 
-  // Activate customer
+  // Activate customer (set User.is_active = true)
   activateCustomer: async (customerId: string): Promise<Customer> => {
-    return await customerMngtService.updateCustomer(customerId, { isActive: true });
+    const response = await apiPut<any>(`/customers/${customerId}/activate/`, {});
+    
+    return {
+      id: response.id?.toString() || '',
+      name: response.name || '',
+      email: response.email || '',
+      phone: response.phone || '',
+      address: response.address || '',
+      city: response.city,
+      state: response.state,
+      zipCode: response.zip_code,
+      emergencyContact: response.emergency_contact,
+      emergencyPhone: response.emergency_phone,
+      preferredContact: response.preferred_contact,
+      isActive: true, // Will be true after activation
+      createdAt: response.created_at || new Date().toISOString(),
+      updatedAt: response.updated_at || new Date().toISOString()
+    };
   },
 
   // Search customers
@@ -290,89 +286,66 @@ export const customerMngtService = {
     return {
       totalCustomers: response.total_customers || 0,
       activeCustomers: response.active_customers || 0,
-      newThisMonth: response.new_this_month || 0,
-      totalRevenue: response.total_revenue || 0,
-      averageSpending: response.average_spending || 0,
-      topCustomers: response.top_customers?.map((customer: any) => ({
-        id: customer.id?.toString() || '',
-        firstName: customer.first_name || '',
-        lastName: customer.last_name || '',
-        email: customer.email || '',
-        phone: customer.phone || '',
-        address: customer.address || '',
-        dateOfBirth: customer.date_of_birth,
-        notes: customer.notes,
-        isActive: customer.is_active ?? true,
-        createdAt: customer.created_at || new Date().toISOString(),
-        updatedAt: customer.updated_at || new Date().toISOString(),
-        totalSpent: customer.total_spent || 0,
-        lastVisit: customer.last_visit,
-        vehicleCount: customer.vehicle_count || 0,
-        preferences: customer.preferences ? {
-          preferredContactMethod: customer.preferences.preferred_contact_method || 'email',
-          reminderPreferences: customer.preferences.reminder_preferences || [],
-          specialRequests: customer.preferences.special_requests
-        } : undefined
-      })) || []
+      inactiveCustomers: response.inactive_customers || 0,
+      newCustomersThisMonth: response.new_customers_this_month || 0,
+      averageVisitsPerCustomer: response.average_visits_per_customer || 0,
+      totalRevenue: response.total_revenue || 0
     };
   },
 
-  // Get customer history
+  // Get customer history (appointments, repairs, etc.)
   getCustomerHistory: async (customerId: string): Promise<CustomerHistory> => {
     const response = await apiGet<any>(`/customers/${customerId}/history/`);
     
     return {
-      vehicles: response.vehicles || [],
+      customerId,
       appointments: response.appointments || [],
       repairOrders: response.repair_orders || [],
+      vehicles: response.vehicles || [],
       totalSpent: response.total_spent || 0,
-      lastVisit: response.last_visit,
+      lastVisit: response.last_visit || null,
       visitCount: response.visit_count || 0
     };
   },
 
-  // Export customers
+  // Export customers data
   exportCustomers: async (query: CustomerQuery = {}): Promise<Blob> => {
     const params = new URLSearchParams();
     
     if (query.search) params.append('search', query.search);
     if (query.isActive !== undefined) params.append('is_active', query.isActive.toString());
-    if (query.hasVehicles !== undefined) params.append('has_vehicles', query.hasVehicles.toString());
-    if (query.lastVisitAfter) params.append('last_visit_after', query.lastVisitAfter);
-    if (query.lastVisitBefore) params.append('last_visit_before', query.lastVisitBefore);
+    if (query.city) params.append('city', query.city);
+    if (query.state) params.append('state', query.state);
     
-    const queryString = params.toString();
-    const endpoint = `/customers/export/${queryString ? `?${queryString}` : ''}`;
-    
-    const response = await fetch(endpoint, {
+    const response = await fetch(`/api/customers/export/?${params.toString()}`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
+        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
       }
     });
     
     if (!response.ok) {
-      throw new Error('Export failed');
+      throw new Error('Failed to export customers');
     }
     
     return await response.blob();
   },
 
-  // Import customers
+  // Import customers data
   importCustomers: async (file: File): Promise<{ success: number; errors: any[] }> => {
     const formData = new FormData();
     formData.append('file', file);
     
-    const response = await fetch('/customers/import/', {
+    const response = await fetch('/api/customers/import/', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
+        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
       },
       body: formData
     });
     
     if (!response.ok) {
-      throw new Error('Import failed');
+      throw new Error('Failed to import customers');
     }
     
     return await response.json();
@@ -382,7 +355,7 @@ export const customerMngtService = {
   getRecentCustomers: async (limit: number = 10): Promise<Customer[]> => {
     const query: CustomerQuery = {
       limit,
-      sortBy: 'created_at',
+      sortBy: 'createdAt',
       sortOrder: 'desc'
     };
     

@@ -6,34 +6,56 @@ const AutoRepairsDashboard: React.FC = () => {
 
   const handleCreateSampleJob = () => {
     if (autoRepairs.vehicles.length === 0) {
-      alert("Please load vehicles first to create a job");
+      alert("Please load vehicles first to create a repair order");
       return;
     }
 
-    const sampleJob = {
+    const sampleRepairOrder = {
+      customerId: autoRepairs.customers[0]?.id || "sample-customer-id",
       vehicleId: autoRepairs.vehicles[0]?.id || "sample-vehicle-id",
+      serviceAdvisorId: "default-advisor-id",
+      shopId: "default-shop-id",
       description: "Oil change and tire rotation",
-      status: "pending" as const,
-      estimatedCost: 150,
-      mechanicId: "mechanic-1",
+      customerComplaints: "Routine maintenance needed",
+      priority: "medium" as const,
+      status: "created" as const,
+      diagnosis: "Routine maintenance required",
+      recommendedServices: "Regular oil changes recommended every 5,000 miles",
+      laborHours: 2,
+      laborRate: 75,
+      partsTotal: 50,
+      laborTotal: 150,
+      taxAmount: 15,
+      discountAmount: 0,
+      totalAmount: 215,
+      customerApprovalRequired: false,
     };
 
-    autoRepairs.createJob(sampleJob);
+    autoRepairs.addRepairOrder(sampleRepairOrder);
   };
 
   const handleUpdateJobStatus = (jobId: string) => {
-    const job = autoRepairs.repairJobs.find((j) => j.id === jobId);
-    if (!job) return;
+    const repairOrder = autoRepairs.repairOrders.find(
+      (order) => order.id === jobId
+    );
+    if (!repairOrder) {
+      alert("Repair order not found");
+      return;
+    }
 
-    const statusFlow = {
-      pending: "in-progress",
-      "in-progress": "completed",
-      completed: "pending",
-      cancelled: "pending",
-    } as const;
+    const statusFlow: Record<string, string> = {
+      created: "in_progress",
+      in_progress: "waiting_approval",
+      waiting_approval: "completed",
+      waiting_parts: "in_progress",
+      completed: "created",
+      cancelled: "created",
+    };
 
-    const newStatus = statusFlow[job.status];
-    autoRepairs.updateJobStatus(jobId, newStatus);
+    const newStatus = statusFlow[repairOrder.status] as any;
+    if (newStatus) {
+      autoRepairs.editRepairOrder(jobId, { status: newStatus });
+    }
   };
 
   return (
@@ -56,10 +78,12 @@ const AutoRepairsDashboard: React.FC = () => {
           {autoRepairs.loading.vehicles ? "Loading..." : "Load Vehicles"}
         </button>
         <button
-          onClick={autoRepairs.loadRepairJobs}
-          disabled={autoRepairs.loading.repairJobs}
+          onClick={autoRepairs.loadRepairOrders}
+          disabled={autoRepairs.loading.repairOrders}
         >
-          {autoRepairs.loading.repairJobs ? "Loading..." : "Load Repair Jobs"}
+          {autoRepairs.loading.repairOrders
+            ? "Loading..."
+            : "Load Repair Orders"}
         </button>
         <button
           onClick={autoRepairs.loadCustomers}
@@ -70,9 +94,11 @@ const AutoRepairsDashboard: React.FC = () => {
         <button onClick={autoRepairs.loadAllData}>Load All Data</button>
         <button
           onClick={handleCreateSampleJob}
-          disabled={autoRepairs.loading.createJob}
+          disabled={autoRepairs.loading.repairOrders}
         >
-          {autoRepairs.loading.createJob ? "Creating..." : "Create Sample Job"}
+          {autoRepairs.loading.repairOrders
+            ? "Creating..."
+            : "Create Sample Job"}
         </button>
       </div>
 
@@ -105,11 +131,11 @@ const AutoRepairsDashboard: React.FC = () => {
             borderRadius: "5px",
           }}
         >
-          <h3>Repair Jobs</h3>
-          <p>Count: {autoRepairs.repairJobs.length}</p>
-          {autoRepairs.error.repairJobs && (
+          <h3>Repair Orders</h3>
+          <p>Count: {autoRepairs.repairOrders?.length || 0}</p>
+          {autoRepairs.error.repairOrders && (
             <p style={{ color: "red" }}>
-              Error: {autoRepairs.error.repairJobs}
+              Error: {autoRepairs.error.repairOrders}
             </p>
           )}
         </div>
@@ -128,10 +154,10 @@ const AutoRepairsDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Repair Jobs List */}
-      {autoRepairs.repairJobs.length > 0 && (
+      {/* Repair Orders List */}
+      {autoRepairs.repairOrders.length > 0 && (
         <div style={{ marginTop: "20px" }}>
-          <h3>Repair Jobs</h3>
+          <h3>Repair Orders</h3>
           <div
             style={{
               display: "grid",
@@ -139,23 +165,26 @@ const AutoRepairsDashboard: React.FC = () => {
               gap: "10px",
             }}
           >
-            {autoRepairs.repairJobs.map((job) => (
+            {autoRepairs.repairOrders.map((order) => (
               <div
-                key={job.id}
+                key={order.id}
                 style={{
                   border: "1px solid #ddd",
                   padding: "10px",
                   borderRadius: "5px",
                   backgroundColor:
-                    job.status === "completed"
+                    order.status === "completed"
                       ? "#e8f5e8"
-                      : job.status === "in-progress"
+                      : order.status === "in_progress"
                       ? "#fff3cd"
                       : "#f8f9fa",
                 }}
               >
                 <p>
-                  <strong>Description:</strong> {job.description}
+                  <strong>Work Order #:</strong> {order.orderNumber}
+                </p>
+                <p>
+                  <strong>Description:</strong> {order.description}
                 </p>
                 <p>
                   <strong>Status:</strong>
@@ -165,34 +194,32 @@ const AutoRepairsDashboard: React.FC = () => {
                       marginLeft: "5px",
                       borderRadius: "3px",
                       backgroundColor:
-                        job.status === "completed"
+                        order.status === "completed"
                           ? "#28a745"
-                          : job.status === "in-progress"
+                          : order.status === "in_progress"
                           ? "#ffc107"
-                          : job.status === "pending"
+                          : order.status === "draft"
                           ? "#6c757d"
                           : "#dc3545",
                       color: "white",
                       fontSize: "0.8em",
                     }}
                   >
-                    {job.status}
+                    {order.status}
                   </span>
                 </p>
                 <p>
-                  <strong>Estimated Cost:</strong> ${job.estimatedCost}
+                  <strong>Priority:</strong> {order.priority}
                 </p>
-                {job.actualCost && (
-                  <p>
-                    <strong>Actual Cost:</strong> ${job.actualCost}
-                  </p>
-                )}
+                <p>
+                  <strong>Total Amount:</strong> ${order.total}
+                </p>
                 <button
-                  onClick={() => handleUpdateJobStatus(job.id)}
-                  disabled={autoRepairs.loading.updateJob}
+                  onClick={() => handleUpdateJobStatus(order.id)}
+                  disabled={autoRepairs.loading.repairOrders}
                   style={{ marginTop: "5px" }}
                 >
-                  {autoRepairs.loading.updateJob
+                  {autoRepairs.loading.repairOrders
                     ? "Updating..."
                     : "Update Status"}
                 </button>
@@ -203,14 +230,19 @@ const AutoRepairsDashboard: React.FC = () => {
       )}
 
       {/* Error Messages */}
-      {autoRepairs.error.createJob && (
+      {autoRepairs.error.repairOrders && (
         <p style={{ color: "red" }}>
-          Create Job Error: {autoRepairs.error.createJob}
+          Repair Orders Error: {autoRepairs.error.repairOrders}
         </p>
       )}
-      {autoRepairs.error.updateJob && (
+      {autoRepairs.error.vehicles && (
         <p style={{ color: "red" }}>
-          Update Job Error: {autoRepairs.error.updateJob}
+          Vehicles Error: {autoRepairs.error.vehicles}
+        </p>
+      )}
+      {autoRepairs.error.customers && (
+        <p style={{ color: "red" }}>
+          Customers Error: {autoRepairs.error.customers}
         </p>
       )}
 

@@ -5,9 +5,17 @@
 
 import React, { useState, useCallback } from "react";
 import { Button, Form, Card, Alert, Spinner, Badge } from "react-bootstrap";
-import { useDashboard, useDashboardTest } from "../hooks/useDashboard";
+import { useDashboard } from "../hooks/useDashboard";
 import type { Vehicle, Customer } from "../types/entities";
-import type { RepairJob } from "../services/dataAccessLayer";
+
+// TODO: Replace this with the correct import if RepairJob is exported elsewhere
+export type RepairJob = {
+  id: number;
+  description: string;
+  vehicleId: number;
+  estimatedCost: number;
+  status: "completed" | "in-progress" | "cancelled" | string;
+};
 
 // Vehicle Card Component
 const VehicleCard: React.FC<{ vehicle: Vehicle }> = ({ vehicle }) => {
@@ -151,18 +159,13 @@ export const RebuildDashboard: React.FC = () => {
     loadAll();
   }, [clearResults, loadAll]);
 
-  const handleTestToyota = useCallback(async () => {
-    setSearchQuery("toyota");
-    await search("toyota");
-  }, [search]);
-
   return (
     <div className="container-fluid">
       <div className="row">
         <div className="col-12">
           <Card className="mb-4">
             <Card.Header>
-              <h4 className="mb-0">🔄 Rebuilt Dashboard Search</h4>
+              <h4 className="mb-0">🔄 Dashboard Search</h4>
             </Card.Header>
             <Card.Body>
               <Form onSubmit={handleSearch}>
@@ -190,14 +193,6 @@ export const RebuildDashboard: React.FC = () => {
                           <Spinner size="sm" className="me-1" />
                         ) : null}
                         Search
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="success"
-                        onClick={handleTestToyota}
-                        disabled={isLoading}
-                      >
-                        Test: Search Toyota
                       </Button>
                       <Button
                         type="button"
@@ -291,108 +286,6 @@ export const RebuildDashboard: React.FC = () => {
         </div>
       </div>
     </div>
-  );
-};
-
-// Test Component for debugging individual APIs
-export const DashboardTestComponent: React.FC = () => {
-  const [testQuery, setTestQuery] = useState("toyota");
-  const {
-    isLoading,
-    lastResult,
-    error,
-    testVehicleSearch,
-    testCustomerSearch,
-    testRepairJobSearch,
-    testHealthCheck,
-  } = useDashboardTest();
-
-  return (
-    <Card className="mb-4">
-      <Card.Header>
-        <h5 className="mb-0">🧪 API Test Panel</h5>
-      </Card.Header>
-      <Card.Body>
-        <div className="row">
-          <div className="col-md-6">
-            <Form.Group className="mb-3">
-              <Form.Label>Test Query</Form.Label>
-              <Form.Control
-                type="text"
-                value={testQuery}
-                onChange={(e) => setTestQuery(e.target.value)}
-                placeholder="Enter search query..."
-              />
-            </Form.Group>
-            <div className="d-flex flex-wrap gap-2">
-              <Button
-                size="sm"
-                variant="outline-primary"
-                onClick={() => testVehicleSearch(testQuery)}
-                disabled={isLoading}
-              >
-                Test Vehicles
-              </Button>
-              <Button
-                size="sm"
-                variant="outline-info"
-                onClick={() => testCustomerSearch(testQuery)}
-                disabled={isLoading}
-              >
-                Test Customers
-              </Button>
-              <Button
-                size="sm"
-                variant="outline-warning"
-                onClick={() => testRepairJobSearch(testQuery)}
-                disabled={isLoading}
-              >
-                Test Repair Jobs
-              </Button>
-              <Button
-                size="sm"
-                variant="outline-success"
-                onClick={testHealthCheck}
-                disabled={isLoading}
-              >
-                Health Check
-              </Button>
-            </div>
-          </div>
-          <div className="col-md-6">
-            <div className="bg-light p-3 rounded">
-              <strong>Test Result:</strong>
-              {isLoading && (
-                <div>
-                  <Spinner size="sm" className="me-2" />
-                  Testing...
-                </div>
-              )}
-              {error && <div className="text-danger">Error: {error}</div>}
-              {lastResult && (
-                <div>
-                  <div className="small text-success mb-2">
-                    {lastResult.results
-                      ? `Found ${lastResult.results.length} results`
-                      : "Response received"}
-                  </div>
-                  <pre
-                    className="mt-2 mb-0"
-                    style={{
-                      fontSize: "0.8em",
-                      maxHeight: "200px",
-                      overflow: "auto",
-                    }}
-                  >
-                    {JSON.stringify(lastResult, null, 2)}
-                  </pre>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </Card.Body>
-    </Card>
   );
 };
 

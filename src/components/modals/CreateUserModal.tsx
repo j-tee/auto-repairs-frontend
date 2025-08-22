@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Modal, Form, Button, Row, Col, Alert, Spinner } from "react-bootstrap";
-import { UserManagementAPI } from "../../services/userManagementAPI";
+import { userMngtService } from "../../services/userMngtService";
 import type { CreateUserData } from "../../types/userManagement";
 import type { User } from "../../store/slices/autoRepairsSlice";
 
@@ -95,14 +95,14 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
     setError(null);
 
     try {
-      const userData = { ...formData };
+      const password =
+        formData.temporaryPassword || generateTemporaryPassword();
+      const userData = {
+        ...formData,
+        password,
+      };
 
-      // Generate temporary password if not provided
-      if (!userData.temporaryPassword) {
-        userData.temporaryPassword = generateTemporaryPassword();
-      }
-
-      const newUser = await UserManagementAPI.createUser(userData);
+      const newUser = await userMngtService.createUser(userData);
       onSuccess(newUser);
       handleClose();
     } catch (err: any) {

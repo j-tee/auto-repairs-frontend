@@ -13,7 +13,7 @@ import {
   Tabs,
   Tab,
 } from "react-bootstrap";
-import { useAuth } from "../hooks/useAuth";
+import { usePermissions } from "../components/PermissionGuard";
 
 interface FinancialData {
   totalRevenue: number;
@@ -39,7 +39,7 @@ interface FinancialData {
 }
 
 export const FinancialReports: React.FC = () => {
-  const { canViewFinancialData } = useAuth();
+  const { canViewFinancialData } = usePermissions();
   const [financialData, setFinancialData] = useState<FinancialData | null>(
     null
   );
@@ -48,7 +48,7 @@ export const FinancialReports: React.FC = () => {
   const [dateRange, setDateRange] = useState("30");
 
   useEffect(() => {
-    if (!canViewFinancialData()) {
+    if (!canViewFinancialData) {
       setError(
         "Access denied. Owner privileges required for financial reports."
       );
@@ -104,7 +104,7 @@ export const FinancialReports: React.FC = () => {
     }
   };
 
-  if (!canViewFinancialData()) {
+  if (!canViewFinancialData) {
     return (
       <Container className="py-5">
         <Alert variant="danger">

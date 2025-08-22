@@ -14,13 +14,10 @@ import {
   Dropdown,
   ButtonGroup,
   Modal,
-  Tabs,
-  Tab,
 } from "react-bootstrap";
 import { useAuth } from "../hooks/useAuth";
-import { UserManagementAPI } from "../services/userManagementAPI";
+import { userMngtService, type AdminUser } from "../services/userMngtService";
 import type {
-  AdminUser,
   UserSearchCriteria,
   UserStatistics,
   BulkUserOperation,
@@ -30,7 +27,7 @@ import { EditUserModal } from "../components/modals/EditUserModal";
 import { UserDetailsModal } from "../components/modals/UserDetailsModal";
 
 export const UserManagement: React.FC = () => {
-  const { user, canManageEmployees } = useAuth();
+  const { hasPermission } = useAuth();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [statistics, setStatistics] = useState<UserStatistics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -64,27 +61,59 @@ export const UserManagement: React.FC = () => {
   const [pageCount, setPageCount] = useState(0);
 
   useEffect(() => {
-    if (!canManageEmployees()) {
+    if (!hasPermission("owner")) {
       setError("Access denied. Owner privileges required for user management.");
       setLoading(false);
       return;
     }
 
     loadData();
-  }, [searchCriteria, canManageEmployees]);
+  }, [searchCriteria, hasPermission]);
 
   const loadData = async () => {
     setLoading(true);
     try {
+      // Transform search criteria to match UserQuery interface
+      const queryParams = {
+        page: searchCriteria.page,
+        limit: searchCriteria.limit,
+        search: searchCriteria.searchTerm,
+        role: searchCriteria.role === "all" ? undefined : searchCriteria.role,
+        isActive:
+          searchCriteria.isActive === "all"
+            ? undefined
+            : searchCriteria.isActive,
+        sortBy: searchCriteria.sortBy,
+        sortOrder: searchCriteria.sortOrder,
+      };
+
       const [usersResponse, statsResponse] = await Promise.all([
-        UserManagementAPI.getUsers(searchCriteria),
-        UserManagementAPI.getUserStatistics(),
+        userMngtService.getUsers(queryParams),
+        userMngtService.getUserStats(),
       ]);
 
+      console.log("🎯 UserManagement - usersResponse:", usersResponse);
+      console.log("📊 UserManagement - statsResponse:", statsResponse);
+
       setUsers(usersResponse.users);
-      setTotalCount(usersResponse.totalCount);
-      setPageCount(usersResponse.pageCount);
-      setStatistics(statsResponse);
+      setTotalCount(usersResponse.total);
+      setPageCount(usersResponse.totalPages);
+
+      // Transform UserStats to UserStatistics interface
+      const transformedStats: UserStatistics = {
+        totalUsers: statsResponse.totalUsers,
+        activeUsers: statsResponse.activeUsers,
+        inactiveUsers: statsResponse.inactiveUsers,
+        ownerUsers: statsResponse.usersByRole.owner,
+        employeeUsers: statsResponse.usersByRole.employee,
+        customerUsers: statsResponse.usersByRole.customer,
+        recentRegistrations: 0, // Not available in current backend
+        usersLoggedInToday: 0, // Not available in current backend
+        passwordExpiringSoon: 0, // Not available in current backend
+      };
+      setStatistics(transformedStats);
+
+      console.log("💾 UserManagement - Set statistics to:", statsResponse);
     } catch (err) {
       setError("Failed to load user data");
       console.error("Load data error:", err);
@@ -122,22 +151,24 @@ export const UserManagement: React.FC = () => {
     try {
       switch (action) {
         case "activate":
-          await UserManagementAPI.toggleUserStatus(userId, true);
+          await userMngtService.activateUser(userId);
           setSuccessMessage("User activated successfully");
           break;
         case "deactivate":
-          await UserManagementAPI.toggleUserStatus(userId, false);
+          await userMngtService.deactivateUser(userId);
           setSuccessMessage("User deactivated successfully");
           break;
         case "reset-password":
-          const result = await UserManagementAPI.resetUserPassword(userId);
+          // Generate a temporary password
+          const tempPassword = Math.random().toString(36).slice(-8) + "!A1";
+          await userMngtService.resetUserPassword(userId, tempPassword);
           setSuccessMessage(
-            `Password reset. Temporary password: ${result.temporaryPassword}`
+            `Password reset. Temporary password: ${tempPassword}`
           );
           break;
         case "unlock":
-          await UserManagementAPI.unlockUserAccount(userId);
-          setSuccessMessage("User account unlocked successfully");
+          // For now, this would require specific backend implementation
+          setSuccessMessage("Account unlock feature not yet available");
           break;
         case "delete":
           if (
@@ -145,7 +176,7 @@ export const UserManagement: React.FC = () => {
               "Are you sure you want to delete this user? This action cannot be undone."
             )
           ) {
-            await UserManagementAPI.deleteUser(userId);
+            await userMngtService.deleteUser(userId);
             setSuccessMessage("User deleted successfully");
           }
           break;
@@ -160,20 +191,42 @@ export const UserManagement: React.FC = () => {
     if (!bulkOperation || selectedUsers.size === 0) return;
 
     try {
-      const operation: BulkUserOperation = {
-        ...bulkOperation,
-        userIds: Array.from(selectedUsers),
-      };
+      const userIds = Array.from(selectedUsers);
+      let successCount = 0;
+      let failedCount = 0;
 
-      const result = await UserManagementAPI.bulkUserOperation(operation);
+      // Process each user individually since bulk operations aren't implemented yet
+      for (const userId of userIds) {
+        try {
+          switch (bulkOperation.operation) {
+            case "activate":
+              await userMngtService.activateUser(userId);
+              break;
+            case "deactivate":
+              await userMngtService.deactivateUser(userId);
+              break;
+            case "reset_password":
+              const tempPassword = Math.random().toString(36).slice(-8) + "!A1";
+              await userMngtService.resetUserPassword(userId, tempPassword);
+              break;
+            default:
+              throw new Error(
+                `Unsupported operation: ${bulkOperation.operation}`
+              );
+          }
+          successCount++;
+        } catch (err) {
+          failedCount++;
+        }
+      }
 
-      if (result.failed.length > 0) {
+      if (failedCount > 0) {
         setError(
-          `Operation completed with errors: ${result.failed.length} users failed`
+          `Operation completed with errors: ${failedCount} users failed`
         );
       } else {
         setSuccessMessage(
-          `Bulk operation completed successfully for ${result.success.length} users`
+          `Bulk operation completed successfully for ${successCount} users`
         );
       }
 
@@ -219,7 +272,21 @@ export const UserManagement: React.FC = () => {
 
   const exportUsers = async (format: "csv" | "excel" | "pdf") => {
     try {
-      const blob = await UserManagementAPI.exportUsers(format, searchCriteria);
+      // Transform search criteria to match UserQuery interface
+      const queryParams = {
+        page: searchCriteria.page,
+        limit: searchCriteria.limit,
+        search: searchCriteria.searchTerm,
+        role: searchCriteria.role === "all" ? undefined : searchCriteria.role,
+        isActive:
+          searchCriteria.isActive === "all"
+            ? undefined
+            : searchCriteria.isActive,
+        sortBy: searchCriteria.sortBy,
+        sortOrder: searchCriteria.sortOrder,
+      };
+
+      const blob = await userMngtService.exportUsers(queryParams);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -231,7 +298,7 @@ export const UserManagement: React.FC = () => {
     }
   };
 
-  if (!canManageEmployees()) {
+  if (!hasPermission("owner")) {
     return (
       <Container className="py-5">
         <Alert variant="danger">
