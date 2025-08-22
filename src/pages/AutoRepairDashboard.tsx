@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { Row, Col, Card, Button, Alert, Tab, Tabs, Spinner } from "react-bootstrap";
+import {
+  Row,
+  Col,
+  Card,
+  Button,
+  Alert,
+  Tab,
+  Tabs,
+  Spinner,
+} from "react-bootstrap";
 import { useAuth } from "../hooks/useAuth";
 import { AutoRepairsDashboard } from "../components";
 import { RebuildDashboard } from "../components/RebuildDashboard";
@@ -25,7 +34,9 @@ export const AutoRepairDashboard: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Dashboard data state
-  const [dashboardData, setDashboardData] = useState<DashboardSummary | null>(null);
+  const [dashboardData, setDashboardData] = useState<DashboardSummary | null>(
+    null
+  );
   const [dashboardLoading, setDashboardLoading] = useState(true);
   const [dashboardError, setDashboardError] = useState<string | null>(null);
 
@@ -40,16 +51,16 @@ export const AutoRepairDashboard: React.FC = () => {
     try {
       setDashboardLoading(true);
       setDashboardError(null);
-      
+
       const data = await dashboardService.getDashboardStats(
-        user?.role || 'customer',
+        user?.role || "customer",
         user?.id
       );
-      
+
       setDashboardData(data);
     } catch (error: any) {
-      console.error('Error loading dashboard data:', error);
-      setDashboardError(error.message || 'Failed to load dashboard data');
+      console.error("Error loading dashboard data:", error);
+      setDashboardError(error.message || "Failed to load dashboard data");
     } finally {
       setDashboardLoading(false);
     }
@@ -189,29 +200,31 @@ export const AutoRepairDashboard: React.FC = () => {
 
     if (user?.role === "customer") {
       return [
-        { 
-          title: "My Vehicles", 
-          value: stats.customerVehicles?.toString() || "0", 
-          icon: "🚗", 
-          color: "primary" 
+        {
+          title: "My Vehicles",
+          value: stats.customerVehicles?.toString() || "0",
+          icon: "🚗",
+          color: "primary",
         },
-        { 
-          title: "Active Appointments", 
-          value: stats.customerActiveAppointments?.toString() || "0", 
-          icon: "📅", 
-          color: "info" 
+        {
+          title: "Active Appointments",
+          value: stats.customerActiveAppointments?.toString() || "0",
+          icon: "📅",
+          color: "info",
         },
-        { 
-          title: "Repair Orders", 
-          value: stats.customerRepairOrders?.toString() || "0", 
-          icon: "📋", 
-          color: "warning" 
+        {
+          title: "Repair Orders",
+          value: stats.customerRepairOrders?.toString() || "0",
+          icon: "📋",
+          color: "warning",
         },
-        { 
-          title: "Total Spent", 
-          value: stats.customerTotalSpent ? `$${stats.customerTotalSpent.toLocaleString()}` : "$0", 
-          icon: "💰", 
-          color: "success" 
+        {
+          title: "Total Spent",
+          value: stats.customerTotalSpent
+            ? `$${stats.customerTotalSpent.toLocaleString()}`
+            : "$0",
+          icon: "💰",
+          color: "success",
         },
       ];
     }
@@ -224,17 +237,17 @@ export const AutoRepairDashboard: React.FC = () => {
           icon: "📅",
           color: "primary",
         },
-        { 
-          title: "Active Repairs", 
-          value: stats.activeRepairs.toString(), 
-          icon: "🔧", 
-          color: "warning" 
+        {
+          title: "Active Repairs",
+          value: stats.activeRepairs.toString(),
+          icon: "🔧",
+          color: "warning",
         },
-        { 
-          title: "Total Customers", 
-          value: stats.totalCustomers.toString(), 
-          icon: "👥", 
-          color: "info" 
+        {
+          title: "Total Customers",
+          value: stats.totalCustomers.toString(),
+          icon: "👥",
+          color: "info",
         },
         {
           title: "Revenue Today",
@@ -273,13 +286,17 @@ export const AutoRepairDashboard: React.FC = () => {
             <div>
               <strong>Dashboard Error:</strong> {dashboardError}
             </div>
-            <Button 
-              variant="outline-danger" 
-              size="sm" 
+            <Button
+              variant="outline-danger"
+              size="sm"
               onClick={loadDashboardData}
               disabled={dashboardLoading}
             >
-              {dashboardLoading ? <Spinner size="sm" animation="border" /> : "Retry"}
+              {dashboardLoading ? (
+                <Spinner size="sm" animation="border" />
+              ) : (
+                "Retry"
+              )}
             </Button>
           </div>
         </Alert>
@@ -297,24 +314,29 @@ export const AutoRepairDashboard: React.FC = () => {
                   : "Auto Repair Shop Management"}
               </h1>
               <p className="text-muted">
-                Welcome back, <strong>{user?.firstName || user?.email}</strong> |
-                Role: <span className="badge bg-primary ms-1">{user?.role}</span>
+                Welcome back, <strong>{user?.firstName || user?.email}</strong>{" "}
+                | Role:{" "}
+                <span className="badge bg-primary ms-1">{user?.role}</span>
                 {dashboardData && (
                   <span className="ms-2">
-                    | Last updated: {new Date(dashboardData.lastUpdated).toLocaleTimeString()}
+                    | Last updated:{" "}
+                    {new Date(dashboardData.lastUpdated).toLocaleTimeString()}
                   </span>
                 )}
               </p>
             </div>
-            <Button 
-              variant="outline-primary" 
-              size="sm" 
+            <Button
+              variant="outline-primary"
+              size="sm"
               onClick={loadDashboardData}
               disabled={dashboardLoading}
               className="ms-3"
             >
               {dashboardLoading ? (
-                <><Spinner size="sm" animation="border" className="me-2" />Refreshing...</>
+                <>
+                  <Spinner size="sm" animation="border" className="me-2" />
+                  Refreshing...
+                </>
               ) : (
                 <>🔄 Refresh Data</>
               )}

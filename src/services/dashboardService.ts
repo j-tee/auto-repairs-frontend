@@ -1,5 +1,6 @@
 import { appointmentMngtService, type AppointmentStats } from './appointmentMngtService';
 import { customerMngtService, type CustomerStats } from './customerMngtService';
+import { vehicleMngtService } from './vehicleMngtService';
 import { repairOrderMngtService, type RepairOrderStats } from './repairOrderMngtService';
 import { shopMngtService, type ShopStats } from './shopMngtService';
 
@@ -58,18 +59,29 @@ export const dashboardService = {
             // Get customer appointments
             const appointmentResponse = await appointmentMngtService.getAppointments({
               customerId: userId,
-              limit: 100
+              limit: 1000
             });
             
-            // Get customer history for totals
-            const customerHistory = await customerMngtService.getCustomerHistory(userId);
+            // Get customer vehicles
+            const vehiclesResponse = await vehicleMngtService.getVehicles({
+              customerId: userId,
+              limit: 1000
+            });
             
-            stats.customerVehicles = customerHistory.vehicles?.length || 0;
+            // Get customer repair orders
+            const repairOrdersResponse = await repairOrderMngtService.getRepairOrders({
+              customerId: userId,
+              limit: 1000
+            });
+            
+            stats.customerVehicles = vehiclesResponse.vehicles?.length || 0;
             stats.customerActiveAppointments = appointmentResponse.appointments.filter(
               apt => ['scheduled', 'confirmed', 'in_progress'].includes(apt.status)
             ).length;
-            stats.customerRepairOrders = customerHistory.repairOrders?.length || 0;
-            stats.customerTotalSpent = customerHistory.totalSpent || 0;
+            stats.customerRepairOrders = repairOrdersResponse.repairOrders?.length || 0;
+            stats.customerTotalSpent = repairOrdersResponse.repairOrders?.reduce(
+              (sum, order) => sum + (order.total || 0), 0
+            ) || 0;
             
           } catch (error) {
             console.warn('Error fetching customer-specific stats:', error);
@@ -84,11 +96,21 @@ export const dashboardService = {
       } else {
         // Employee/Owner statistics - fetch from all services
         try {
-          // Get appointment statistics
-          const appointmentStats = await appointmentMngtService.getAppointmentStats();
-          stats.todaysAppointments = appointmentStats.todaysAppointments;
-          stats.monthlyAppointments = appointmentStats.completedThisMonth;
-          stats.appointments = appointmentStats;
+          // Get appointment statistics - Use existing appointments endpoint
+          const appointmentsResponse = await appointmentMngtService.getAppointments({ limit: 1000 });
+          const appointments = appointmentsResponse.appointments;
+          
+          // Calculate today's appointments
+          const today = new Date().toISOString().split('T')[0];
+          stats.todaysAppointments = appointments.filter(apt => 
+            apt.scheduledDate === today
+          ).length;
+          
+          // Calculate monthly appointments (completed this month)
+          const thisMonth = new Date().toISOString().substring(0, 7); // YYYY-MM
+          stats.monthlyAppointments = appointments.filter(apt => 
+            apt.scheduledDate.startsWith(thisMonth) && apt.status === 'completed'
+          ).length;
           
         } catch (error) {
           console.warn('Error fetching appointment stats:', error);
@@ -97,12 +119,28 @@ export const dashboardService = {
         }
 
         try {
-          // Get repair order statistics
-          const repairStats = await repairOrderMngtService.getRepairOrderStats();
-          stats.activeRepairs = repairStats.activeOrders;
-          stats.todaysRevenue = repairStats.totalRevenueThisMonth / 30; // Rough daily average
-          stats.monthlyRevenue = repairStats.totalRevenueThisMonth;
-          stats.repairOrders = repairStats;
+          // Get repair order statistics - Use existing repair orders endpoint
+          const repairOrdersResponse = await repairOrderMngtService.getRepairOrders({ limit: 1000 });
+          const repairOrders = repairOrdersResponse.repairOrders;
+          
+          // Calculate active repairs
+          stats.activeRepairs = repairOrders.filter(order => 
+            order.status === 'in_progress'
+          ).length;
+          
+          // Calculate today's revenue (from completed orders today)
+          const today = new Date().toISOString().split('T')[0];
+          const todaysCompletedOrders = repairOrders.filter(order => 
+            order.actualCompletionDate?.startsWith(today) && order.status === 'completed'
+          );
+          stats.todaysRevenue = todaysCompletedOrders.reduce((sum, order) => sum + (order.total || 0), 0);
+          
+          // Calculate monthly revenue
+          const thisMonth = new Date().toISOString().substring(0, 7); // YYYY-MM
+          const monthlyCompletedOrders = repairOrders.filter(order => 
+            order.actualCompletionDate?.startsWith(thisMonth) && order.status === 'completed'
+          );
+          stats.monthlyRevenue = monthlyCompletedOrders.reduce((sum, order) => sum + (order.total || 0), 0);
           
         } catch (error) {
           console.warn('Error fetching repair order stats:', error);
@@ -112,11 +150,17 @@ export const dashboardService = {
         }
 
         try {
-          // Get customer statistics
-          const customerStats = await customerMngtService.getCustomerStats();
-          stats.totalCustomers = customerStats.totalCustomers;
-          stats.monthlyNewCustomers = customerStats.newCustomersThisMonth;
-          stats.customers = customerStats;
+          // Get customer statistics - Use existing customers endpoint
+          const customersResponse = await customerMngtService.getCustomers({ limit: 1000 });
+          const customers = customersResponse.customers;
+          
+          stats.totalCustomers = customers.length;
+          
+          // Calculate new customers this month
+          const thisMonth = new Date().toISOString().substring(0, 7); // YYYY-MM
+          stats.monthlyNewCustomers = customers.filter(customer => 
+            customer.createdAt.startsWith(thisMonth)
+          ).length;
           
         } catch (error) {
           console.warn('Error fetching customer stats:', error);
@@ -125,12 +169,13 @@ export const dashboardService = {
         }
 
         try {
-          // Get shop statistics (if available)
+          // Get shop statistics (if available) - Make this optional
           const shopStats = await shopMngtService.getShopStats();
           stats.shop = shopStats;
           
         } catch (error) {
-          console.warn('Error fetching shop stats:', error);
+          console.warn('Shop stats not available - this is optional:', error);
+          // Don't set shop stats if not available
         }
       }
 
