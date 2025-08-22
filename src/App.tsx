@@ -15,6 +15,7 @@ import { ShopManagement } from "./pages/ShopManagement";
 import { FinancialReports } from "./pages/FinancialReports";
 import { VehicleManagement } from "./pages/VehicleManagement";
 import { CustomerManagement } from "./pages/CustomerManagement";
+import { AppointmentManagement } from "./pages/AppointmentManagement";
 import { RepairManagement } from "./pages/RepairManagement";
 import { ServiceCatalogManagement } from "./pages/ServiceCatalogManagement";
 import { useAuth } from "./hooks/useAuth";
@@ -120,10 +121,7 @@ const AppContent: React.FC = () => {
             path="/appointments"
             element={
               <ProtectedRoute requiredRole="employee">
-                <div style={{ padding: "20px" }}>
-                  <h1>Appointments</h1>
-                  <p>Manage customer appointments</p>
-                </div>
+                <AppointmentManagement />
               </ProtectedRoute>
             }
           />

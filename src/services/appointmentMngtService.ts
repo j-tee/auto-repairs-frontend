@@ -127,73 +127,53 @@ export interface TimeSlot {
 export const appointmentMngtService = {
   // Get all appointments with filtering and pagination
   getAppointments: async (query: AppointmentQuery = {}): Promise<AppointmentListResponse> => {
-    const params = new URLSearchParams();
-    
-    if (query.page) params.append('page', query.page.toString());
-    if (query.limit) params.append('limit', query.limit.toString());
-    if (query.search) params.append('search', query.search);
-    if (query.customerId) params.append('customer_id', query.customerId);
-    if (query.vehicleId) params.append('vehicle_id', query.vehicleId);
-    if (query.technicianId) params.append('technician_id', query.technicianId);
-    if (query.status) params.append('status', query.status);
-    if (query.priority) params.append('priority', query.priority);
-    if (query.dateFrom) params.append('date_from', query.dateFrom);
-    if (query.dateTo) params.append('date_to', query.dateTo);
-    if (query.serviceType) params.append('service_type', query.serviceType);
-    if (query.sortBy) params.append('sort_by', query.sortBy);
-    if (query.sortOrder) params.append('sort_order', query.sortOrder);
-    
-    const queryString = params.toString();
-    const endpoint = `/shop/appointments/${queryString ? `?${queryString}` : ''}`;
-    
-    const response = await apiGet<any>(endpoint);
-    
-    return {
-      appointments: response.results?.map((appointment: any) => ({
-        id: appointment.id?.toString() || '',
-        customerId: appointment.customer_id?.toString() || '',
-        vehicleId: appointment.vehicle_id?.toString() || '',
-        serviceType: appointment.service_type || '',
-        scheduledDate: appointment.scheduled_date || '',
-        scheduledTime: appointment.scheduled_time || '',
-        duration: appointment.duration || 60,
-        status: appointment.status || 'scheduled',
-        priority: appointment.priority || 'medium',
-        description: appointment.description,
-        notes: appointment.notes,
-        estimatedCost: appointment.estimated_cost,
-        assignedTechnician: appointment.assigned_technician?.toString(),
-        createdAt: appointment.created_at || new Date().toISOString(),
-        updatedAt: appointment.updated_at || new Date().toISOString(),
-        customer: appointment.customer ? {
-          id: appointment.customer.id?.toString() || '',
-          firstName: appointment.customer.first_name || '',
-          lastName: appointment.customer.last_name || '',
-          email: appointment.customer.email || '',
-          phone: appointment.customer.phone || ''
-        } : undefined,
-        vehicle: appointment.vehicle ? {
-          id: appointment.vehicle.id?.toString() || '',
-          make: appointment.vehicle.make || '',
-          model: appointment.vehicle.model || '',
-          year: appointment.vehicle.year || new Date().getFullYear(),
-          licensePlate: appointment.vehicle.license_plate || ''
-        } : undefined,
-        technician: appointment.technician ? {
-          id: appointment.technician.id?.toString() || '',
-          firstName: appointment.technician.first_name || '',
-          lastName: appointment.technician.last_name || '',
-          specialties: appointment.technician.specialties || []
-        } : undefined,
-        reminderSent: appointment.reminder_sent || false,
-        checkedIn: appointment.checked_in || false,
-        checkedInAt: appointment.checked_in_at
-      })) || [],
-      total: response.count || 0,
-      page: query.page || 1,
-      limit: query.limit || 10,
-      totalPages: Math.ceil((response.count || 0) / (query.limit || 10))
-    };
+    try {
+      const endpoint = '/shop/appointments/';
+      const response = await apiGet<any>(endpoint, query);
+      
+      return {
+        appointments: (response.results || response || [])?.map((appointment: any) => ({
+          id: appointment.id?.toString() || '',
+          customerId: appointment.customer_id?.toString() || '',
+          vehicleId: appointment.vehicle_id?.toString() || '',
+          serviceType: 'General Service', // Default since not in backend schema
+          scheduledDate: appointment.date ? appointment.date.split('T')[0] : '',
+          scheduledTime: appointment.date ? appointment.date.split('T')[1]?.substring(0, 5) : '',
+          duration: 60, // Default duration
+          status: appointment.status || 'pending',
+          priority: 'medium', // Default since not in backend schema
+          description: appointment.description || '',
+          notes: appointment.notes || '',
+          estimatedCost: 0, // Default since not in backend schema
+          assignedTechnician: '', // Default since not in backend schema
+          createdAt: appointment.date || '',
+          updatedAt: appointment.date || '',
+          // Map the enhanced customer data from backend
+          customer: appointment.customer ? {
+            id: appointment.customer.id?.toString() || '',
+            firstName: appointment.customer.name?.split(' ')[0] || '',
+            lastName: appointment.customer.name?.split(' ').slice(1).join(' ') || '',
+            email: appointment.customer.email || '',
+            phone: appointment.customer.phone_number || ''
+          } : undefined,
+          // Map the enhanced vehicle data from backend
+          vehicle: appointment.vehicle ? {
+            id: appointment.vehicle.id?.toString() || '',
+            make: appointment.vehicle.make || '',
+            model: appointment.vehicle.model || '',
+            year: appointment.vehicle.year || 2020,
+            licensePlate: appointment.vehicle.license_plate || ''
+          } : undefined
+        })) || [],
+        total: response.count || (response.results || response || []).length,
+        page: 1, // Default page
+        limit: 50, // Default limit
+        totalPages: 1 // Default total pages
+      };
+    } catch (error: any) {
+      // Re-throw the error to let the app handle it properly (auth errors, etc.)
+      throw error;
+    }
   },
 
   // Get appointment by ID
@@ -422,25 +402,30 @@ export const appointmentMngtService = {
 
   // Get appointment statistics
   getAppointmentStats: async (): Promise<AppointmentStats> => {
-    const response = await apiGet<any>('/shop/appointments/stats/');
-    
-    return {
-      totalAppointments: response.total_appointments || 0,
-      todaysAppointments: response.todays_appointments || 0,
-      upcomingAppointments: response.upcoming_appointments || 0,
-      completedThisMonth: response.completed_this_month || 0,
-      cancelledThisMonth: response.cancelled_this_month || 0,
-      averageDuration: response.average_duration || 0,
-      appointmentsByStatus: {
-        scheduled: response.appointments_by_status?.scheduled || 0,
-        confirmed: response.appointments_by_status?.confirmed || 0,
-        in_progress: response.appointments_by_status?.in_progress || 0,
-        completed: response.appointments_by_status?.completed || 0,
-        cancelled: response.appointments_by_status?.cancelled || 0,
-        no_show: response.appointments_by_status?.no_show || 0
-      },
-      revenueThisMonth: response.revenue_this_month || 0
-    };
+    try {
+      const response = await apiGet<any>('/shop/appointments/stats/');
+      
+      return {
+        totalAppointments: response.total_appointments || 0,
+        todaysAppointments: response.todays_appointments || 0,
+        upcomingAppointments: response.upcoming_appointments || 0,
+        completedThisMonth: response.completed_this_month || 0,
+        cancelledThisMonth: response.cancelled_this_month || 0,
+        averageDuration: response.average_duration || 0,
+        appointmentsByStatus: {
+          scheduled: response.appointments_by_status?.scheduled || 0,
+          confirmed: response.appointments_by_status?.confirmed || 0,
+          in_progress: response.appointments_by_status?.in_progress || 0,
+          completed: response.appointments_by_status?.completed || 0,
+          cancelled: response.appointments_by_status?.cancelled || 0,
+          no_show: response.appointments_by_status?.no_show || 0
+        },
+        revenueThisMonth: response.revenue_this_month || 0
+      };
+    } catch (error: any) {
+      // Re-throw the error to let the app handle it properly (auth errors, etc.)
+      throw error;
+    }
   },
 
   // Get available time slots
