@@ -15,6 +15,7 @@ import { RebuildDashboard } from "../components/RebuildDashboard";
 import {
   AddCustomerModal,
   AddVehicleModal,
+  AddAppointmentModal,
   AddRepairOrderModal,
   AddVehicleProblemModal,
 } from "../components/modals";
@@ -594,14 +595,11 @@ export const AutoRepairDashboard: React.FC = () => {
         onSuccess={(data: any) => handleSuccess("Vehicle", data)}
       />
 
-      {/* TODO: AddAppointmentModal needs to be implemented */}
-      {/*
       <AddAppointmentModal
         show={showAppointmentModal}
         onHide={() => setShowAppointmentModal(false)}
         onSuccess={(data: any) => handleSuccess("Appointment", data)}
       />
-      */}
 
       <AddRepairOrderModal
         show={showRepairOrderModal}

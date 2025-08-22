@@ -128,8 +128,11 @@ export const vehicleMngtService = {
     
     const response = await apiGet<any>(endpoint);
     
+    // Handle different response structures - API might return array directly or wrapped
+    const vehicleArray = Array.isArray(response) ? response : (response.results || response.vehicles || response || []);
+    
     return {
-      vehicles: response.results?.map((vehicle: any) => ({
+      vehicles: vehicleArray.map((vehicle: any) => ({
         id: vehicle.id?.toString() || '',
         customerId: vehicle.customer_id?.toString() || '',
         make: vehicle.make || '',

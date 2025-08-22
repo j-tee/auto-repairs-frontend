@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Raw API Response</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .result { margin: 10px 0; padding: 10px; background: #f0f0f0; white-space: pre-wrap; }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e8; color: #2e7d32; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug Raw Customer API Response</h1>
+    
+    <button onclick="testRawAPI()">Test Raw Customer API</button>
+    <div id="result" class="result"></div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:8000/api';
+        
+        async function testRawAPI() {
+            const resultEl = document.getElementById('result');
+            resultEl.textContent = 'Testing raw customer API...';
+            
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    throw new Error('No authentication token found. Please log in first.');
+                }
+                
+                const response = await fetch(`${API_BASE}/shop/customers/?limit=5`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                resultEl.className = 'result success';
+                resultEl.textContent = '✅ Raw API Response:\n';
+                resultEl.textContent += JSON.stringify(data, null, 2);
+                
+                // Analyze the structure
+                resultEl.textContent += '\n\n📊 Analysis:';
+                resultEl.textContent += `\nResponse type: ${typeof data}`;
+                resultEl.textContent += `\nHas 'results' property: ${!!data.results}`;
+                resultEl.textContent += `\nHas 'customers' property: ${!!data.customers}`;
+                resultEl.textContent += `\nCount/Total: ${data.count || data.total || 'Not found'}`;
+                
+                if (data.results && data.results.length > 0) {
+                    resultEl.textContent += '\n\n👤 First customer structure:';
+                    resultEl.textContent += '\n' + JSON.stringify(data.results[0], null, 2);
+                    
+                    const customer = data.results[0];
+                    resultEl.textContent += '\n\n🔍 Field mapping analysis:';
+                    resultEl.textContent += `\nname: ${customer.name || 'MISSING'}`;
+                    resultEl.textContent += `\nemail: ${customer.email || 'MISSING'}`;
+                    resultEl.textContent += `\nphone: ${customer.phone || 'MISSING'}`;
+                    resultEl.textContent += `\nphone_number: ${customer.phone_number || 'MISSING'}`;
+                    resultEl.textContent += `\naddress: ${customer.address || 'MISSING'}`;
+                }
+                
+            } catch (error) {
+                resultEl.className = 'result error';
+                resultEl.textContent += '\n❌ Error: ' + error.message;
+                console.error('API test error:', error);
+            }
+        }
+    </script>
+</body>
+</html>

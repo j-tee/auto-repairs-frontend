@@ -92,12 +92,15 @@ export const customerMngtService = {
 
     const response = await apiGet<any>(`/shop/customers/?${params.toString()}`);
     
+    // Handle different response structures - API might return array directly or wrapped
+    const customerArray = Array.isArray(response) ? response : (response.results || response.customers || response || []);
+    
     return {
-      customers: (response.results || response.customers || []).map((customer: any) => ({
+      customers: customerArray.map((customer: any) => ({
         id: customer.id?.toString() || '',
-        name: customer.name || '',
+        name: customer.name || `${customer.first_name || ''} ${customer.last_name || ''}`.trim() || '',
         email: customer.email || '',
-        phone: customer.phone || '',
+        phone: customer.phone_number || customer.phone || '', // Handle both field names
         address: customer.address || '',
         city: customer.city,
         state: customer.state,
@@ -122,9 +125,9 @@ export const customerMngtService = {
     
     return {
       id: response.id?.toString() || '',
-      name: response.name || '',
+      name: response.name || `${response.first_name || ''} ${response.last_name || ''}`.trim() || '',
       email: response.email || '',
-      phone: response.phone || '',
+      phone: response.phone_number || response.phone || '', // Handle both field names
       address: response.address || '',
       city: response.city,
       state: response.state,
@@ -159,7 +162,7 @@ export const customerMngtService = {
       id: response.id?.toString() || '',
       name: response.name || '',
       email: response.email || '',
-      phone: response.phone || '',
+      phone: response.phone_number || response.phone || '', // Handle both field names
       address: response.address || '',
       city: response.city,
       state: response.state,
@@ -201,7 +204,7 @@ export const customerMngtService = {
       id: response.id?.toString() || '',
       name: response.name || '',
       email: response.email || '',
-      phone: response.phone || '',
+      phone: response.phone_number || response.phone || '', // Handle both field names
       address: response.address || '',
       city: response.city,
       state: response.state,
@@ -228,7 +231,7 @@ export const customerMngtService = {
       id: response.id?.toString() || '',
       name: response.name || '',
       email: response.email || '',
-      phone: response.phone || '',
+      phone: response.phone_number || response.phone || '', // Handle both field names
       address: response.address || '',
       city: response.city,
       state: response.state,
@@ -250,7 +253,7 @@ export const customerMngtService = {
       id: response.id?.toString() || '',
       name: response.name || '',
       email: response.email || '',
-      phone: response.phone || '',
+      phone: response.phone_number || response.phone || '', // Handle both field names
       address: response.address || '',
       city: response.city,
       state: response.state,

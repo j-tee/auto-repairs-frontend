@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Fix Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .result { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+        .success { background-color: #d4edda; }
+        .error { background-color: #f8d7da; }
+        button { padding: 10px 20px; margin: 10px 0; }
+        pre { background-color: #f8f9fa; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Customer Field Mapping Fix Test</h1>
+    <button onclick="testCustomerAPI()">Test Customer API</button>
+    <div id="results"></div>
+
+    <script>
+        async function testCustomerAPI() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<div>Testing customer API...</div>';
+            
+            try {
+                // Test the customer endpoint
+                const response = await fetch('http://localhost:8000/api/shop/customers/', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzM3NjMzNDU4LCJpYXQiOjE3Mzc2MzI1NTgsImp0aSI6IjE5OWI0OTgyZjQzODQ4N2Q5MjFlNjE1OTk5ZjZlYzFiIiwidXNlcl9pZCI6MX0.q3HPItSkN7AcuEwqnfCPYTlUb9VIdOc_qsZdI85rkGM',
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                
+                resultsDiv.innerHTML = `
+                    <div class="result ${response.ok ? 'success' : 'error'}">
+                        <h3>API Response Status: ${response.status}</h3>
+                        <h4>Customer Count: ${data.results ? data.results.length : 'N/A'}</h4>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+
+                // Check if customers have phone fields
+                if (data.results && data.results.length > 0) {
+                    const customer = data.results[0];
+                    const hasPhone = customer.phone !== undefined;
+                    const hasPhoneNumber = customer.phone_number !== undefined;
+                    
+                    resultsDiv.innerHTML += `
+                        <div class="result">
+                            <h4>Field Analysis for first customer:</h4>
+                            <p>Has 'phone' field: ${hasPhone} (value: ${customer.phone || 'undefined'})</p>
+                            <p>Has 'phone_number' field: ${hasPhoneNumber} (value: ${customer.phone_number || 'undefined'})</p>
+                            <p>Customer name: ${customer.name || customer.first_name + ' ' + customer.last_name}</p>
+                        </div>
+                    `;
+                }
+
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="result error">
+                        <h3>Error:</h3>
+                        <pre>${error.message}</pre>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

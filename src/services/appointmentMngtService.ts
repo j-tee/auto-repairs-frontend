@@ -233,41 +233,39 @@ export const appointmentMngtService = {
 
   // Create new appointment
   createAppointment: async (appointmentData: CreateAppointmentData): Promise<Appointment> => {
+    // Combine date and time for the backend
+    const combinedDateTime = `${appointmentData.scheduledDate}T${appointmentData.scheduledTime}:00`;
+    
     const createData = {
-      customer_id: appointmentData.customerId,
-      vehicle_id: appointmentData.vehicleId,
-      service_type: appointmentData.serviceType,
-      scheduled_date: appointmentData.scheduledDate,
-      scheduled_time: appointmentData.scheduledTime,
-      duration: appointmentData.duration || 60,
-      priority: appointmentData.priority || 'medium',
-      description: appointmentData.description,
-      notes: appointmentData.notes,
-      estimated_cost: appointmentData.estimatedCost,
-      assigned_technician: appointmentData.assignedTechnician
+      vehicle_id: parseInt(appointmentData.vehicleId),
+      date: combinedDateTime,
+      description: appointmentData.description || `${appointmentData.serviceType} service`,
+      status: 'pending'
     };
     
     const response = await apiPost<any>('/shop/appointments/', createData);
     
+    // Parse the date field back into separate components
+    const dateObj = new Date(response.date);
+    const scheduledDate = dateObj.toISOString().split('T')[0];
+    const scheduledTime = dateObj.toTimeString().substring(0, 5);
+    
     return {
       id: response.id?.toString() || '',
-      customerId: response.customer_id?.toString() || '',
+      customerId: response.vehicle?.customer?.id?.toString() || appointmentData.customerId,
       vehicleId: response.vehicle_id?.toString() || '',
-      serviceType: response.service_type || '',
-      scheduledDate: response.scheduled_date || '',
-      scheduledTime: response.scheduled_time || '',
-      duration: response.duration || 60,
-      status: response.status || 'scheduled',
-      priority: response.priority || 'medium',
-      description: response.description,
-      notes: response.notes,
-      estimatedCost: response.estimated_cost,
-      assignedTechnician: response.assigned_technician?.toString(),
-      createdAt: response.created_at || new Date().toISOString(),
-      updatedAt: response.updated_at || new Date().toISOString(),
-      reminderSent: response.reminder_sent || false,
-      checkedIn: response.checked_in || false,
-      checkedInAt: response.checked_in_at
+      serviceType: appointmentData.serviceType || 'General Service',
+      scheduledDate: scheduledDate,
+      scheduledTime: scheduledTime,
+      duration: appointmentData.duration || 60,
+      status: response.status || 'pending',
+      priority: appointmentData.priority || 'medium',
+      description: response.description || '',
+      notes: appointmentData.notes || '',
+      estimatedCost: appointmentData.estimatedCost || 0,
+      assignedTechnician: appointmentData.assignedTechnician || '',
+      createdAt: response.date || new Date().toISOString(),
+      updatedAt: response.date || new Date().toISOString()
     };
   },
 
