@@ -9,6 +9,8 @@ export * from './repairOrderMngtService';
 export * from './employeeMngtService';
 export * from './shopMngtService';
 export * from './dashboardService';
+export * from './partMngtService';
+export * from './serviceMngtService';
 
 // Re-export services with clear naming
 export { authService } from './authService';
@@ -21,3 +23,5 @@ export { repairOrderMngtService } from './repairOrderMngtService';
 export { employeeMngtService } from './employeeMngtService';
 export { shopMngtService } from './shopMngtService';
 export { dashboardService } from './dashboardService';
+export { partMngtService } from './partMngtService';
+export { serviceMngtService } from './serviceMngtService';

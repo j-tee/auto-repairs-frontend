@@ -75,7 +75,7 @@ export const partMngtService = {
     if (query.limit) params.append('limit', query.limit.toString());
     if (query.offset) params.append('offset', query.offset.toString());
     
-    const endpoint = `/parts/${params.toString() ? `?${params.toString()}` : ''}`;
+    const endpoint = `/shop/parts/${params.toString() ? `?${params.toString()}` : ''}`;
     const response = await apiGet<any>(endpoint);
     
     // Handle both paginated and non-paginated responses
@@ -102,7 +102,7 @@ export const partMngtService = {
 
   // Get part by ID
   getPartById: async (partId: string): Promise<Part> => {
-    const response = await apiGet<any>(`/parts/${partId}/`);
+    const response = await apiGet<any>(`/shop/parts/${partId}/`);
     
     return {
       id: response.id?.toString() || '',
@@ -178,7 +178,7 @@ export const partMngtService = {
     if (partData.shopId !== undefined) updateData.shop_id = partData.shopId;
     if (partData.isActive !== undefined) updateData.is_active = partData.isActive;
     
-    const response = await apiPut<any>(`/parts/${partId}/`, updateData);
+    const response = await apiPut<any>(`/shop/parts/${partId}/`, updateData);
     
     return {
       id: response.id?.toString() || '',
@@ -201,12 +201,12 @@ export const partMngtService = {
 
   // Delete part
   deletePart: async (partId: string): Promise<void> => {
-    await apiDelete(`/parts/${partId}/`);
+    await apiDelete(`/shop/parts/${partId}/`);
   },
 
   // Get low stock parts
   getLowStockParts: async (shopId?: string): Promise<Part[]> => {
-    const endpoint = `/parts/low_stock/${shopId ? `?shop_id=${shopId}` : ''}`;
+    const endpoint = `/shop/parts/low_stock/${shopId ? `?shop_id=${shopId}` : ''}`;
     const response = await apiGet<any>(endpoint);
     
     const parts = response.results || response;

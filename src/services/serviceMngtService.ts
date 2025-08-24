@@ -55,7 +55,7 @@ export const serviceMngtService = {
     if (query.limit) params.append('limit', query.limit.toString());
     if (query.offset) params.append('offset', query.offset.toString());
     
-    const endpoint = `/services/${params.toString() ? `?${params.toString()}` : ''}`;
+    const endpoint = `/shop/services/${params.toString() ? `?${params.toString()}` : ''}`;
     const response = await apiGet<any>(endpoint);
     
     // Handle both paginated and non-paginated responses
@@ -76,7 +76,7 @@ export const serviceMngtService = {
 
   // Get service by ID
   getServiceById: async (serviceId: string): Promise<Service> => {
-    const response = await apiGet<any>(`/services/${serviceId}/`);
+    const response = await apiGet<any>(`/shop/services/${serviceId}/`);
     
     return {
       id: response.id,
@@ -104,7 +104,7 @@ export const serviceMngtService = {
       warranty_months: serviceData.warranty_months ?? 0
     };
     
-    const response = await apiPost<any>('/services/', createData);
+    const response = await apiPost<any>('/shop/services/', createData);
     
     return {
       id: response.id,
@@ -132,7 +132,7 @@ export const serviceMngtService = {
     if (serviceData.taxable !== undefined) updateData.taxable = serviceData.taxable;
     if (serviceData.warranty_months !== undefined) updateData.warranty_months = serviceData.warranty_months;
     
-    const response = await apiPut<any>(`/services/${serviceId}/`, updateData);
+    const response = await apiPut<any>(`/shop/services/${serviceId}/`, updateData);
     
     return {
       id: response.id,
@@ -149,7 +149,7 @@ export const serviceMngtService = {
 
   // Delete service
   deleteService: async (serviceId: string): Promise<void> => {
-    await apiDelete(`/services/${serviceId}/`);
+    await apiDelete(`/shop/services/${serviceId}/`);
   },
 
   // Get services by shop

@@ -76,7 +76,7 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
         await Promise.all([
           apiGet<Vehicle[]>("/shop/vehicles/"),
           apiGet<Service[]>("/shop/services/"),
-          apiGet<Part[]>("/parts/"),
+          apiGet<Part[]>("/shop/parts/"),
         ]);
 
       // ✅ Backend now provides customer_name directly - no need for manual combination!
