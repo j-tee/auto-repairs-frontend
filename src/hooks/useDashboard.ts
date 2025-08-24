@@ -225,6 +225,26 @@ export const useDashboard = (): DashboardHookReturn => {
       const employees = employeeResults.status === 'fulfilled' ? employeeResults.value.employees : [];
       const shops = shopResults.status === 'fulfilled' ? shopResults.value.shops : [];
 
+      // Log any failed service calls for debugging
+      if (vehicleResults.status === 'rejected') {
+        console.warn('🚗 Vehicle service failed:', vehicleResults.reason?.message);
+      }
+      if (customerResults.status === 'rejected') {
+        console.warn('👥 Customer service failed:', customerResults.reason?.message);
+      }
+      if (repairOrderResults.status === 'rejected') {
+        console.warn('🔧 Repair order service failed:', repairOrderResults.reason?.message);
+      }
+      if (appointmentResults.status === 'rejected') {
+        console.warn('📅 Appointment service failed:', appointmentResults.reason?.message);
+      }
+      if (employeeResults.status === 'rejected') {
+        console.warn('👷 Employee service failed:', employeeResults.reason?.message);
+      }
+      if (shopResults.status === 'rejected') {
+        console.warn('🏪 Shop service failed:', shopResults.reason?.message);
+      }
+
       const result: DashboardSummary = {
         vehicles,
         customers,

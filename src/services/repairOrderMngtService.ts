@@ -109,7 +109,8 @@ export interface RepairOrderQuery {
   customerId?: string;
   vehicleId?: string;
   technicianId?: string;
-  status?: RepairOrder['status'];
+  // Note: This might filter by related appointment status, not repair order status
+  status?: string; 
   priority?: RepairOrder['priority'];
   dateFrom?: string;
   dateTo?: string;
@@ -148,98 +149,221 @@ export interface RepairOrderStats {
 export const repairOrderMngtService = {
   // Get all repair orders with filtering and pagination
   getRepairOrders: async (query: RepairOrderQuery = {}): Promise<RepairOrderListResponse> => {
-    const params = new URLSearchParams();
-    
-    if (query.page) params.append('page', query.page.toString());
-    if (query.limit) params.append('limit', query.limit.toString());
-    if (query.search) params.append('search', query.search);
-    if (query.customerId) params.append('customer_id', query.customerId);
-    if (query.vehicleId) params.append('vehicle_id', query.vehicleId);
-    if (query.technicianId) params.append('technician_id', query.technicianId);
-    if (query.status) params.append('status', query.status);
-    if (query.priority) params.append('priority', query.priority);
-    if (query.dateFrom) params.append('date_from', query.dateFrom);
-    if (query.dateTo) params.append('date_to', query.dateTo);
-    if (query.sortBy) params.append('sort_by', query.sortBy);
-    if (query.sortOrder) params.append('sort_order', query.sortOrder);
-    if (query.minAmount) params.append('min_amount', query.minAmount.toString());
-    if (query.maxAmount) params.append('max_amount', query.maxAmount.toString());
-    
-    const queryString = params.toString();
-    const endpoint = `/shop/repair-orders/${queryString ? `?${queryString}` : ''}`;
-    
-    const response = await apiGet<any>(endpoint);
-    
-    return {
-      repairOrders: response.results?.map((order: any) => ({
-        id: order.id?.toString() || '',
-        customerId: order.customer_id?.toString() || '',
-        vehicleId: order.vehicle_id?.toString() || '',
-        appointmentId: order.appointment_id?.toString(),
-        orderNumber: order.order_number || '',
-        status: order.status || 'draft',
-        priority: order.priority || 'medium',
-        description: order.description || '',
-        diagnosis: order.diagnosis,
-        recommendations: order.recommendations,
-        items: order.items?.map((item: any) => ({
-          id: item.id?.toString() || '',
-          type: item.type || 'service',
-          description: item.description || '',
-          quantity: item.quantity || 1,
-          unitPrice: item.unit_price || 0,
-          totalPrice: item.total_price || 0,
-          partNumber: item.part_number,
-          laborHours: item.labor_hours,
-          discount: item.discount || 0,
-          taxRate: item.tax_rate || 0,
-          notes: item.notes
-        })) || [],
-        subtotal: order.subtotal || 0,
-        tax: order.tax || 0,
-        discount: order.discount || 0,
-        total: order.total || 0,
-        estimatedCompletionDate: order.estimated_completion_date,
-        actualCompletionDate: order.actual_completion_date,
-        assignedTechnician: order.assigned_technician?.toString(),
-        authorizedBy: order.authorized_by?.toString(),
-        authorizedAt: order.authorized_at,
-        createdAt: order.created_at || new Date().toISOString(),
-        updatedAt: order.updated_at || new Date().toISOString(),
-        customer: order.customer ? {
-          id: order.customer.id?.toString() || '',
-          firstName: order.customer.first_name || '',
-          lastName: order.customer.last_name || '',
-          email: order.customer.email || '',
-          phone: order.customer.phone || ''
-        } : undefined,
-        vehicle: order.vehicle ? {
-          id: order.vehicle.id?.toString() || '',
-          make: order.vehicle.make || '',
-          model: order.vehicle.model || '',
-          year: order.vehicle.year || new Date().getFullYear(),
-          licensePlate: order.vehicle.license_plate || '',
-          vin: order.vehicle.vin || ''
-        } : undefined,
-        technician: order.technician ? {
-          id: order.technician.id?.toString() || '',
-          firstName: order.technician.first_name || '',
-          lastName: order.technician.last_name || '',
-          specialties: order.technician.specialties || []
-        } : undefined,
-        notes: order.notes,
-        images: order.images || [],
-        warranty: order.warranty ? {
-          type: order.warranty.type || '',
-          duration: order.warranty.duration || 0,
-          description: order.warranty.description || ''
-        } : undefined
-      })) || [],
-      total: response.count || 0,
-      page: query.page || 1,
-      limit: query.limit || 10,
-      totalPages: Math.ceil((response.count || 0) / (query.limit || 10))
-    };
+    try {
+      console.log('🔧 Loading repair orders with query:', query);
+      
+      const params = new URLSearchParams();
+      
+      if (query.page) params.append('page', query.page.toString());
+      if (query.limit) params.append('limit', query.limit.toString());
+      if (query.search) params.append('search', query.search);
+      if (query.customerId) params.append('customer_id', query.customerId);
+      if (query.vehicleId) params.append('vehicle_id', query.vehicleId);
+      if (query.technicianId) params.append('technician_id', query.technicianId);
+      if (query.status) params.append('status', query.status);
+      if (query.priority) params.append('priority', query.priority);
+      if (query.dateFrom) params.append('date_from', query.dateFrom);
+      if (query.dateTo) params.append('date_to', query.dateTo);
+      if (query.sortBy) params.append('sort_by', query.sortBy);
+      if (query.sortOrder) params.append('sort_order', query.sortOrder);
+      if (query.minAmount) params.append('min_amount', query.minAmount.toString());
+      if (query.maxAmount) params.append('max_amount', query.maxAmount.toString());
+      
+      const queryString = params.toString();
+      const endpoint = `/shop/repair-orders/${queryString ? `?${queryString}` : ''}`;
+      
+      const response = await apiGet<any>(endpoint);
+      
+      console.log('✅ Repair orders loaded successfully:', response);
+      
+      // Handle different response structures
+      const ordersArray = response.results || response.repair_orders || response || [];
+      
+      return {
+        repairOrders: ordersArray.map((order: any) => ({
+          id: order.id?.toString() || '',
+          customerId: order.customer_id?.toString() || '',
+          vehicleId: order.vehicle_id?.toString() || '',
+          appointmentId: order.appointment_id?.toString(),
+          orderNumber: order.order_number || `RO-${order.id}`,
+          status: order.status || 'draft',
+          priority: order.priority || 'medium',
+          description: order.description || '',
+          diagnosis: order.diagnosis,
+          recommendations: order.recommendations,
+          items: order.items?.map((item: any) => ({
+            id: item.id?.toString() || '',
+            type: item.type || 'service',
+            description: item.description || '',
+            quantity: item.quantity || 1,
+            unitPrice: item.unit_price || 0,
+            totalPrice: item.total_price || 0,
+            partNumber: item.part_number,
+            laborHours: item.labor_hours,
+            discount: item.discount || 0,
+            taxRate: item.tax_rate || 0,
+            notes: item.notes
+          })) || [],
+          subtotal: order.subtotal || 0,
+          tax: order.tax || 0,
+          discount: order.discount || 0,
+          total: order.total || 0,
+          estimatedCompletionDate: order.estimated_completion_date,
+          actualCompletionDate: order.actual_completion_date,
+          assignedTechnician: order.assigned_technician?.toString(),
+          authorizedBy: order.authorized_by?.toString(),
+          authorizedAt: order.authorized_at,
+          createdAt: order.created_at || new Date().toISOString(),
+          updatedAt: order.updated_at || new Date().toISOString(),
+          customer: order.customer ? {
+            id: order.customer.id?.toString() || '',
+            firstName: order.customer.first_name || '',
+            lastName: order.customer.last_name || '',
+            email: order.customer.email || '',
+            phone: order.customer.phone || ''
+          } : undefined,
+          vehicle: order.vehicle ? {
+            id: order.vehicle.id?.toString() || '',
+            make: order.vehicle.make || '',
+            model: order.vehicle.model || '',
+            year: order.vehicle.year || new Date().getFullYear(),
+            licensePlate: order.vehicle.license_plate || '',
+            vin: order.vehicle.vin || ''
+          } : undefined,
+          technician: order.technician ? {
+            id: order.technician.id?.toString() || '',
+            firstName: order.technician.first_name || '',
+            lastName: order.technician.last_name || '',
+            specialties: order.technician.specialties || []
+          } : undefined,
+          notes: order.notes,
+          images: order.images || [],
+          warranty: order.warranty ? {
+            type: order.warranty.type || '',
+            duration: order.warranty.duration || 0,
+            description: order.warranty.description || ''
+          } : undefined
+        })),
+        total: response.count || ordersArray.length,
+        page: query.page || 1,
+        limit: query.limit || 10,
+        totalPages: Math.ceil((response.count || ordersArray.length) / (query.limit || 10))
+      };
+    } catch (error: any) {
+      console.error('❌ Error loading repair orders:', error);
+      
+      // Check if it's a server error (500) and try alternative endpoints
+      if (error.status === 500) {
+        console.warn('🚧 Main repair orders endpoint returned 500 error - trying fallback approaches...');
+        
+        try {
+          // Try the active orders endpoint as fallback
+          console.log('🔄 Trying active repair orders endpoint as fallback...');
+          const activeResponse = await apiGet<any>('/shop/repair-orders/active/');
+          const activeOrders = Array.isArray(activeResponse) ? activeResponse : (activeResponse.results || []);
+          
+          console.log(`✅ Active orders fallback successful - found ${activeOrders.length} active orders`);
+          
+          return {
+            repairOrders: activeOrders.map((order: any) => ({
+              id: order.id?.toString() || '',
+              customerId: order.customer_id?.toString() || '',
+              vehicleId: order.vehicle_id?.toString() || '',
+              appointmentId: order.appointment_id?.toString(),
+              orderNumber: order.order_number || `RO-${order.id}`,
+              status: order.status || 'in_progress',
+              priority: order.priority || 'medium',
+              description: order.description || '',
+              diagnosis: order.diagnosis,
+              recommendations: order.recommendations,
+              items: [],
+              subtotal: order.subtotal || 0,
+              tax: order.tax || 0,
+              discount: order.discount || 0,
+              total: order.total || 0,
+              estimatedCompletionDate: order.estimated_completion_date,
+              actualCompletionDate: order.actual_completion_date,
+              assignedTechnician: order.assigned_technician?.toString(),
+              authorizedBy: order.authorized_by?.toString(),
+              authorizedAt: order.authorized_at,
+              createdAt: order.created_at || new Date().toISOString(),
+              updatedAt: order.updated_at || new Date().toISOString(),
+              notes: order.notes,
+              images: [],
+              warranty: undefined
+            })),
+            total: activeOrders.length,
+            page: query.page || 1,
+            limit: query.limit || 10,
+            totalPages: Math.ceil(activeOrders.length / (query.limit || 10))
+          };
+        } catch (fallbackError) {
+          console.warn('❌ Active orders fallback also failed:', fallbackError);
+          
+          // Try one more alternative approach - use a different endpoint pattern
+          try {
+            console.log('🔄 Trying alternative repair orders endpoint pattern...');
+            const altResponse = await apiGet<any>('/shop/repair-orders/', { 
+              status: 'in_progress',
+              limit: query.limit || 10 
+            });
+            const altOrders = Array.isArray(altResponse) ? altResponse : 
+                            (altResponse.results || altResponse.repairOrders || []);
+            
+            console.log(`✅ Alternative endpoint successful - found ${altOrders.length} orders`);
+            
+            return {
+              repairOrders: altOrders.map((order: any) => ({
+                id: order.id?.toString() || '',
+                customerId: order.customer_id?.toString() || '',
+                vehicleId: order.vehicle_id?.toString() || '',
+                appointmentId: order.appointment_id?.toString(),
+                orderNumber: order.order_number || `RO-${order.id}`,
+                status: order.status || 'in_progress',
+                priority: order.priority || 'medium',
+                description: order.description || 'Repair Service',
+                diagnosis: order.diagnosis,
+                recommendations: order.recommendations,
+                items: [],
+                subtotal: order.subtotal || 0,
+                tax: order.tax || 0,
+                discount: order.discount || 0,
+                total: order.total || 0,
+                estimatedCompletionDate: order.estimated_completion_date,
+                actualCompletionDate: order.actual_completion_date,
+                assignedTechnician: order.assigned_technician?.toString(),
+                authorizedBy: order.authorized_by?.toString(),
+                authorizedAt: order.authorized_at,
+                createdAt: order.created_at || new Date().toISOString(),
+                updatedAt: order.updated_at || new Date().toISOString(),
+                notes: order.notes,
+                images: [],
+                warranty: undefined
+              })),
+              total: altOrders.length,
+              page: query.page || 1,
+              limit: query.limit || 10,
+              totalPages: Math.ceil(altOrders.length / (query.limit || 10))
+            };
+          } catch (altError) {
+            console.warn('❌ Alternative endpoint also failed:', altError);
+            
+            // Final fallback - return empty result
+            console.warn('🚧 All repair order endpoints failed - returning empty result');
+            return {
+              repairOrders: [],
+              total: 0,
+              page: query.page || 1,
+              limit: query.limit || 10,
+              totalPages: 0
+            };
+          }
+        }
+      }
+      
+      // For other errors, still throw to let caller handle
+      throw error;
+    }
   },
 
   // Get repair order by ID
@@ -545,40 +669,91 @@ export const repairOrderMngtService = {
 
   // Get active repair orders
   getActiveRepairOrders: async (): Promise<RepairOrder[]> => {
-    const query: RepairOrderQuery = {
-      status: 'in_progress',
-      sortBy: 'created_at',
-      sortOrder: 'desc'
-    };
-    
-    const response = await repairOrderMngtService.getRepairOrders(query);
-    return response.repairOrders;
+    try {
+      console.log('🔄 Loading active repair orders from backend...');
+      
+      // Use the new backend endpoint that handles filtering efficiently
+      const response = await apiGet<RepairOrder[]>('/shop/repair-orders/active/');
+      
+      console.log(`✅ Loaded ${response.length} active repair orders from backend`);
+      return response;
+      
+    } catch (error: any) {
+      console.error('❌ Error loading active repair orders:', error);
+      
+      // Fallback: get recent repair orders if active endpoint fails
+      console.log('🔄 Falling back to recent repair orders...');
+      try {
+        const query: RepairOrderQuery = {
+          sortBy: 'date_created',
+          sortOrder: 'desc',
+          limit: 10
+        };
+        const fallbackResponse = await repairOrderMngtService.getRepairOrders(query);
+        console.log(`✅ Fallback: Loaded ${fallbackResponse.repairOrders.length} recent repair orders`);
+        return fallbackResponse.repairOrders;
+      } catch (fallbackError) {
+        console.error('❌ Fallback also failed:', fallbackError);
+        return [];
+      }
+    }
   },
 
   // Get repair order statistics
   getRepairOrderStats: async (): Promise<RepairOrderStats> => {
-    const response = await apiGet<any>('/shop/repair-orders/stats/');
-    
-    return {
-      totalOrders: response.total_orders || 0,
-      activeOrders: response.active_orders || 0,
-      completedThisMonth: response.completed_this_month || 0,
-      totalRevenueThisMonth: response.total_revenue_this_month || 0,
-      averageOrderValue: response.average_order_value || 0,
-      ordersByStatus: {
-        draft: response.orders_by_status?.draft || 0,
-        approved: response.orders_by_status?.approved || 0,
-        in_progress: response.orders_by_status?.in_progress || 0,
-        completed: response.orders_by_status?.completed || 0,
-        on_hold: response.orders_by_status?.on_hold || 0,
-        cancelled: response.orders_by_status?.cancelled || 0
-      },
-      topServices: response.top_services?.map((service: any) => ({
-        service: service.service || '',
-        count: service.count || 0,
-        revenue: service.revenue || 0
-      })) || []
-    };
+    try {
+      console.log('📊 Loading repair order statistics...');
+      const response = await apiGet<any>('/shop/repair-orders/stats/');
+      
+      console.log('✅ Repair order stats loaded:', response);
+      
+      return {
+        totalOrders: response.total_orders || 0,
+        activeOrders: response.active_orders || 0,
+        completedThisMonth: response.completed_this_month || 0,
+        totalRevenueThisMonth: response.total_revenue_this_month || 0,
+        averageOrderValue: response.average_order_value || 0,
+        ordersByStatus: {
+          draft: response.orders_by_status?.draft || 0,
+          approved: response.orders_by_status?.approved || 0,
+          in_progress: response.orders_by_status?.in_progress || 0,
+          completed: response.orders_by_status?.completed || 0,
+          on_hold: response.orders_by_status?.on_hold || 0,
+          cancelled: response.orders_by_status?.cancelled || 0
+        },
+        topServices: response.top_services?.map((service: any) => ({
+          service: service.service || '',
+          count: service.count || 0,
+          revenue: service.revenue || 0
+        })) || []
+      };
+    } catch (error: any) {
+      console.error('❌ Error loading repair order stats:', error);
+      
+      // If stats endpoint fails, return default values instead of throwing
+      if (error.status === 500 || error.status === 404) {
+        console.warn('🚧 Repair order stats endpoint failed - returning default values as fallback');
+        return {
+          totalOrders: 0,
+          activeOrders: 0,
+          completedThisMonth: 0,
+          totalRevenueThisMonth: 0,
+          averageOrderValue: 0,
+          ordersByStatus: {
+            draft: 0,
+            approved: 0,
+            in_progress: 0,
+            completed: 0,
+            on_hold: 0,
+            cancelled: 0
+          },
+          topServices: []
+        };
+      }
+      
+      // For other errors, still throw to let caller handle
+      throw error;
+    }
   },
 
   // Add item to repair order

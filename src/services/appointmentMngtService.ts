@@ -401,21 +401,10 @@ export const appointmentMngtService = {
   },
 
   // Get today's appointments
-  getTodaysAppointments: async (): Promise<Appointment[]> => {
-    const today = new Date().toISOString().split('T')[0];
-    const query: AppointmentQuery = {
-      dateFrom: today,
-      dateTo: today,
-      sortBy: 'scheduled_time',
-      sortOrder: 'asc'
-    };
-    
-    const response = await appointmentMngtService.getAppointments(query);
-    return response.appointments;
-  },
+  // (removed duplicate getTodaysAppointments to resolve object literal property conflict)
 
-  // Get upcoming appointments
-  getUpcomingAppointments: async (days: number = 7): Promise<Appointment[]> => {
+  // Get upcoming appointments (legacy, by days range)
+  getUpcomingAppointmentsByDays: async (days: number = 7): Promise<Appointment[]> => {
     const today = new Date();
     const futureDate = new Date(today);
     futureDate.setDate(today.getDate() + days);
@@ -433,32 +422,7 @@ export const appointmentMngtService = {
   },
 
   // Get appointment statistics
-  getAppointmentStats: async (): Promise<AppointmentStats> => {
-    try {
-      const response = await apiGet<any>('/shop/appointments/stats/');
-      
-      return {
-        totalAppointments: response.total_appointments || 0,
-        todaysAppointments: response.todays_appointments || 0,
-        upcomingAppointments: response.upcoming_appointments || 0,
-        completedThisMonth: response.completed_this_month || 0,
-        cancelledThisMonth: response.cancelled_this_month || 0,
-        averageDuration: response.average_duration || 0,
-        appointmentsByStatus: {
-          scheduled: response.appointments_by_status?.scheduled || 0,
-          confirmed: response.appointments_by_status?.confirmed || 0,
-          in_progress: response.appointments_by_status?.in_progress || 0,
-          completed: response.appointments_by_status?.completed || 0,
-          cancelled: response.appointments_by_status?.cancelled || 0,
-          no_show: response.appointments_by_status?.no_show || 0
-        },
-        revenueThisMonth: response.revenue_this_month || 0
-      };
-    } catch (error: any) {
-      // Re-throw the error to let the app handle it properly (auth errors, etc.)
-      throw error;
-    }
-  },
+  // (removed duplicate getAppointmentStats method to resolve object literal property conflict)
 
   // Get available time slots
   getAvailableTimeSlots: async (date: string, duration: number = 60, technicianId?: string): Promise<TimeSlot[]> => {

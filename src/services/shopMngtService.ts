@@ -514,7 +514,7 @@ export const shopMngtService = {
 
   // Get shop statistics
   getShopStats: async (shopId?: string): Promise<ShopStats> => {
-    const endpoint = shopId ? `/shop/shops/${shopId}/stats/` : '/shops/stats/';
+    const endpoint = shopId ? `/shop/shops/${shopId}/stats/` : '/shop/shops/stats/';
     const response = await apiGet<any>(endpoint);
     
     return {

@@ -20,6 +20,14 @@ import {
   AddVehicleProblemModal,
 } from "../components/modals";
 import { dashboardService, type DashboardSummary } from "../services";
+import {
+  appointmentMngtService,
+  type Appointment,
+} from "../services/appointmentMngtService";
+import {
+  repairOrderMngtService,
+  type RepairOrder,
+} from "../services/repairOrderMngtService";
 
 export const AutoRepairDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -41,6 +49,16 @@ export const AutoRepairDashboard: React.FC = () => {
   const [dashboardLoading, setDashboardLoading] = useState(true);
   const [dashboardError, setDashboardError] = useState<string | null>(null);
 
+  // Today's appointments data
+  const [todaysAppointments, setTodaysAppointments] = useState<Appointment[]>(
+    []
+  );
+  const [appointmentsLoading, setAppointmentsLoading] = useState(false);
+
+  // Active repairs data
+  const [activeRepairs, setActiveRepairs] = useState<RepairOrder[]>([]);
+  const [repairsLoading, setRepairsLoading] = useState(false);
+
   // Load dashboard data on component mount
   useEffect(() => {
     if (user?.role) {
@@ -59,11 +77,112 @@ export const AutoRepairDashboard: React.FC = () => {
       );
 
       setDashboardData(data);
+
+      // Also load detailed data for the schedule and repairs sections
+      if (user?.role !== "customer") {
+        // Load appointments and repairs in parallel, but don't let one failure stop the other
+        const [appointmentsResult, repairsResult] = await Promise.allSettled([
+          loadTodaysAppointments(),
+          loadActiveRepairs(),
+        ]);
+
+        // Log any failures but continue
+        if (appointmentsResult.status === "rejected") {
+          console.error(
+            "Failed to load appointments:",
+            appointmentsResult.reason
+          );
+        }
+        if (repairsResult.status === "rejected") {
+          console.error("Failed to load repairs:", repairsResult.reason);
+        }
+      }
     } catch (error: any) {
       console.error("Error loading dashboard data:", error);
       setDashboardError(error.message || "Failed to load dashboard data");
+
+      // Even if dashboard stats fail, try to load the appointments and repairs
+      if (user?.role !== "customer") {
+        try {
+          await Promise.allSettled([
+            loadTodaysAppointments(),
+            loadActiveRepairs(),
+          ]);
+        } catch (secondaryError) {
+          console.error("Secondary data loading also failed:", secondaryError);
+        }
+      }
     } finally {
       setDashboardLoading(false);
+    }
+  };
+
+  const loadTodaysAppointments = async () => {
+    try {
+      setAppointmentsLoading(true);
+      const appointments = await appointmentMngtService.getTodaysAppointments();
+      console.log("Today's appointments data:", appointments);
+      setTodaysAppointments(appointments.slice(0, 5)); // Show max 5 appointments
+    } catch (error: any) {
+      console.error("Error loading today's appointments:", error);
+      setTodaysAppointments([]); // Fall back to empty array
+    } finally {
+      setAppointmentsLoading(false);
+    }
+  };
+
+  const loadActiveRepairs = async () => {
+    try {
+      setRepairsLoading(true);
+      // Use the smart method that filters by appointment status
+      const activeRepairs =
+        await repairOrderMngtService.getActiveRepairOrders();
+
+      console.log(`✅ Loaded ${activeRepairs.length} active repair orders`);
+
+      setActiveRepairs(activeRepairs.slice(0, 5)); // Show max 5 active repairs
+    } catch (error: any) {
+      console.error("Error loading active repairs:", error);
+      setActiveRepairs([]); // Fall back to empty array
+    } finally {
+      setRepairsLoading(false);
+    }
+  };
+
+  const formatAppointmentTime = (appointment: Appointment) => {
+    try {
+      // Service type uses scheduledDate and scheduledTime
+      if (appointment.scheduledTime) {
+        return appointment.scheduledTime;
+      }
+      if (appointment.scheduledDate) {
+        const date = new Date(appointment.scheduledDate);
+        return date.toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        });
+      }
+      return "TBD";
+    } catch {
+      return "TBD";
+    }
+  };
+
+  const getRepairProgress = (repairOrder: RepairOrder) => {
+    // Since backend doesn't have status field, estimate progress based on available data
+    // This is a simplified approach - in a real scenario, you'd have actual progress tracking
+
+    // If there are services or parts, assume some progress has been made
+    const hasServices = repairOrder.items && repairOrder.items.length > 0;
+    const hasTotal = repairOrder.total && repairOrder.total > 0;
+
+    if (hasTotal && hasServices) {
+      return 75; // Good progress if both services and pricing are set
+    } else if (hasTotal || hasServices) {
+      return 50; // Some progress if either services or pricing is set
+    } else {
+      return 25; // Initial progress for new orders
     }
   };
 
@@ -330,10 +449,12 @@ export const AutoRepairDashboard: React.FC = () => {
               variant="outline-primary"
               size="sm"
               onClick={loadDashboardData}
-              disabled={dashboardLoading}
+              disabled={
+                dashboardLoading || appointmentsLoading || repairsLoading
+              }
               className="ms-3"
             >
-              {dashboardLoading ? (
+              {dashboardLoading || appointmentsLoading || repairsLoading ? (
                 <>
                   <Spinner size="sm" animation="border" className="me-2" />
                   Refreshing...
@@ -409,24 +530,60 @@ export const AutoRepairDashboard: React.FC = () => {
                 <h5 className="mb-0">📅 Today's Schedule</h5>
               </Card.Header>
               <Card.Body>
-                <div className="mb-3">
-                  <strong>9:00 AM - Oil Change</strong>
-                  <br />
-                  <small className="text-muted">John Doe - Toyota Camry</small>
-                </div>
-                <div className="mb-3">
-                  <strong>11:30 AM - Brake Inspection</strong>
-                  <br />
-                  <small className="text-muted">Jane Smith - Honda Civic</small>
-                </div>
-                <div className="mb-3">
-                  <strong>2:00 PM - Engine Diagnostic</strong>
-                  <br />
-                  <small className="text-muted">
-                    Mike Johnson - Ford F-150
-                  </small>
-                </div>
-                <Button variant="outline-primary" size="sm" className="w-100">
+                {appointmentsLoading ? (
+                  <div className="text-center py-3">
+                    <Spinner size="sm" animation="border" />
+                    <p className="mt-2 mb-0">Loading appointments...</p>
+                  </div>
+                ) : todaysAppointments.length === 0 ? (
+                  <div className="text-center py-3 text-muted">
+                    <p className="mb-0">No appointments scheduled for today</p>
+                  </div>
+                ) : (
+                  <>
+                    {todaysAppointments.map((appointment, index) => (
+                      <div key={appointment.id} className="mb-3">
+                        <strong>
+                          {formatAppointmentTime(appointment)} -{" "}
+                          {appointment.serviceType ||
+                            appointment.description ||
+                            "Service Appointment"}
+                        </strong>
+                        <br />
+                        <small className="text-muted">
+                          {appointment.customer?.name || "Customer"} -{" "}
+                          {appointment.vehicle
+                            ? `${appointment.vehicle.year} ${appointment.vehicle.make} ${appointment.vehicle.model}`
+                            : `Vehicle ID: ${appointment.vehicleId}`}
+                        </small>
+                        {appointment.status && (
+                          <>
+                            <br />
+                            <span
+                              className={`badge ${
+                                appointment.status === "completed"
+                                  ? "bg-success"
+                                  : appointment.status === "in_progress"
+                                  ? "bg-warning"
+                                  : appointment.status === "cancelled"
+                                  ? "bg-danger"
+                                  : "bg-secondary"
+                              } ms-0`}
+                              style={{ fontSize: "0.7em" }}
+                            >
+                              {appointment.status.replace("_", " ")}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </>
+                )}
+                <Button
+                  variant="outline-primary"
+                  size="sm"
+                  className="w-100 mt-2"
+                >
                   View Full Schedule
                 </Button>
               </Card.Body>
@@ -438,31 +595,97 @@ export const AutoRepairDashboard: React.FC = () => {
                 <h5 className="mb-0">🔧 Active Repairs</h5>
               </Card.Header>
               <Card.Body>
-                <div className="mb-3">
-                  <strong>Transmission Repair</strong>
-                  <br />
-                  <small className="text-muted">BMW X5 - 60% Complete</small>
-                  <div className="progress mt-1" style={{ height: "5px" }}>
-                    <div
-                      className="progress-bar bg-warning"
-                      style={{ width: "60%" }}
-                    ></div>
+                {repairsLoading ? (
+                  <div className="text-center py-3">
+                    <Spinner size="sm" animation="border" />
+                    <p className="mt-2 mb-0">Loading repairs...</p>
                   </div>
-                </div>
-                <div className="mb-3">
-                  <strong>Engine Overhaul</strong>
-                  <br />
-                  <small className="text-muted">
-                    Chevy Silverado - 25% Complete
-                  </small>
-                  <div className="progress mt-1" style={{ height: "5px" }}>
-                    <div
-                      className="progress-bar bg-warning"
-                      style={{ width: "25%" }}
-                    ></div>
+                ) : activeRepairs.length === 0 ? (
+                  <div className="text-center py-3 text-muted">
+                    <p className="mb-0">No active repairs at this time</p>
                   </div>
-                </div>
-                <Button variant="outline-warning" size="sm" className="w-100">
+                ) : (
+                  <>
+                    {activeRepairs.map((repair: any, index) => {
+                      const progress = getRepairProgress(repair);
+
+                      // Helper function to safely get vehicle info
+                      const getVehicleInfo = (repair: any) => {
+                        // Try different possible field structures
+                        const vehicle = repair.vehicle;
+                        if (vehicle) {
+                          const year = vehicle.year || vehicle.model_year;
+                          const make = vehicle.make || vehicle.manufacturer;
+                          const model = vehicle.model;
+
+                          if (year && make && model) {
+                            return `${year} ${make} ${model}`;
+                          }
+                          if (make && model) {
+                            return `${make} ${model}`;
+                          }
+                          if (vehicle.license_plate || vehicle.licensePlate) {
+                            return `Vehicle: ${
+                              vehicle.license_plate || vehicle.licensePlate
+                            }`;
+                          }
+                        }
+                        return `Vehicle ID: ${
+                          repair.vehicleId || repair.vehicle_id || repair.id
+                        }`;
+                      };
+
+                      // Helper function to safely get description
+                      const getDescription = (repair: any) => {
+                        // Try different possible field names that might contain description
+                        return (
+                          repair.description ||
+                          repair.notes ||
+                          repair.diagnosis ||
+                          repair.service_type ||
+                          repair.work_description ||
+                          (repair.orderNumber
+                            ? `Repair Order #${repair.orderNumber}`
+                            : null) ||
+                          (repair.order_number
+                            ? `Repair Order #${repair.order_number}`
+                            : null) ||
+                          (repair.id ? `Repair Order #${repair.id}` : null) ||
+                          "Repair Service"
+                        );
+                      };
+
+                      return (
+                        <div key={repair.id || index} className="mb-3">
+                          <strong>{getDescription(repair)}</strong>
+                          <br />
+                          <small className="text-muted">
+                            {getVehicleInfo(repair)} - {progress}% Complete
+                          </small>
+                          <div
+                            className="progress mt-1"
+                            style={{ height: "5px" }}
+                          >
+                            <div
+                              className="progress-bar bg-warning"
+                              style={{ width: `${progress}%` }}
+                            ></div>
+                          </div>
+                          {(repair.orderNumber || repair.order_number) && (
+                            <small className="text-muted d-block mt-1">
+                              Order #{repair.orderNumber || repair.order_number}
+                            </small>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
+                <Button
+                  variant="outline-warning"
+                  size="sm"
+                  className="w-100 mt-2"
+                >
                   View All Repairs
                 </Button>
               </Card.Body>

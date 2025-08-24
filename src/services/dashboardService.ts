@@ -119,28 +119,25 @@ export const dashboardService = {
         }
 
         try {
-          // Get repair order statistics - Use existing repair orders endpoint
-          const repairOrdersResponse = await repairOrderMngtService.getRepairOrders({ limit: 1000 });
-          const repairOrders = repairOrdersResponse.repairOrders;
+          // Get repair order statistics using the new backend active endpoint
+          const activeRepairs = await repairOrderMngtService.getActiveRepairOrders();
           
-          // Calculate active repairs
-          stats.activeRepairs = repairOrders.filter(order => 
-            order.status === 'in_progress'
-          ).length;
+          // Calculate active repairs count (backend already filters for us)
+          stats.activeRepairs = activeRepairs.length;
           
-          // Calculate today's revenue (from completed orders today)
+          // Calculate today's revenue from active repairs created today
           const today = new Date().toISOString().split('T')[0];
-          const todaysCompletedOrders = repairOrders.filter(order => 
-            order.actualCompletionDate?.startsWith(today) && order.status === 'completed'
+          const todaysActiveRepairs = activeRepairs.filter(order => 
+            order.createdAt?.startsWith(today)
           );
-          stats.todaysRevenue = todaysCompletedOrders.reduce((sum, order) => sum + (order.total || 0), 0);
+          stats.todaysRevenue = todaysActiveRepairs.reduce((sum, order) => sum + (order.total || 0), 0);
           
-          // Calculate monthly revenue
+          // Calculate monthly revenue from active repairs
           const thisMonth = new Date().toISOString().substring(0, 7); // YYYY-MM
-          const monthlyCompletedOrders = repairOrders.filter(order => 
-            order.actualCompletionDate?.startsWith(thisMonth) && order.status === 'completed'
+          const monthlyActiveRepairs = activeRepairs.filter(order => 
+            order.createdAt?.startsWith(thisMonth)
           );
-          stats.monthlyRevenue = monthlyCompletedOrders.reduce((sum, order) => sum + (order.total || 0), 0);
+          stats.monthlyRevenue = monthlyActiveRepairs.reduce((sum, order) => sum + (order.total || 0), 0);
           
         } catch (error) {
           console.warn('Error fetching repair order stats:', error);
@@ -174,8 +171,19 @@ export const dashboardService = {
           stats.shop = shopStats;
           
         } catch (error) {
-          console.warn('Shop stats not available - this is optional:', error);
-          // Don't set shop stats if not available
+          console.warn('🚧 Shop stats endpoint not implemented yet (404) - this is expected:', error);
+          // Set default empty shop stats to prevent undefined errors
+          stats.shop = {
+            totalShops: 0,
+            activeShops: 0,
+            totalBays: 0,
+            availableBays: 0,
+            utilizationRate: 0,
+            monthlyAppointments: 0,
+            monthlyRevenue: 0,
+            averageRating: 0,
+            topServices: []
+          };
         }
       }
 
@@ -210,11 +218,9 @@ export const dashboardService = {
   // Get active repairs count
   getActiveRepairsCount: async (): Promise<number> => {
     try {
-      const response = await repairOrderMngtService.getRepairOrders({
-        status: 'in_progress',
-        limit: 1 // We only need the count
-      });
-      return response.total;
+      // Use the smart method that filters by appointment status
+      const activeRepairs = await repairOrderMngtService.getActiveRepairOrders();
+      return activeRepairs.length;
     } catch (error) {
       console.warn('Error fetching active repairs count:', error);
       return 0;
