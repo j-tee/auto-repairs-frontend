@@ -1,5 +1,6 @@
 // Service exports - avoid wildcard exports to prevent naming conflicts
 export { authService } from './authService';
+export { userMngtService } from './userMngtService';
 export { customerMngtService } from './customerMngtService';
 export { vehicleMngtService } from './vehicleMngtService';
 export { vehicleProblemMngtService } from './vehicleProblemMngtService';

@@ -111,8 +111,8 @@ const transformUserData = (apiUser: UserAPIResponse): User => {
 export const authService = {
   // Login user
   login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
-    // Get tokens from /api/token/
-    const response = await apiPost<TokenAPIResponse>('/api/token/', {
+    // Get tokens from /token/
+    const response = await apiPost<TokenAPIResponse>('/token/', {
       email: credentials.email,
       password: credentials.password
     });
@@ -128,8 +128,8 @@ export const authService = {
     localStorage.setItem('refreshToken', authResponse.refreshToken);
     
     try {
-      // Get user profile from /api/auth/user/
-      const userData = await apiGet<UserAPIResponse>('/api/auth/user/');
+      // Get user profile from /auth/user/
+      const userData = await apiGet<UserAPIResponse>('/auth/user/');
       
       const user = transformUserData(userData);
       authResponse.user = user;
@@ -167,7 +167,7 @@ export const authService = {
 
   // Register user
   register: async (userData: RegisterData): Promise<{ message: string; email: string }> => {
-    const response = await apiPost<{ message: string; user_id: string; email: string; role: string }>('/api/auth/register/', userData);
+    const response = await apiPost<{ message: string; user_id: string; email: string; role: string }>('/auth/register/', userData);
     
     return {
       message: response.message,
@@ -177,12 +177,12 @@ export const authService = {
 
   // Verify email
   verifyEmail: async (data: EmailVerificationRequest): Promise<{ message: string }> => {
-    return await apiPost<{ message: string }>('/api/auth/verify-email/', data);
+    return await apiPost<{ message: string }>('/auth/verify-email/', data);
   },
 
   // Resend verification email
   resendVerification: async (data: ResendVerificationRequest): Promise<{ message: string }> => {
-    return await apiPost<{ message: string }>('/api/auth/resend-verification/', data);
+    return await apiPost<{ message: string }>('/auth/resend-verification/', data);
   },
 
   // Logout user (client-side only for JWT)
@@ -199,7 +199,7 @@ export const authService = {
       throw new Error('No refresh token available');
     }
     
-    const response = await apiPost<TokenAPIResponse>('/api/token/refresh/', { 
+    const response = await apiPost<TokenAPIResponse>('/token/refresh/', { 
       refresh: refreshToken 
     });
     
@@ -232,7 +232,7 @@ export const authService = {
       throw new Error('No authentication token');
     }
     
-    const userData = await apiGet<UserAPIResponse>('/api/auth/user/');
+    const userData = await apiGet<UserAPIResponse>('/auth/user/');
     const user = transformUserData(userData);
     
     localStorage.setItem('user', JSON.stringify(user));
@@ -241,7 +241,7 @@ export const authService = {
 
   // Update user profile
   updateProfile: async (updateData: ProfileUpdateData): Promise<User> => {
-    const updatedUserData = await apiPut<UserAPIResponse>('/api/auth/user/update/', updateData);
+    const updatedUserData = await apiPut<UserAPIResponse>('/auth/user/update/', updateData);
     const user = transformUserData(updatedUserData);
     
     localStorage.setItem('user', JSON.stringify(user));
@@ -263,13 +263,13 @@ export const authService = {
 
   // Admin: Get all users (owners only)
   getAllUsers: async (): Promise<User[]> => {
-    const usersData = await apiGet<UserAPIResponse[]>('/api/admin/users/');
+    const usersData = await apiGet<UserAPIResponse[]>('/admin/users/');
     return usersData.map(transformUserData);
   },
 
   // Admin: Update user role (owners only)
   updateUserRole: async (userId: string, role: 'owner' | 'employee' | 'customer'): Promise<User> => {
-    const updatedUserData = await apiPut<{ message: string; user: UserAPIResponse }>(`/api/admin/users/${userId}/role/`, { role });
+    const updatedUserData = await apiPut<{ message: string; user: UserAPIResponse }>(`/admin/users/${userId}/role/`, { role });
     return transformUserData(updatedUserData.user);
   }
 };
