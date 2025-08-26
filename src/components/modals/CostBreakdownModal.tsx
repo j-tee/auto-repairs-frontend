@@ -96,10 +96,10 @@ export const CostBreakdownModal: React.FC<CostBreakdownModalProps> = ({
                     <h6 className="text-muted mb-1">Current Status</h6>
                     <span
                       className={`badge bg-${getStatusColor(
-                        breakdown.current_state
+                        breakdown.current_state || 'not_started'
                       )} fs-6`}
                     >
-                      {getStatusLabel(breakdown.current_state)}
+                      {getStatusLabel(breakdown.current_state || 'not_started')}
                     </span>
                   </Col>
                   <Col md={6}>
@@ -122,7 +122,7 @@ export const CostBreakdownModal: React.FC<CostBreakdownModalProps> = ({
             </Card>
 
             {/* Labor Costs */}
-            {breakdown.labor_costs.length > 0 && (
+            {breakdown.labor_costs && breakdown.labor_costs.length > 0 && (
               <Card className="mb-3">
                 <Card.Header>
                   <h5 className="mb-0">
@@ -143,30 +143,28 @@ export const CostBreakdownModal: React.FC<CostBreakdownModalProps> = ({
                       </tr>
                     </thead>
                     <tbody>
-                      {breakdown.labor_costs.map((labor, index) => (
+                      {breakdown.labor_costs?.map((labor, index) => (
                         <tr key={index}>
                           <td>
-                            <strong>{labor.service_name}</strong>
-                            {labor.service_description && (
+                            <strong>{labor.description || 'Labor Service'}</strong>
+                            {labor.description && (
                               <div className="text-muted small">
-                                {labor.service_description}
+                                {labor.description}
                               </div>
                             )}
                           </td>
-                          <td>{labor.labor_hours}h</td>
-                          <td>{formatCurrency(labor.hourly_rate)}/h</td>
-                          <td>{labor.technician || "Not assigned"}</td>
+                          <td>{labor.hours}h</td>
+                          <td>{formatCurrency(labor.rate)}/h</td>
+                          <td>{'Not assigned'}</td>
                           <td>
                             <span
-                              className={`badge bg-${
-                                labor.completed ? "success" : "warning"
-                              }`}
+                              className={`badge bg-${'secondary'}`}
                             >
-                              {labor.completed ? "Completed" : "In Progress"}
+                              {'In Progress'}
                             </span>
                           </td>
                           <td className="text-end">
-                            <strong>{formatCurrency(labor.total_cost)}</strong>
+                            <strong>{formatCurrency(labor.total)}</strong>
                           </td>
                         </tr>
                       ))}
@@ -177,7 +175,7 @@ export const CostBreakdownModal: React.FC<CostBreakdownModalProps> = ({
             )}
 
             {/* Parts Costs */}
-            {breakdown.parts_costs.length > 0 && (
+            {breakdown.parts_costs && breakdown.parts_costs.length > 0 && (
               <Card className="mb-3">
                 <Card.Header>
                   <h5 className="mb-0">
@@ -198,27 +196,23 @@ export const CostBreakdownModal: React.FC<CostBreakdownModalProps> = ({
                       </tr>
                     </thead>
                     <tbody>
-                      {breakdown.parts_costs.map((part, index) => (
+                      {breakdown.parts_costs?.map((part, index) => (
                         <tr key={index}>
                           <td>
-                            <strong>{part.part_name}</strong>
+                            <strong>{part.name}</strong>
                           </td>
                           <td>
-                            <code>{part.part_number}</code>
+                            <code>{part.partNumber}</code>
                           </td>
                           <td>{part.quantity}</td>
-                          <td>{formatCurrency(part.unit_price)}</td>
+                          <td>{formatCurrency(part.unitPrice)}</td>
                           <td>
-                            <span
-                              className={`badge bg-${
-                                part.installed ? "success" : "warning"
-                              }`}
-                            >
-                              {part.installed ? "Installed" : "Pending"}
+                            <span className={`badge bg-secondary`}>
+                              Pending
                             </span>
                           </td>
                           <td className="text-end">
-                            <strong>{formatCurrency(part.total_price)}</strong>
+                            <strong>{formatCurrency(part.total)}</strong>
                           </td>
                         </tr>
                       ))}
@@ -243,7 +237,7 @@ export const CostBreakdownModal: React.FC<CostBreakdownModalProps> = ({
                       <td>Labor Total:</td>
                       <td className="text-end">
                         <strong>
-                          {formatCurrency(breakdown.totals.labor_total)}
+                          {formatCurrency(breakdown.totals?.subtotal || 0)}
                         </strong>
                       </td>
                     </tr>
@@ -251,7 +245,7 @@ export const CostBreakdownModal: React.FC<CostBreakdownModalProps> = ({
                       <td>Parts Total:</td>
                       <td className="text-end">
                         <strong>
-                          {formatCurrency(breakdown.totals.parts_total)}
+                          {formatCurrency(breakdown.totals?.subtotal || 0)}
                         </strong>
                       </td>
                     </tr>
@@ -259,27 +253,27 @@ export const CostBreakdownModal: React.FC<CostBreakdownModalProps> = ({
                       <td>Subtotal:</td>
                       <td className="text-end">
                         <strong>
-                          {formatCurrency(breakdown.totals.subtotal_before_tax)}
+                          {formatCurrency(breakdown.totals?.subtotal || 0)}
                         </strong>
                       </td>
                     </tr>
-                    {parseFloat(breakdown.totals.discount_amount) > 0 && (
+                    {breakdown.totals && parseFloat(String(breakdown.totals.discount || 0)) > 0 && (
                       <tr className="table-warning">
                         <td>
-                          Discount ({breakdown.totals.discount_percent}%):
+                          Discount ({breakdown.totals.discount || 0}%):
                         </td>
                         <td className="text-end">
                           <strong>
-                            -{formatCurrency(breakdown.totals.discount_amount)}
+                            -{formatCurrency(breakdown.totals.discount || 0)}
                           </strong>
                         </td>
                       </tr>
                     )}
                     <tr>
-                      <td>Tax ({breakdown.totals.tax_percent}%):</td>
+                      <td>Tax ({breakdown.totals?.tax || 0}%):</td>
                       <td className="text-end">
                         <strong>
-                          {formatCurrency(breakdown.totals.tax_amount)}
+                          {formatCurrency(breakdown.totals?.tax || 0)}
                         </strong>
                       </td>
                     </tr>
@@ -289,7 +283,7 @@ export const CostBreakdownModal: React.FC<CostBreakdownModalProps> = ({
                       </td>
                       <td className="text-end">
                         <h5 className="text-primary mb-0">
-                          {formatCurrency(breakdown.totals.final_total)}
+                          {formatCurrency(breakdown.totals?.total || 0)}
                         </h5>
                       </td>
                     </tr>
@@ -299,7 +293,7 @@ export const CostBreakdownModal: React.FC<CostBreakdownModalProps> = ({
             </Card>
 
             {/* Related Appointments */}
-            {breakdown.related_appointments.length > 0 && (
+            {breakdown.related_appointments && breakdown.related_appointments.length > 0 && (
               <Card className="mb-3">
                 <Card.Header>
                   <h5 className="mb-0">
@@ -317,7 +311,7 @@ export const CostBreakdownModal: React.FC<CostBreakdownModalProps> = ({
                       </tr>
                     </thead>
                     <tbody>
-                      {breakdown.related_appointments.map(
+                      {breakdown.related_appointments?.map(
                         (appointment, index) => (
                           <tr key={index}>
                             <td>{appointment.description}</td>

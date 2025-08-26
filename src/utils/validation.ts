@@ -5,6 +5,63 @@ export interface ValidationRule {
   message: string;
 }
 
+// Type definitions for form data
+interface VehicleFormData {
+  vin?: string;
+  license_plate?: string;
+  year?: number;
+}
+
+interface CustomerFormData {
+  phone_number?: string;
+  email?: string;
+}
+
+interface PartFormData {
+  unit_price?: number;
+  stock_quantity?: number;
+  part_number?: string;
+}
+
+interface ServiceFormData {
+  labor_cost?: number;
+}
+
+interface AppointmentFormData {
+  date?: string;
+}
+
+interface RepairOrderFormData {
+  discount_percent?: number;
+  discount_amount?: number;
+  tax_percent?: number;
+}
+
+// Type guard functions
+function isVehicleFormData(data: unknown): data is VehicleFormData {
+  return typeof data === 'object' && data !== null;
+}
+
+function isCustomerFormData(data: unknown): data is CustomerFormData {
+  return typeof data === 'object' && data !== null;
+}
+
+function isPartFormData(data: unknown): data is PartFormData {
+  return typeof data === 'object' && data !== null;
+}
+
+function isServiceFormData(data: unknown): data is ServiceFormData {
+  return typeof data === 'object' && data !== null;
+}
+
+function isAppointmentFormData(data: unknown): data is AppointmentFormData {
+  return typeof data === 'object' && data !== null;
+}
+
+function isRepairOrderFormData(data: unknown): data is RepairOrderFormData {
+  return typeof data === 'object' && data !== null;
+}
+
 export class AutomotiveValidation {
   // VIN validation (17 characters, alphanumeric, specific pattern)
   static validateVIN(vin: string): string | null {
@@ -147,7 +204,7 @@ export class AutomotiveValidation {
     }
     
     // Basic pattern: letters, numbers, hyphens, periods
-    if (!/^[A-Z0-9\-\.]+$/i.test(partNumber)) {
+    if (!/^[A-Z0-9\-.]+$/i.test(partNumber)) {
       return "Part number can only contain letters, numbers, hyphens, and periods";
     }
     
@@ -233,7 +290,7 @@ export class AutomotiveValidation {
     }
     
     // Check for reasonable business name pattern
-    if (!/^[a-zA-Z0-9\s\-\&\.\,\']+$/.test(name)) {
+    if (!/^[a-zA-Z0-9\s\-&.,']+$/.test(name)) {
       return "Business name contains invalid characters";
     }
     
@@ -266,54 +323,86 @@ export class AutomotiveValidation {
     
     switch (formType) {
       case 'vehicle':
-        const vinError = this.validateVIN(formData.vin);
-        if (vinError) errors.vin = vinError;
-        
-        const plateError = this.validateLicensePlate(formData.license_plate);
-        if (plateError) errors.license_plate = plateError;
-        
-        const yearError = this.validateVehicleYear(formData.year);
-        if (yearError) errors.year = yearError;
+        if (isVehicleFormData(formData)) {
+          if (formData.vin) {
+            const vinError = this.validateVIN(formData.vin);
+            if (vinError) errors.vin = vinError;
+          }
+          
+          if (formData.license_plate) {
+            const plateError = this.validateLicensePlate(formData.license_plate);
+            if (plateError) errors.license_plate = plateError;
+          }
+          
+          if (typeof formData.year === 'number') {
+            const yearError = this.validateVehicleYear(formData.year);
+            if (yearError) errors.year = yearError;
+          }
+        }
         break;
         
       case 'customer':
-        const phoneError = this.validatePhoneNumber(formData.phone_number);
-        if (phoneError) errors.phone_number = phoneError;
-        
-        const emailError = this.validateEmail(formData.email);
-        if (emailError) errors.email = emailError;
+        if (isCustomerFormData(formData)) {
+          if (formData.phone_number) {
+            const phoneError = this.validatePhoneNumber(formData.phone_number);
+            if (phoneError) errors.phone_number = phoneError;
+          }
+          
+          if (formData.email) {
+            const emailError = this.validateEmail(formData.email);
+            if (emailError) errors.email = emailError;
+          }
+        }
         break;
         
       case 'part':
-        const partPriceError = this.validatePartPrice(formData.unit_price);
-        if (partPriceError) errors.unit_price = partPriceError;
-        
-        const stockError = this.validateStockQuantity(formData.stock_quantity);
-        if (stockError) errors.stock_quantity = stockError;
-        
-        const partNumberError = this.validatePartNumber(formData.part_number);
-        if (partNumberError) errors.part_number = partNumberError;
+        if (isPartFormData(formData)) {
+          if (typeof formData.unit_price === 'number') {
+            const partPriceError = this.validatePartPrice(formData.unit_price);
+            if (partPriceError) errors.unit_price = partPriceError;
+          }
+          
+          if (typeof formData.stock_quantity === 'number') {
+            const stockError = this.validateStockQuantity(formData.stock_quantity);
+            if (stockError) errors.stock_quantity = stockError;
+          }
+          
+          if (formData.part_number) {
+            const partNumberError = this.validatePartNumber(formData.part_number);
+            if (partNumberError) errors.part_number = partNumberError;
+          }
+        }
         break;
         
       case 'service':
-        const laborError = this.validateLaborCost(formData.labor_cost);
-        if (laborError) errors.labor_cost = laborError;
+        if (isServiceFormData(formData)) {
+          if (typeof formData.labor_cost === 'number') {
+            const laborError = this.validateLaborCost(formData.labor_cost);
+            if (laborError) errors.labor_cost = laborError;
+          }
+        }
         break;
         
       case 'appointment':
-        const dateError = this.validateAppointmentDate(formData.date);
-        if (dateError) errors.date = dateError;
+        if (isAppointmentFormData(formData)) {
+          if (formData.date) {
+            const dateError = this.validateAppointmentDate(formData.date);
+            if (dateError) errors.date = dateError;
+          }
+        }
         break;
         
       case 'repairOrder':
-        const discountError = this.validateDiscount(
-          formData.discount_percent || 0, 
-          formData.discount_amount || 0
-        );
-        if (discountError) errors.discount = discountError;
-        
-        const taxError = this.validateTaxRate(formData.tax_percent || 0);
-        if (taxError) errors.tax_percent = taxError;
+        if (isRepairOrderFormData(formData)) {
+          const discountError = this.validateDiscount(
+            formData.discount_percent || 0, 
+            formData.discount_amount || 0
+          );
+          if (discountError) errors.discount = discountError;
+          
+          const taxError = this.validateTaxRate(formData.tax_percent || 0);
+          if (taxError) errors.tax_percent = taxError;
+        }
         break;
     }
     

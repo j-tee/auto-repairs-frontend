@@ -1,4 +1,6 @@
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api';
+import type { ShopStats } from '../types/dashboard';
+import type { ShopStatsAPIResponse } from '../types/shops';
 
 // Backend API response interfaces - exact match to actual backend
 export interface Service {
@@ -61,21 +63,6 @@ export interface ShopListAPIResponse {
   count: number;
   next: string | null;
   previous: string | null;
-}
-
-export interface ShopStatsAPIResponse {
-  total_shops: number;
-  active_shops: number;
-  total_bays: number;
-  available_bays: number;
-  utilization_rate: number;
-  monthly_appointments: number;
-  monthly_revenue: number;     // Number, not string
-  average_rating: number;
-  top_services: Array<{
-    service: string;
-    count: number;
-  }>;
 }
 
 export interface ShopCreateRequest {
@@ -153,21 +140,6 @@ export interface ShopQuery {
   ordering?: string;
   page?: number;
   [key: string]: string | number | undefined;
-}
-
-export interface ShopStats {
-  totalShops: number;
-  activeShops: number;
-  totalBays: number;
-  availableBays: number;
-  utilizationRate: number;
-  monthlyAppointments: number;
-  monthlyRevenue: number;
-  averageRating: number;
-  topServices: Array<{
-    service: string;
-    count: number;
-  }>;
 }
 
 // Transformation helper functions
@@ -267,15 +239,16 @@ const transformToBackend = (frontendData: Partial<Shop>): ShopCreateRequest => {
 
 const transformStatsData = (backendData: ShopStatsAPIResponse): ShopStats => {
   return {
-    totalShops: backendData.total_shops,
-    activeShops: backendData.active_shops,
-    totalBays: backendData.total_bays,
-    availableBays: backendData.available_bays,
-    utilizationRate: backendData.utilization_rate,
-    monthlyAppointments: backendData.monthly_appointments,
-    monthlyRevenue: backendData.monthly_revenue,
-    averageRating: backendData.average_rating,
-    topServices: backendData.top_services
+    id: '', // Not provided by API
+    name: '', // Not provided by API
+    totalTechnicians: 0, // Not provided by API
+    activeTechnicians: 0, // Not provided by API
+    averageRepairTime: 0, // Not provided by API
+    customerSatisfactionScore: 0, // Not provided by API
+    monthlyRevenue: backendData.revenue_this_month || 0,
+    completedRepairsThisMonth: 0, // Not provided by API
+    pendingRepairs: 0, // Not provided by API
+    capacityUtilization: 0 // Not provided by API
   };
 };
 

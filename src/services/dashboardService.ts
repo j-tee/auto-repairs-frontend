@@ -1,41 +1,9 @@
-import { appointmentMngtService, type AppointmentStats } from './appointmentMngtService';
-import { customerMngtService, type CustomerStats } from './customerMngtService';
+import { appointmentMngtService } from './appointmentMngtService';
+import { customerMngtService } from './customerMngtService';
 import { vehicleMngtService } from './vehicleMngtService';
 import { repairOrderMngtService } from './repairOrderMngtService';
-import type { RepairOrderStatsAPIResponse } from '../types/repairOrders';
-import { shopMngtService, type ShopStats } from './shopMngtService';
-
-// Dashboard Statistics Types
-export interface DashboardStats {
-  // Overview stats
-  todaysAppointments: number;
-  activeRepairs: number;
-  totalCustomers: number;
-  todaysRevenue: number;
-  
-  // This month stats
-  monthlyAppointments: number;
-  monthlyRevenue: number;
-  monthlyNewCustomers: number;
-  
-  // Customer stats for customer role
-  customerVehicles?: number;
-  customerActiveAppointments?: number;
-  customerRepairOrders?: number;
-  customerTotalSpent?: number;
-  
-  // Detailed breakdown
-  appointments?: AppointmentStats;
-  customers?: CustomerStats;
-  repairOrders?: RepairOrderStatsAPIResponse;
-  shop?: ShopStats;
-}
-
-export interface DashboardSummary {
-  role: 'customer' | 'employee' | 'owner';
-  stats: DashboardStats;
-  lastUpdated: string;
-}
+import { shopMngtService } from './shopMngtService';
+import type { DashboardStats, DashboardSummary } from '../types/dashboard';
 
 // Dashboard Management Service
 export const dashboardService = {
@@ -157,7 +125,7 @@ export const dashboardService = {
           // Calculate new customers this month
           const thisMonth = new Date().toISOString().substring(0, 7); // YYYY-MM
           stats.monthlyNewCustomers = customers.filter(customer => 
-            customer.createdAt.startsWith(thisMonth)
+            customer.created_at?.startsWith(thisMonth)
           ).length;
           
         } catch (error) {
@@ -169,21 +137,22 @@ export const dashboardService = {
         try {
           // Get shop statistics (if available) - Make this optional
           const shopStats = await shopMngtService.getShopStats();
-          stats.shop = shopStats;
+          stats.shop = shopStats; // Use the transformed data directly
           
         } catch (error) {
           console.warn('🚧 Shop stats endpoint not implemented yet (404) - this is expected:', error);
           // Set default empty shop stats to prevent undefined errors
           stats.shop = {
-            totalShops: 0,
-            activeShops: 0,
-            totalBays: 0,
-            availableBays: 0,
-            utilizationRate: 0,
-            monthlyAppointments: 0,
+            id: '',
+            name: '',
+            totalTechnicians: 0,
+            activeTechnicians: 0,
+            averageRepairTime: 0,
+            customerSatisfactionScore: 0,
             monthlyRevenue: 0,
-            averageRating: 0,
-            topServices: []
+            completedRepairsThisMonth: 0,
+            pendingRepairs: 0,
+            capacityUtilization: 0
           };
         }
       }

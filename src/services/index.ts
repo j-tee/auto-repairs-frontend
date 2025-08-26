@@ -13,6 +13,3 @@ export { serviceMngtService } from './serviceMngtService';
 
 // Re-export all types from the centralized type system
 export type * from '../types';
-
-// Export specific service interfaces for dashboard and other services
-export type { DashboardSummary } from './dashboardService';

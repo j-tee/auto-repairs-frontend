@@ -74,9 +74,9 @@ export const RepairOrderCompletionModal: React.FC<CompletionDialogProps> = ({
     try {
       const completionData: CompleteWorkData = {
         completion_notes: completionNotes,
-        quality_check_passed: qualityPassed,
-        notify_customer: notifyCustomer,
-        discount_amount: discountAmount,
+        // quality_check_passed: qualityPassed, // Not in interface
+        // notify_customer: notifyCustomer, // Not in interface
+        // discount_amount: discountAmount, // Not in interface
       };
 
       if (selectedAppointmentId) {

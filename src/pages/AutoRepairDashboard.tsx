@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Row,
   Col,
@@ -10,8 +10,6 @@ import {
   Spinner,
 } from "react-bootstrap";
 import { useAuth } from "../hooks/useAuth";
-import { AutoRepairsDashboard } from "../components";
-import { RebuildDashboard } from "../components/RebuildDashboard";
 import {
   AddCustomerModal,
   AddVehicleModal,
@@ -19,7 +17,8 @@ import {
   AddRepairOrderModal,
   AddVehicleProblemModal,
 } from "../components/modals";
-import { dashboardService, type DashboardSummary } from "../services";
+import { dashboardService } from "../services";
+import type { DashboardSummary } from "../types/dashboard";
 import { appointmentMngtService } from "../services/appointmentMngtService";
 import { repairOrderMngtService } from "../services/repairOrderMngtService";
 import type { Appointment } from "../types/appointments";
@@ -55,14 +54,7 @@ export const AutoRepairDashboard: React.FC = () => {
   const [activeRepairs, setActiveRepairs] = useState<RepairOrder[]>([]);
   const [repairsLoading, setRepairsLoading] = useState(false);
 
-  // Load dashboard data on component mount
-  useEffect(() => {
-    if (user?.role) {
-      loadDashboardData();
-    }
-  }, [user?.role, user?.id]);
-
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     try {
       setDashboardLoading(true);
       setDashboardError(null);
@@ -111,7 +103,14 @@ export const AutoRepairDashboard: React.FC = () => {
     } finally {
       setDashboardLoading(false);
     }
-  };
+  }, [user?.role, user?.id]);
+
+  // Load dashboard data on component mount
+  useEffect(() => {
+    if (user?.role) {
+      loadDashboardData();
+    }
+  }, [user?.role, user?.id, loadDashboardData]);
 
   const loadTodaysAppointments = async () => {
     try {
@@ -739,12 +738,12 @@ export const AutoRepairDashboard: React.FC = () => {
                     <h6>👥 Customer Management</h6>
                     <ul>
                       <li>Customer profiles</li>
-                      <li>Vehicle registration</li>
-                      <li>Service history</li>
+                      <li>Vehicle history</li>
+                      <li>Service records</li>
                     </ul>
                   </Col>
                   <Col md={4}>
-                    <h6>📅 Operations</h6>
+                    <h6>� Service Operations</h6>
                     <ul>
                       <li>Appointment scheduling</li>
                       <li>Repair order tracking</li>
@@ -762,17 +761,6 @@ export const AutoRepairDashboard: React.FC = () => {
                 </Row>
               </Card.Body>
             </Card>
-          </Tab>
-
-          <Tab eventKey="legacy" title="🔄 Legacy Dashboard">
-            <RebuildDashboard />
-          </Tab>
-
-          <Tab eventKey="original" title="📊 Original Components">
-            <h2>🏪 Auto Repairs Management System</h2>
-
-            {/* Auto Repairs Dashboard Component */}
-            <AutoRepairsDashboard />
           </Tab>
         </Tabs>
       </div>

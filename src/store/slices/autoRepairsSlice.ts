@@ -896,8 +896,21 @@ export const autoRepairsSlice = createSlice({
         state.token = action.payload.token;
         // Transform auth service user to match our User interface
         const authUser = action.payload.user;
+        
+        // Convert UserPermissions object to string array if needed
+        let permissions: string[] | undefined;
+        if (authUser.permissions && typeof authUser.permissions === 'object') {
+          // Convert UserPermissions object to string array
+          permissions = Object.entries(authUser.permissions)
+            .filter(([, value]) => value === true)
+            .map(([key]) => key);
+        } else if (Array.isArray(authUser.permissions)) {
+          permissions = authUser.permissions;
+        }
+        
         state.user = {
           ...authUser,
+          permissions,
           isActive: true, // Default to active for logged-in users
           avatar: undefined,
           phone: undefined,

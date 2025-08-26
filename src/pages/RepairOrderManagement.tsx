@@ -60,16 +60,17 @@ export const RepairOrderManagement: React.FC = () => {
         page: currentPage,
         limit: itemsPerPage,
         search: searchTerm || undefined,
-        status: statusFilter || undefined,
-        priority: (priorityFilter as any) || undefined,
+        status: statusFilter as RepairOrder['status'] | undefined,
+        priority: priorityFilter as RepairOrder['priority'] | undefined,
         sortBy: "updated_at",
         sortOrder: "desc",
       };
 
       const response = await repairOrderMngtService.getRepairOrders(query);
-      setRepairOrders(response.repairOrders || []);
-      setTotal(response.total || 0);
-      setTotalPages(Math.ceil((response.total || 0) / itemsPerPage));
+      // The service returns an array of RepairOrder[]
+      setRepairOrders(response);
+      setTotal(response.length);
+      setTotalPages(Math.ceil(response.length / itemsPerPage));
     } catch (err) {
       console.error("Failed to load repair orders:", err);
       setError("Failed to load repair orders. Please try again.");
@@ -84,11 +85,11 @@ export const RepairOrderManagement: React.FC = () => {
   };
 
   const handleStatusChange = async (
-    orderId: string,
+    orderId: string | number,
     newStatus: RepairOrder["status"]
   ) => {
     try {
-      await repairOrderMngtService.updateRepairOrder(orderId, {
+      await repairOrderMngtService.updateRepairOrder(Number(orderId), {
         status: newStatus,
       });
       loadRepairOrders(); // Refresh the list
@@ -98,12 +99,10 @@ export const RepairOrderManagement: React.FC = () => {
     }
   };
 
-  const handleStartWork = async (orderId: string) => {
+  const handleStartWork = async (orderId: string | number) => {
     try {
-      await repairOrderMngtService.startWork(orderId, {
-        technician_id: user?.id,
-        notes: "Work started",
-      });
+      // Note: The service expects only orderId, not additional data
+      await repairOrderMngtService.startWork(String(orderId));
       loadRepairOrders();
     } catch (err) {
       console.error("Failed to start work:", err);
@@ -111,13 +110,13 @@ export const RepairOrderManagement: React.FC = () => {
     }
   };
 
-  const handleViewCostBreakdown = (orderId: string) => {
-    setSelectedOrderId(orderId);
+  const handleViewCostBreakdown = (orderId: string | number) => {
+    setSelectedOrderId(String(orderId));
     setShowCostBreakdown(true);
   };
 
-  const handleStartCompletion = (orderId: string) => {
-    setSelectedOrderId(orderId);
+  const handleStartCompletion = (orderId: string | number) => {
+    setSelectedOrderId(String(orderId));
     setShowCompletion(true);
   };
 
@@ -137,7 +136,7 @@ export const RepairOrderManagement: React.FC = () => {
       // Show success message
       alert(
         `Repair order completed successfully! Final total: ${formatCurrency(
-          result.totalCost || 0
+          result.total_cost || result.total || 0
         )}`
       );
     } catch (err) {
@@ -148,10 +147,8 @@ export const RepairOrderManagement: React.FC = () => {
 
   const getStatusBadgeVariant = (status: RepairOrder["status"]): string => {
     switch (status) {
-      case "draft":
+      case "pending":
         return "secondary";
-      case "approved":
-        return "info";
       case "in_progress":
         return "warning";
       case "completed":
@@ -160,6 +157,8 @@ export const RepairOrderManagement: React.FC = () => {
         return "warning";
       case "cancelled":
         return "danger";
+      case "pending_parts":
+        return "info";
       default:
         return "secondary";
     }
@@ -187,7 +186,7 @@ export const RepairOrderManagement: React.FC = () => {
   };
 
   const canStartWork = (order: RepairOrder): boolean => {
-    return order.status === "approved" && user?.role !== "customer";
+    return order.status === "pending" && user?.role !== "customer";
   };
 
   return (
@@ -323,7 +322,7 @@ export const RepairOrderManagement: React.FC = () => {
                       )}
                     </td>
                     <td>
-                      {order.vehicle ? (
+                      {order.vehicle && typeof order.vehicle === 'object' ? (
                         <>
                           <strong>
                             {order.vehicle.year} {order.vehicle.make}{" "}
@@ -331,7 +330,7 @@ export const RepairOrderManagement: React.FC = () => {
                           </strong>
                           <br />
                           <small className="text-muted">
-                            {order.vehicle.licensePlate}
+                            {order.vehicle.license_plate || 'No plate'}
                           </small>
                         </>
                       ) : (

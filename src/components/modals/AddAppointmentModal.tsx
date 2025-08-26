@@ -14,7 +14,7 @@ import type {
   Appointment 
 } from "../../types";
 import type { Vehicle } from "../../types/vehicles";
-import "./AddAppointmentModal.scss";
+import { ApiError } from "../../utils/api";
 
 interface AddAppointmentModalProps {
   show: boolean;
@@ -177,19 +177,20 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
       console.error("Error loading customers:", error);
 
       // Set user-friendly error messages based on error type
-      if (typeof error === "object" && error !== null) {
-        const err = error as { status?: number; message?: string };
-        if (err.status === 401) {
+      if (error instanceof ApiError) {
+        if (error.status === 401) {
           setError("Authentication required. Please log in again.");
-        } else if (err.status === 403) {
+        } else if (error.status === 403) {
           setError("You don't have permission to view customer data.");
-        } else if (err.status && err.status >= 500) {
+        } else if (error.status && error.status >= 500) {
           setError("Server error. Please try again later.");
         } else {
           setError(
-            `Failed to load customers: ${err.message || "Unknown error"}`
+            `Failed to load customers: ${error.message || "Unknown error"}`
           );
         }
+      } else if (error instanceof Error) {
+        setError(`Failed to load customers: ${error.message}`);
       } else {
         setError("Failed to load customers: Unknown error");
       }
@@ -395,9 +396,16 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
       onSuccess(newAppointment);
       onHide();
       resetForm();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error creating appointment:", error);
-      setError(error.message || "Failed to create appointment");
+      
+      if (error instanceof ApiError) {
+        setError(error.message);
+      } else if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError("Failed to create appointment");
+      }
     } finally {
       setLoading(false);
     }
@@ -498,7 +506,7 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
                   {vehicles.map((vehicle) => (
                     <option key={vehicle.id} value={vehicle.id}>
                       {vehicle.year} {vehicle.make} {vehicle.model} -{" "}
-                      {vehicle.licensePlate}
+                      {vehicle.license_plate || 'No plate'}
                     </option>
                   ))}
                 </Form.Select>
