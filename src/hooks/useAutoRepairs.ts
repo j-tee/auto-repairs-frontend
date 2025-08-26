@@ -70,7 +70,7 @@ export const useAutoRepairs = () => {
   });
 
   // Vehicle operations
-  const loadVehicles = useCallback((filters?: any) => {
+  const loadVehicles = useCallback((filters?: unknown) => {
     return dispatch(fetchVehicles(filters));
   }, [dispatch]);
 
@@ -87,7 +87,7 @@ export const useAutoRepairs = () => {
   }, [dispatch]);
 
   // Customer operations
-  const loadCustomers = useCallback((filters?: any) => {
+  const loadCustomers = useCallback((filters?: unknown) => {
     return dispatch(fetchCustomers(filters));
   }, [dispatch]);
 
@@ -104,7 +104,7 @@ export const useAutoRepairs = () => {
   }, [dispatch]);
 
   // Appointment operations
-  const loadAppointments = useCallback((filters?: any) => {
+  const loadAppointments = useCallback((filters?: unknown) => {
     return dispatch(fetchAppointments(filters));
   }, [dispatch]);
 
@@ -121,7 +121,7 @@ export const useAutoRepairs = () => {
   }, [dispatch]);
 
   // Repair Order operations
-  const loadRepairOrders = useCallback((filters?: any) => {
+  const loadRepairOrders = useCallback((filters?: unknown) => {
     return dispatch(fetchRepairOrders(filters));
   }, [dispatch]);
 
@@ -138,7 +138,7 @@ export const useAutoRepairs = () => {
   }, [dispatch]);
 
   // Employee operations
-  const loadEmployees = useCallback((filters?: any) => {
+  const loadEmployees = useCallback((filters?: unknown) => {
     return dispatch(fetchEmployees(filters));
   }, [dispatch]);
 
@@ -157,11 +157,11 @@ export const useAutoRepairs = () => {
 
   // Batch operations
   const loadAllData = useCallback(() => {
-    dispatch(fetchVehicles());
-    dispatch(fetchCustomers());
-    dispatch(fetchAppointments());
-    dispatch(fetchRepairOrders());
-    dispatch(fetchEmployees());
+    dispatch(fetchVehicles({}));
+    dispatch(fetchCustomers({}));
+    dispatch(fetchAppointments({}));
+    dispatch(fetchRepairOrders({}));
+    dispatch(fetchEmployees({}));
     dispatch(fetchShops());
   }, [dispatch]);
 
@@ -185,7 +185,7 @@ export const useAutoRepairs = () => {
       const vehicles = state.vehicles.filter(v => 
         v.make?.toLowerCase().includes(query.toLowerCase()) ||
         v.model?.toLowerCase().includes(query.toLowerCase()) ||
-        v.licensePlate?.toLowerCase().includes(query.toLowerCase()) ||
+        v.license_plate?.toLowerCase().includes(query.toLowerCase()) ||
         v.vin?.toLowerCase().includes(query.toLowerCase())
       );
 
@@ -201,8 +201,7 @@ export const useAutoRepairs = () => {
 
       const repairOrders = state.repairOrders.filter(r => 
         r.description?.toLowerCase().includes(query.toLowerCase()) ||
-        r.workOrderNumber?.toLowerCase().includes(query.toLowerCase()) ||
-        r.customerComplaints?.toLowerCase().includes(query.toLowerCase())
+        r.orderNumber?.toLowerCase().includes(query.toLowerCase())
       );
 
       const employees = state.employees.filter(e => 

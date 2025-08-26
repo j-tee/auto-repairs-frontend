@@ -6,70 +6,81 @@ import {
   repairOrderMngtService,
   authService
 } from '../../services';
+import type { RegisterData } from '../../services/authService';
 import { apiPost, apiGet, setAuthToken, removeAuthToken, getAuthToken } from '../../utils/api';
 import { getAPIErrorMessage } from '../../types/common';
 import type { 
-  GenericAPIResponse,
+  UserProfileResponse, 
+  GenericAPIResponse 
 } from '../../types/api';
+import type { RefreshTokenResponse } from '../../types/api';
 
-// Import types from our centralized type system
+// Import service types
 import type {
-  // Auth types
-  User,
-  LoginCredentials,
-  RegisterData,
-  PasswordResetRequest,
-  PasswordReset,
-  
-  // Core entity types
   Vehicle,
-  CreateVehicleData,
-  VehicleQuery,
-  
+  CreateVehicleData
+} from '../../services/vehicleMngtService';
+import type {
   Customer,
-  CreateCustomerData,
-  CustomerQuery,
-  
-  CreateAppointmentData,
-  AppointmentQuery,
-  
+  CreateCustomerData
+} from '../../services/customerMngtService';
+import type {
+  Appointment,
+  CreateAppointmentData
+} from '../../services/appointmentMngtService';
+import type {
   RepairOrder,
   CreateRepairOrderData,
-  RepairOrderQuery,
-  CompleteWorkData,
-  AddServiceData,
-  AddPartData,
-  CostBreakdown,
-  WorkmanshipAnalytics,
-  
+  UpdateRepairOrderData
+} from '../../services/repairOrderMngtService';
+import type {
   Employee,
   CreateEmployeeData,
-  UpdateEmployeeData,
-  EmployeeQuery,
-  
-  Shop,
-  RefreshTokenResponse,
-  UserProfileResponse
-} from '../../types';
-import type { Appointment } from '../../types/appointments';
+  UpdateEmployeeData
+} from '../../services/employeeMngtService';
+import type {
+  Shop
+} from '../../services/shopMngtService';
+
+// Import proper query interfaces
+import type { VehicleQuery } from '../../services/vehicleMngtService';
+import type { CustomerQuery } from '../../services/customerMngtService';
+import type { AppointmentQuery } from '../../services/appointmentMngtService';
+import type { RepairOrderQuery } from '../../types/repairOrders';
+import type { EmployeeQuery } from '../../services/employeeMngtService';
 
 // ============================================================================
 // AUTH TYPES (merged from authSlice)
 // ============================================================================
 
-// Note: User interface now imported from centralized types
+export interface User {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: 'owner' | 'employee' | 'customer';
+  avatar?: string;
+  phone?: string;
+  address?: string;
+  isActive: boolean;
+  createdAt: string;
+  lastLogin?: string;
+}
 
-// export interface LoginCredentialsExtended extends LoginCredentials {
-//   // Any slice-specific login extensions can go here
-// }
+export interface LoginCredentials {
+  email: string;
+  password: string;
+  rememberMe?: boolean;
+}
 
-// export interface PasswordResetRequestExtended extends PasswordResetRequest {
-//   // Any slice-specific password reset extensions can go here
-// }
+export interface PasswordResetRequest {
+  email: string;
+}
 
-// export interface PasswordResetExtended extends PasswordReset {
-//   // Any slice-specific password reset extensions can go here
-// }
+export interface PasswordReset {
+  token: string;
+  newPassword: string;
+}
 
 // ============================================================================
 // ENHANCED STATE INTERFACE
@@ -90,10 +101,12 @@ export interface EnhancedAutoRepairsState {
   employees: Employee[];
   shops: Shop[];
   
-  // Repair Order Completion System Data (advanced features - placeholders)
-  costBreakdowns: Record<string, CostBreakdown>; // Placeholder for future implementation
-  relatedAppointments: Record<string, Appointment[]>; // Placeholder for future implementation  
-  workmanshipAnalytics: Record<string, WorkmanshipAnalytics>; // Placeholder for future implementation  // Granular loading states
+  // Completion system data
+  costBreakdowns: Record<string, RepairOrderCostBreakdown>; // Keyed by repair order ID
+  relatedAppointments: Record<string, RelatedAppointmentsResponse['appointments']>; // Keyed by repair order ID  
+  workmanshipAnalytics: Record<string, WorkmanshipAnalytics>; // Keyed by repair order ID
+  
+  // Granular loading states
   loading: {
     login: boolean;
     register: boolean;
@@ -493,7 +506,7 @@ export const fetchRepairOrders = createAsyncThunk(
   async (filters: RepairOrderQuery = {}, { rejectWithValue }) => {
     try {
       const response = await repairOrderMngtService.getRepairOrders(filters);
-      return response;
+      return response.repairOrders;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Unknown error');
     }
@@ -516,12 +529,7 @@ export const updateRepairOrder = createAsyncThunk(
   'autoRepairs/updateRepairOrder',
   async ({ id, data }: { id: string; data: Partial<RepairOrder> }, { rejectWithValue }) => {
     try {
-      // Transform vehicle property to vehicle ID if it's an object
-      const updateData: Record<string, unknown> = { ...data };
-      if (data.vehicle && typeof data.vehicle === 'object' && 'id' in data.vehicle) {
-        updateData.vehicle = data.vehicle.id;
-      }
-      const response = await repairOrderMngtService.updateRepairOrder(Number(id), updateData);
+      const response = await repairOrderMngtService.updateRepairOrder(id, data);
       return response;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Unknown error');
@@ -533,7 +541,7 @@ export const deleteRepairOrder = createAsyncThunk(
   'autoRepairs/deleteRepairOrder',
   async (id: string, { rejectWithValue }) => {
     try {
-      await repairOrderMngtService.deleteRepairOrder(Number(id));
+      await repairOrderMngtService.deleteRepairOrder(id);
       return id;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Unknown error');
@@ -544,31 +552,12 @@ export const deleteRepairOrder = createAsyncThunk(
 // Repair Order Completion System Thunks
 // Placeholder operations for Employee and Shop (since these services may not be fully implemented)
 
-export const getCostBreakdown = createAsyncThunk(
-  'autoRepairs/getCostBreakdown',
-  async (repairOrderId: string, { rejectWithValue }) => {
-    try {
-      // Placeholder implementation - service method doesn't exist yet
-      const mockCostBreakdown: CostBreakdown = {
-        labor: 150,
-        parts: 300,
-        total: 450,
-        tax: 45
-      };
-      return { repairOrderId, costBreakdown: mockCostBreakdown };
-    } catch (error) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Unknown error');
-    }
-  }
-);
-
 export const getRelatedAppointments = createAsyncThunk(
   'autoRepairs/getRelatedAppointments',
   async (repairOrderId: string, { rejectWithValue }) => {
     try {
-      // Placeholder implementation - service method doesn't exist yet
-      const mockAppointments: Appointment[] = [];
-      return { repairOrderId, appointments: mockAppointments };
+      const response = await repairOrderMngtService.getRelatedAppointments(repairOrderId);
+      return { repairOrderId, appointments: response };
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Unknown error');
     }
@@ -579,9 +568,8 @@ export const startWork = createAsyncThunk(
   'autoRepairs/startWork',
   async (repairOrderId: string, { rejectWithValue }) => {
     try {
-      // Placeholder implementation - service method doesn't exist yet
-      const mockWorkData = { status: 'in_progress', startedAt: new Date().toISOString() };
-      return { repairOrderId, workData: mockWorkData };
+      const response = await repairOrderMngtService.startWork(repairOrderId);
+      return response;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Unknown error');
     }
@@ -592,14 +580,8 @@ export const completeWork = createAsyncThunk(
   'autoRepairs/completeWork',
   async ({ repairOrderId, completionData }: { repairOrderId: string; completionData: CompleteWorkData }, { rejectWithValue }) => {
     try {
-      // Placeholder implementation - service method doesn't exist yet
-      const mockResponse = { 
-        repairOrderId, 
-        status: 'completed', 
-        completedAt: new Date().toISOString(),
-        ...completionData 
-      };
-      return mockResponse;
+      const response = await repairOrderMngtService.completeWork(repairOrderId, completionData);
+      return response;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Unknown error');
     }
@@ -610,12 +592,8 @@ export const addService = createAsyncThunk(
   'autoRepairs/addService',
   async ({ repairOrderId, serviceData }: { repairOrderId: string; serviceData: AddServiceData }, { rejectWithValue }) => {
     try {
-      // Placeholder implementation - service method doesn't exist yet
-      const mockResponse = { 
-        repairOrderId, 
-        service: { id: Date.now().toString(), ...serviceData } 
-      };
-      return mockResponse;
+      const response = await repairOrderMngtService.addService(repairOrderId, serviceData);
+      return response;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Unknown error');
     }
@@ -626,12 +604,8 @@ export const addPart = createAsyncThunk(
   'autoRepairs/addPart',
   async ({ repairOrderId, partData }: { repairOrderId: string; partData: AddPartData }, { rejectWithValue }) => {
     try {
-      // Placeholder implementation - service method doesn't exist yet
-      const mockResponse = { 
-        repairOrderId, 
-        part: { id: Date.now().toString(), ...partData } 
-      };
-      return mockResponse;
+      const response = await repairOrderMngtService.addPart(repairOrderId, partData);
+      return response;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Unknown error');
     }
@@ -642,14 +616,8 @@ export const linkAppointment = createAsyncThunk(
   'autoRepairs/linkAppointment',
   async ({ repairOrderId, appointmentId }: { repairOrderId: string; appointmentId: string }, { rejectWithValue }) => {
     try {
-      // Placeholder implementation - service method doesn't exist yet
-      const mockResponse = { 
-        repairOrderId, 
-        appointmentId, 
-        linked: true,
-        linkedAt: new Date().toISOString() 
-      };
-      return mockResponse;
+      const response = await repairOrderMngtService.linkAppointment(repairOrderId, appointmentId);
+      return response;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Unknown error');
     }
@@ -660,13 +628,8 @@ export const getWorkmanshipAnalytics = createAsyncThunk(
   'autoRepairs/getWorkmanshipAnalytics',
   async (repairOrderId: string, { rejectWithValue }) => {
     try {
-      // Placeholder implementation - service method doesn't exist yet
-      const mockAnalytics: WorkmanshipAnalytics = {
-        averageTime: 120,
-        successRate: 95,
-        customerSatisfaction: 4.5
-      };
-      return { repairOrderId, analytics: mockAnalytics };
+      const response = await repairOrderMngtService.getWorkmanshipAnalytics(parseInt(repairOrderId));
+      return { repairOrderId, analytics: response };
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Unknown error');
     }
@@ -691,17 +654,7 @@ export const createEmployee = createAsyncThunk(
   async (employeeData: CreateEmployeeData, { rejectWithValue }) => {
     try {
       // For now, return mock data until employee service is implemented
-      const mockEmployee: Employee = {
-        id: Date.now().toString(),
-        shop: employeeData.shop,
-        name: employeeData.name,
-        role: employeeData.role,
-        phone: employeeData.phone_number || '',
-        email: employeeData.email || null,
-        picture: employeeData.picture || null,
-        user: employeeData.user || null
-      };
-      return mockEmployee;
+      return { ...employeeData, id: Date.now().toString() } as Employee;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Unknown error');
     }
@@ -894,16 +847,7 @@ export const autoRepairsSlice = createSlice({
       .addCase(login.fulfilled, (state, action) => {
         state.loading.login = false;
         state.token = action.payload.token;
-        // Transform auth service user to match our User interface
-        const authUser = action.payload.user;
-        state.user = {
-          ...authUser,
-          isActive: true, // Default to active for logged-in users
-          avatar: undefined,
-          phone: undefined,
-          address: undefined,
-          lastLogin: new Date().toISOString()
-        };
+        state.user = action.payload.user;
         state.isAuthenticated = true;
         state.error.login = null;
       })
@@ -981,21 +925,7 @@ export const autoRepairsSlice = createSlice({
       .addCase(checkAuth.fulfilled, (state, action) => {
         state.loading.getCurrentUser = false;
         state.token = action.payload.token;
-        // Transform UserProfileResponse to our User interface
-        const profileUser = action.payload.user;
-        state.user = {
-          id: String(profileUser.id),
-          email: profileUser.email,
-          firstName: profileUser.first_name,
-          lastName: profileUser.last_name,
-          role: (profileUser.role as 'owner' | 'employee' | 'customer') || 'customer',
-          username: profileUser.username,
-          isActive: true,
-          createdAt: profileUser.date_joined,
-          lastLogin: undefined, // Not available in UserProfileResponse
-          phone: undefined, // Not available in UserProfileResponse
-          avatar: undefined // Not available in UserProfileResponse
-        };
+        state.user = action.payload.user;
         state.isAuthenticated = true;
         state.error.getCurrentUser = null;
       })
@@ -1044,21 +974,7 @@ export const autoRepairsSlice = createSlice({
       })
       .addCase(updateProfile.fulfilled, (state, action) => {
         state.loading.updateProfile = false;
-        // Transform UserProfileResponse to our User interface
-        const profileUser = action.payload;
-        if (state.user) {
-          state.user = {
-            ...state.user,
-            id: String(profileUser.id),
-            email: profileUser.email,
-            firstName: profileUser.first_name,
-            lastName: profileUser.last_name,
-            role: (profileUser.role as 'owner' | 'employee' | 'customer') || state.user.role,
-            username: profileUser.username,
-            phone: state.user.phone, // Keep existing phone as it's not in UserProfileResponse
-            avatar: state.user.avatar // Keep existing avatar as it's not in UserProfileResponse
-          };
-        }
+        state.user = action.payload;
         state.error.updateProfile = null;
       })
       .addCase(updateProfile.rejected, (state, action) => {
@@ -1139,7 +1055,7 @@ export const autoRepairsSlice = createSlice({
       })
       .addCase(getRelatedAppointments.fulfilled, (state, action) => {
         state.loading.relatedAppointments = false;
-        state.relatedAppointments[action.payload.repairOrderId] = action.payload.appointments || [];
+        state.relatedAppointments[action.payload.repairOrderId] = action.payload.appointments.appointments || [];
       })
       .addCase(getRelatedAppointments.rejected, (state, action) => {
         state.loading.relatedAppointments = false;
@@ -1153,7 +1069,7 @@ export const autoRepairsSlice = createSlice({
       .addCase(startWork.fulfilled, (state, action) => {
         state.loading.startWork = false;
         // Update the repair order status in the list
-        const index = state.repairOrders.findIndex(order => String(order.id) === String(action.meta.arg));
+        const index = state.repairOrders.findIndex(order => order.id === action.meta.arg);
         if (index !== -1) {
           state.repairOrders[index] = { ...state.repairOrders[index], status: 'in_progress' };
         }
@@ -1170,7 +1086,7 @@ export const autoRepairsSlice = createSlice({
       .addCase(completeWork.fulfilled, (state, action) => {
         state.loading.completeWork = false;
         // Update the repair order status in the list
-        const index = state.repairOrders.findIndex(order => String(order.id) === String(action.meta.arg.repairOrderId));
+        const index = state.repairOrders.findIndex(order => order.id === action.meta.arg.repairOrderId);
         if (index !== -1) {
           state.repairOrders[index] = { ...state.repairOrders[index], status: 'completed' };
         }

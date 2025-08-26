@@ -1,24 +1,58 @@
+import type { RegisterData } from '../types';
 import { 
   apiPost, 
   apiGet, 
+  apiPut,
   setAuthToken, 
   removeAuthToken, 
   getAuthToken 
 } from '../utils/api';
 
-// Auth types
+// User Permissions (from backend)
+export interface UserPermissions {
+  can_manage_shops: boolean;
+  can_manage_employees: boolean;
+  can_view_all_orders: boolean;
+  can_create_repair_orders: boolean;
+  can_manage_inventory: boolean;
+  can_view_financial_data: boolean;
+  is_owner: boolean;
+  is_employee: boolean;
+  is_customer: boolean;
+}
+
+// User API Response (matches actual backend schema)
+export interface UserAPIResponse {
+  id: number;
+  email: string;
+  username: string;
+  first_name: string;
+  last_name: string;
+  role: 'owner' | 'employee' | 'customer';
+  role_display: string;
+  is_email_verified: boolean;
+  date_joined: string;
+  permissions: UserPermissions;
+}
+
+// Token API Response (matches actual backend schema)
+export interface TokenAPIResponse {
+  access: string;
+  refresh: string;
+}
+
+// User interface for frontend use
 export interface User {
   id: string;
   email: string;
+  username: string;
   firstName: string;
   lastName: string;
   role: 'owner' | 'employee' | 'customer';
-  avatar?: string;
-  phone?: string;
-  address?: string;
-  isActive: boolean;
+  roleDisplay: string;
+  isEmailVerified: boolean;
   createdAt: string;
-  lastLogin?: string;
+  permissions: UserPermissions;
 }
 
 export interface LoginCredentials {
@@ -26,14 +60,15 @@ export interface LoginCredentials {
   password: string;
 }
 
-export interface RegisterData {
-  email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
-  phone?: string;
-  role?: User['role'];
-}
+// export interface RegisterData {
+//   email: string;
+//   username: string;
+//   password: string;
+//   password_confirm: string;
+//   first_name: string;
+//   last_name: string;
+//   role?: 'owner' | 'employee' | 'customer';
+// }
 
 export interface AuthResponse {
   user: User;
@@ -42,25 +77,45 @@ export interface AuthResponse {
   expiresIn: number;
 }
 
-export interface PasswordResetRequest {
+export interface EmailVerificationRequest {
+  token: string;
+}
+
+export interface ResendVerificationRequest {
   email: string;
 }
 
-export interface PasswordReset {
-  token: string;
-  newPassword: string;
+export interface ProfileUpdateData {
+  first_name?: string;
+  last_name?: string;
+  username?: string;
 }
+
+// Helper function to transform API response to frontend User
+const transformUserData = (apiUser: UserAPIResponse): User => {
+  return {
+    id: apiUser.id.toString(),
+    email: apiUser.email,
+    username: apiUser.username,
+    firstName: apiUser.first_name,
+    lastName: apiUser.last_name,
+    role: apiUser.role,
+    roleDisplay: apiUser.role_display,
+    isEmailVerified: apiUser.is_email_verified,
+    createdAt: apiUser.date_joined,
+    permissions: apiUser.permissions
+  };
+};
 
 // Authentication Service
 export const authService = {
   // Login user
   login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
-    const loginData = {
+    // Get tokens from /api/token/
+    const response = await apiPost<TokenAPIResponse>('/api/token/', {
       email: credentials.email,
       password: credentials.password
-    };
-    
-    const response = await apiPost<{ access: string; refresh: string }>('/token/', loginData);
+    });
     
     const authResponse: AuthResponse = {
       token: response.access,
@@ -73,34 +128,36 @@ export const authService = {
     localStorage.setItem('refreshToken', authResponse.refreshToken);
     
     try {
-      const userData = await apiGet<any>('/auth/user/');
+      // Get user profile from /api/auth/user/
+      const userData = await apiGet<UserAPIResponse>('/api/auth/user/');
       
-      const user: User = {
-        id: userData.id?.toString() || '',
-        email: userData.email || '',
-        firstName: userData.first_name || '',
-        lastName: userData.last_name || '',
-        role: userData.role || 'customer',
-        avatar: userData.avatar,
-        phone: userData.phone,
-        address: userData.address,
-        isActive: userData.is_active ?? true,
-        createdAt: userData.date_joined || new Date().toISOString(),
-        lastLogin: userData.last_login
-      };
-      
+      const user = transformUserData(userData);
       authResponse.user = user;
       localStorage.setItem('user', JSON.stringify(user));
     } catch (userError) {
       console.error('Failed to fetch user data:', userError);
+      // Create minimal user object if profile fetch fails
       authResponse.user = {
         id: '',
         email: credentials.email,
+        username: '',
         firstName: '',
         lastName: '',
         role: 'customer',
-        isActive: true,
-        createdAt: new Date().toISOString()
+        roleDisplay: 'Customer',
+        isEmailVerified: false,
+        createdAt: new Date().toISOString(),
+        permissions: {
+          can_manage_shops: false,
+          can_manage_employees: false,
+          can_view_all_orders: false,
+          can_create_repair_orders: false,
+          can_manage_inventory: false,
+          can_view_financial_data: false,
+          is_owner: false,
+          is_employee: false,
+          is_customer: true
+        }
       };
       localStorage.setItem('user', JSON.stringify(authResponse.user));
     }
@@ -109,58 +166,30 @@ export const authService = {
   },
 
   // Register user
-  register: async (userData: RegisterData): Promise<AuthResponse> => {
-    const registerData = {
-      email: userData.email,
-      password: userData.password,
-      first_name: userData.firstName,
-      last_name: userData.lastName,
-      phone: userData.phone,
-      role: userData.role || 'customer'
+  register: async (userData: RegisterData): Promise<{ message: string; email: string }> => {
+    const response = await apiPost<{ message: string; user_id: string; email: string; role: string }>('/api/auth/register/', userData);
+    
+    return {
+      message: response.message,
+      email: response.email
     };
-    
-    const registerResponse = await apiPost<User>('/auth/register/', registerData);
-    
-    const loginCredentials: LoginCredentials = {
-      email: userData.email,
-      password: userData.password
-    };
-    
-    const loginData = {
-      email: loginCredentials.email,
-      password: loginCredentials.password
-    };
-    
-    const tokenResponse = await apiPost<{ access: string; refresh: string }>('/token/', loginData);
-    
-    const authResponse: AuthResponse = {
-      token: tokenResponse.access,
-      refreshToken: tokenResponse.refresh,
-      user: registerResponse,
-      expiresIn: 3600
-    };
-    
-    setAuthToken(authResponse.token);
-    localStorage.setItem('refreshToken', authResponse.refreshToken);
-    localStorage.setItem('user', JSON.stringify(authResponse.user));
-    
-    return authResponse;
   },
 
-  // Logout user
+  // Verify email
+  verifyEmail: async (data: EmailVerificationRequest): Promise<{ message: string }> => {
+    return await apiPost<{ message: string }>('/api/auth/verify-email/', data);
+  },
+
+  // Resend verification email
+  resendVerification: async (data: ResendVerificationRequest): Promise<{ message: string }> => {
+    return await apiPost<{ message: string }>('/api/auth/resend-verification/', data);
+  },
+
+  // Logout user (client-side only for JWT)
   logout: async (): Promise<void> => {
-    try {
-      const refreshToken = localStorage.getItem('refreshToken');
-      if (refreshToken) {
-        await apiPost('/auth/logout/', { refresh: refreshToken });
-      }
-    } catch (error) {
-      console.error('Logout API call failed:', error);
-    } finally {
-      removeAuthToken();
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
-    }
+    removeAuthToken();
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
   },
 
   // Refresh token
@@ -170,7 +199,9 @@ export const authService = {
       throw new Error('No refresh token available');
     }
     
-    const response = await apiPost<{ access: string }>('/token/refresh/', { refresh: refreshToken });
+    const response = await apiPost<TokenAPIResponse>('/api/token/refresh/', { 
+      refresh: refreshToken 
+    });
     
     const userStr = localStorage.getItem('user');
     const user = userStr ? JSON.parse(userStr) : null;
@@ -181,12 +212,15 @@ export const authService = {
     
     const authResponse: AuthResponse = {
       token: response.access,
-      refreshToken: refreshToken,
+      refreshToken: response.refresh || refreshToken, // Use new refresh token if provided
       user: user,
       expiresIn: 3600
     };
     
     setAuthToken(authResponse.token);
+    if (response.refresh) {
+      localStorage.setItem('refreshToken', response.refresh);
+    }
     
     return authResponse;
   },
@@ -198,42 +232,20 @@ export const authService = {
       throw new Error('No authentication token');
     }
     
-    const userData = await apiGet<any>('/auth/user/');
-    
-    const user: User = {
-      id: userData.id?.toString() || '',
-      email: userData.email || '',
-      firstName: userData.first_name || '',
-      lastName: userData.last_name || '',
-      role: userData.role || 'customer',
-      avatar: userData.avatar,
-      phone: userData.phone,
-      address: userData.address,
-      isActive: userData.is_active ?? true,
-      createdAt: userData.date_joined || new Date().toISOString(),
-      lastLogin: userData.last_login
-    };
+    const userData = await apiGet<UserAPIResponse>('/api/auth/user/');
+    const user = transformUserData(userData);
     
     localStorage.setItem('user', JSON.stringify(user));
     return user;
   },
 
-  // Request password reset
-  requestPasswordReset: async (data: PasswordResetRequest): Promise<string> => {
-    await apiPost('/auth/password-reset/', data);
-    return data.email;
-  },
-
-  // Reset password
-  resetPassword: async (data: PasswordReset): Promise<void> => {
-    await apiPost('/auth/password-reset-confirm/', data);
-  },
-
   // Update user profile
-  updateProfile: async (userData: Partial<User>): Promise<User> => {
-    const updatedUser = await apiPost<User>('/auth/profile/', userData);
-    localStorage.setItem('user', JSON.stringify(updatedUser));
-    return updatedUser;
+  updateProfile: async (updateData: ProfileUpdateData): Promise<User> => {
+    const updatedUserData = await apiPut<UserAPIResponse>('/api/auth/user/update/', updateData);
+    const user = transformUserData(updatedUserData);
+    
+    localStorage.setItem('user', JSON.stringify(user));
+    return user;
   },
 
   // Check if user is authenticated
@@ -247,5 +259,17 @@ export const authService = {
   getCurrentUserFromStorage: (): User | null => {
     const userStr = localStorage.getItem('user');
     return userStr ? JSON.parse(userStr) : null;
+  },
+
+  // Admin: Get all users (owners only)
+  getAllUsers: async (): Promise<User[]> => {
+    const usersData = await apiGet<UserAPIResponse[]>('/api/admin/users/');
+    return usersData.map(transformUserData);
+  },
+
+  // Admin: Update user role (owners only)
+  updateUserRole: async (userId: string, role: 'owner' | 'employee' | 'customer'): Promise<User> => {
+    const updatedUserData = await apiPut<{ message: string; user: UserAPIResponse }>(`/api/admin/users/${userId}/role/`, { role });
+    return transformUserData(updatedUserData.user);
   }
 };

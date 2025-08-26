@@ -1,5 +1,25 @@
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api';
 
+// API Response interfaces
+interface ServiceAPIResponse {
+  id: number;
+  shop: number;
+  name: string;
+  description?: string;
+  category?: string;
+  labor_cost: string;
+  price?: string;
+  taxable: boolean;
+  warranty_months: number;
+}
+
+interface ServiceListResponse {
+  results?: ServiceAPIResponse[];
+  count?: number;
+  next?: string;
+  previous?: string;
+}
+
 // Service types (matching entities.ts)
 export interface Service {
   id?: number;
@@ -56,12 +76,12 @@ export const serviceMngtService = {
     if (query.offset) params.append('offset', query.offset.toString());
     
     const endpoint = `/shop/services/${params.toString() ? `?${params.toString()}` : ''}`;
-    const response = await apiGet<any>(endpoint);
+    const response = await apiGet<ServiceListResponse | ServiceAPIResponse[]>(endpoint);
     
     // Handle both paginated and non-paginated responses
-    const services = response.results || response;
+    const services = Array.isArray(response) ? response : (response.results || []);
     
-    return services.map((service: any): Service => ({
+    return services.map((service: ServiceAPIResponse): Service => ({
       id: service.id,
       shop: service.shop,
       name: service.name || '',
@@ -76,7 +96,7 @@ export const serviceMngtService = {
 
   // Get service by ID
   getServiceById: async (serviceId: string): Promise<Service> => {
-    const response = await apiGet<any>(`/shop/services/${serviceId}/`);
+    const response = await apiGet<ServiceAPIResponse>(`/shop/services/${serviceId}/`);
     
     return {
       id: response.id,
@@ -104,7 +124,7 @@ export const serviceMngtService = {
       warranty_months: serviceData.warranty_months ?? 0
     };
     
-    const response = await apiPost<any>('/shop/services/', createData);
+    const response = await apiPost<ServiceAPIResponse>('/shop/services/', createData);
     
     return {
       id: response.id,
@@ -121,7 +141,7 @@ export const serviceMngtService = {
 
   // Update service
   updateService: async (serviceId: string, serviceData: UpdateServiceData): Promise<Service> => {
-    const updateData: any = {};
+    const updateData: Partial<ServiceAPIResponse> = {};
     
     if (serviceData.shop !== undefined) updateData.shop = serviceData.shop;
     if (serviceData.name !== undefined) updateData.name = serviceData.name;
@@ -132,7 +152,7 @@ export const serviceMngtService = {
     if (serviceData.taxable !== undefined) updateData.taxable = serviceData.taxable;
     if (serviceData.warranty_months !== undefined) updateData.warranty_months = serviceData.warranty_months;
     
-    const response = await apiPut<any>(`/shop/services/${serviceId}/`, updateData);
+    const response = await apiPut<ServiceAPIResponse>(`/shop/services/${serviceId}/`, updateData);
     
     return {
       id: response.id,

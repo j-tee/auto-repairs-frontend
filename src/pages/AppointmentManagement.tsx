@@ -23,11 +23,6 @@ export const AppointmentManagement: React.FC = () => {
   const { user } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Helper function to get customer phone number regardless of source
-  const getCustomerPhone = (customer: any) => {
-    return customer.phone_number || customer.phone || "N/A";
-  };
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");

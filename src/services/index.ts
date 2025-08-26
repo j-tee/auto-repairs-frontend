@@ -1,23 +1,8 @@
-// Domain-based service exports
-export * from './authService';
-export * from './userMngtService';
-export * from './customerMngtService';
-export * from './vehicleMngtService';
-export * from './vehicleProblemService';
-export * from './appointmentMngtService';
-export * from './repairOrderMngtService';
-export * from './employeeMngtService';
-export * from './shopMngtService';
-export * from './dashboardService';
-export * from './partMngtService';
-export * from './serviceMngtService';
-
-// Re-export services with clear naming
+// Service exports - avoid wildcard exports to prevent naming conflicts
 export { authService } from './authService';
-export { userMngtService } from './userMngtService';
 export { customerMngtService } from './customerMngtService';
 export { vehicleMngtService } from './vehicleMngtService';
-export { vehicleProblemService } from './vehicleProblemService';
+export { vehicleProblemMngtService } from './vehicleProblemMngtService';
 export { appointmentMngtService } from './appointmentMngtService';
 export { repairOrderMngtService } from './repairOrderMngtService';
 export { employeeMngtService } from './employeeMngtService';
@@ -25,3 +10,9 @@ export { shopMngtService } from './shopMngtService';
 export { dashboardService } from './dashboardService';
 export { partMngtService } from './partMngtService';
 export { serviceMngtService } from './serviceMngtService';
+
+// Re-export all types from the centralized type system
+export type * from '../types';
+
+// Export specific service interfaces for dashboard and other services
+export type { DashboardSummary } from './dashboardService';

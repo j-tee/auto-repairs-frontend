@@ -5,14 +5,21 @@ import {
   appointmentMngtService,
   customerMngtService,
   vehicleMngtService,
-  vehicleProblemService,
-  type CreateAppointmentData,
+  vehicleProblemMngtService,
 } from "../../services";
+import type { 
+  CreateAppointmentData, 
+  Customer, 
+  VehicleProblem, 
+  Appointment 
+} from "../../types";
+import type { Vehicle } from "../../types/vehicles";
+import "./AddAppointmentModal.scss";
 
 interface AddAppointmentModalProps {
   show: boolean;
   onHide: () => void;
-  onSuccess: (appointment: any) => void;
+  onSuccess: (appointment: Appointment) => void;
   preSelectedCustomerId?: string;
   preSelectedVehicleId?: string;
 }
@@ -38,7 +45,9 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
     description: "",
     notes: "",
     estimatedCost: 0,
-    reportedProblemId: "", // Add vehicle problem support
+    reportedProblemId: "",
+    vehicle: 0,
+    date: "",
   });
 
   // Loading and error states
@@ -46,9 +55,9 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   // Data for dropdowns
-  const [customers, setCustomers] = useState<any[]>([]);
-  const [vehicles, setVehicles] = useState<any[]>([]);
-  const [vehicleProblems, setVehicleProblems] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [vehicleProblems, setVehicleProblems] = useState<VehicleProblem[]>([]);
   const [loadingCustomers, setLoadingCustomers] = useState(false);
   const [loadingVehicles, setLoadingVehicles] = useState(false);
   const [loadingProblems, setLoadingProblems] = useState(false);
@@ -77,10 +86,10 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
     if (show) {
       loadCustomers();
       if (formData.customerId) {
-        loadCustomerVehicles(formData.customerId);
+        loadCustomerVehicles(String(formData.customerId));
       }
       if (formData.vehicleId) {
-        loadVehicleProblems(formData.vehicleId);
+        loadVehicleProblems(String(formData.vehicleId));
       }
     }
   }, [show]); // Remove formData.customerId dependency to avoid infinite loop
@@ -88,7 +97,7 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
   // Separate effect for loading vehicles when customer changes
   useEffect(() => {
     if (show && formData.customerId) {
-      loadCustomerVehicles(formData.customerId);
+      loadCustomerVehicles(String(formData.customerId));
     }
   }, [formData.customerId, show]);
 
@@ -106,6 +115,7 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
       serviceType: "",
       scheduledDate: "",
       scheduledTime: "",
+      date: "", // Required field
       duration: 60,
       priority: "medium",
       description: "",
@@ -163,20 +173,25 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
         );
         console.log("First customer:", customerList[0]);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error loading customers:", error);
 
       // Set user-friendly error messages based on error type
-      if (error?.status === 401) {
-        setError("Authentication required. Please log in again.");
-      } else if (error?.status === 403) {
-        setError("You don't have permission to view customer data.");
-      } else if (error?.status >= 500) {
-        setError("Server error. Please try again later.");
+      if (typeof error === "object" && error !== null) {
+        const err = error as { status?: number; message?: string };
+        if (err.status === 401) {
+          setError("Authentication required. Please log in again.");
+        } else if (err.status === 403) {
+          setError("You don't have permission to view customer data.");
+        } else if (err.status && err.status >= 500) {
+          setError("Server error. Please try again later.");
+        } else {
+          setError(
+            `Failed to load customers: ${err.message || "Unknown error"}`
+          );
+        }
       } else {
-        setError(
-          `Failed to load customers: ${error?.message || "Unknown error"}`
-        );
+        setError("Failed to load customers: Unknown error");
       }
     } finally {
       setLoadingCustomers(false);
@@ -204,7 +219,7 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
         customerVehicles
       );
       setVehicles(customerVehicles);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error loading vehicles:", error);
       setVehicles([]);
       // Could set a specific error for vehicles if needed
@@ -222,12 +237,13 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
     try {
       setLoadingProblems(true);
       console.log(`Loading problems for vehicle: ${vehicleId}`);
-      const problems = await vehicleProblemService.getVehicleProblemsForVehicle(
-        vehicleId
-      );
+      const problems = await vehicleProblemMngtService.getVehicleProblems({
+        vehicleId: vehicleId,
+        status: 'open'
+      });
       console.log("Vehicle problems response:", problems);
       setVehicleProblems(problems || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error loading vehicle problems:", error);
       setVehicleProblems([]);
     } finally {
@@ -247,8 +263,8 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
         `Creating new problem for vehicle ${formData.vehicleId}: ${newProblemDescription}`
       );
 
-      const newProblem = await vehicleProblemService.createVehicleProblem({
-        vehicleId: formData.vehicleId,
+      const newProblem = await vehicleProblemMngtService.createVehicleProblem({
+        vehicleId: String(formData.vehicleId),
         description: newProblemDescription.trim(),
       });
 
@@ -261,8 +277,8 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
       setNewProblemDescription("");
       setShowNewProblemForm(false);
 
-      return newProblem.id;
-    } catch (error: any) {
+      return String(newProblem.id);
+    } catch (error: unknown) {
       console.error("Error creating new vehicle problem:", error);
       throw error;
     } finally {
@@ -303,7 +319,7 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
         vehicleId: "",
         reportedProblemId: "",
       })); // Reset vehicle and problem selection
-      loadCustomerVehicles(value);
+      loadCustomerVehicles(String(value));
       setVehicleProblems([]);
 
       // Reset new problem form
@@ -346,7 +362,10 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
       }
 
       // Check if we need to create a new problem
-      let problemId: string | undefined = formData.reportedProblemId;
+      let problemId: string | undefined =
+        typeof formData.reportedProblemId === "number"
+          ? String(formData.reportedProblemId)
+          : formData.reportedProblemId;
       if (showNewProblemForm && newProblemDescription.trim()) {
         console.log("Creating new problem before appointment...");
         const newProblemId = await createNewVehicleProblem();
@@ -440,8 +459,8 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
                     {customers.map((customer, index) => (
                       <option key={customer.id || index} value={customer.id}>
                         {customer.name ||
-                          `${customer.first_name || ""} ${
-                            customer.last_name || ""
+                          `${customer.firstName || ""} ${
+                            customer.lastName || ""
                           }`.trim() ||
                           "Unknown"}{" "}
                         - {customer.email}
@@ -522,7 +541,8 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
                           {problem.resolved
                             ? " (Previously Resolved)"
                             : " (Unresolved)"}
-                          {" - Reported: " +
+                          {problem.reportedDate && 
+                            " - Reported: " +
                             new Date(problem.reportedDate).toLocaleDateString()}
                         </option>
                       ))}

@@ -1,119 +1,16 @@
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api';
-
-// Vehicle types
-export interface Vehicle {
-  id: string;
-  customerId: string;
-  make: string;
-  model: string;
-  year: number;
-  vin: string;
-  licensePlate: string;
-  color?: string;
-  engine?: string;
-  transmission?: string;
-  mileage?: number;
-  fuelType?: string;
-  notes?: string;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-  customer?: {
-    id: string;
-    name: string; // Combined firstName + lastName from backend
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone: string;
-  };
-  lastServiceDate?: string;
-  nextServiceDue?: string;
-  repairHistory?: any[];
-}
-
-export interface CreateVehicleData {
-  customerId: string;
-  make: string;
-  model: string;
-  year: number;
-  vin: string;
-  licensePlate: string;
-  color?: string;
-  engine?: string;
-  transmission?: string;
-  mileage?: number;
-  fuelType?: string;
-  notes?: string;
-}
-
-export interface UpdateVehicleData {
-  customerId?: string;
-  make?: string;
-  model?: string;
-  year?: number;
-  vin?: string;
-  licensePlate?: string;
-  color?: string;
-  engine?: string;
-  transmission?: string;
-  mileage?: number;
-  fuelType?: string;
-  notes?: string;
-  isActive?: boolean;
-}
-
-export interface VehicleQuery {
-  page?: number;
-  limit?: number;
-  search?: string;
-  customerId?: string;
-  make?: string;
-  model?: string;
-  year?: number;
-  isActive?: boolean;
-  sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
-  serviceDue?: boolean;
-  lastServiceBefore?: string;
-  lastServiceAfter?: string;
-}
-
-export interface VehicleListResponse {
-  vehicles: Vehicle[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
-export interface VehicleStats {
-  totalVehicles: number;
-  activeVehicles: number;
-  servicesDue: number;
-  averageMileage: number;
-  topMakes: { make: string; count: number }[];
-  recentlyAdded: Vehicle[];
-}
-
-export interface VehicleServiceHistory {
-  vehicleId: string;
-  services: any[];
-  totalCost: number;
-  lastService?: string;
-  nextServiceDue?: string;
-  maintenanceReminders: any[];
-}
+import type { CreateVehicleData, ServiceRecord, UpdateVehicleData, Vehicle, VehicleAPIResponse, VehicleListAPIResponse, VehicleListResponse, VehicleQuery, VehicleRawData, VehicleServiceHistory, VehicleServiceHistoryAPIResponse, VehicleStats, VehicleStatsAPIResponse } from '../types';
 
 // Vehicle Management Service
 export const vehicleMngtService = {
   // Get all vehicles with filtering and pagination
-  getVehicles: async (query: VehicleQuery = {}): Promise<VehicleListResponse> => {
+  getVehicles: async (query: VehicleQuery): Promise<VehicleListResponse> => {
     const params = new URLSearchParams();
     
     if (query.page) params.append('page', query.page.toString());
     if (query.limit) params.append('limit', query.limit.toString());
     if (query.search) params.append('search', query.search);
-    if (query.customerId) params.append('customer_id', query.customerId);
+    if (query.customerId) params.append('customer_id', query.customerId.toString());
     if (query.make) params.append('make', query.make);
     if (query.model) params.append('model', query.model);
     if (query.year) params.append('year', query.year.toString());
@@ -121,19 +18,26 @@ export const vehicleMngtService = {
     if (query.sortBy) params.append('sort_by', query.sortBy);
     if (query.sortOrder) params.append('sort_order', query.sortOrder);
     if (query.serviceDue !== undefined) params.append('service_due', query.serviceDue.toString());
-    if (query.lastServiceBefore) params.append('last_service_before', query.lastServiceBefore);
-    if (query.lastServiceAfter) params.append('last_service_after', query.lastServiceAfter);
+    if (query.lastBerviceBefore) params.append('last_service_before', query.lastBerviceBefore);
+    if (query.lastBerviceAfter) params.append('last_service_after', query.lastBerviceAfter);
     
     const queryString = params.toString();
     const endpoint = `/shop/vehicles/${queryString ? `?${queryString}` : ''}`;
     
-    const response = await apiGet<any>(endpoint);
+    const response = await apiGet<VehicleListAPIResponse>(endpoint);
     
     // Handle different response structures - API might return array directly or wrapped
-    const vehicleArray = Array.isArray(response) ? response : (response.results || response.vehicles || response || []);
-    
+    let vehicleArray: VehicleRawData[] = [];
+    if (Array.isArray(response)) {
+      vehicleArray = response as VehicleRawData[];
+    } else if (Array.isArray((response as VehicleListAPIResponse).results)) {
+      vehicleArray = (response as VehicleListAPIResponse).results as VehicleRawData[];
+    } else if (Array.isArray((response as VehicleListAPIResponse).vehicles)) {
+      vehicleArray = (response as VehicleListAPIResponse).vehicles as VehicleRawData[];
+    }
+
     return {
-      vehicles: vehicleArray.map((vehicle: any) => ({
+      vehicles: vehicleArray.map((vehicle: VehicleRawData) => ({
         id: vehicle.id?.toString() || '',
         customerId: vehicle.customer_id?.toString() || '',
         make: vehicle.make || '',
@@ -150,22 +54,24 @@ export const vehicleMngtService = {
         isActive: vehicle.is_active ?? true,
         createdAt: vehicle.created_at || new Date().toISOString(),
         updatedAt: vehicle.updated_at || new Date().toISOString(),
-        customer: vehicle.customer ? {
-          id: vehicle.customer.id?.toString() || '',
-          name: vehicle.customer.name || `${vehicle.customer.first_name || ''} ${vehicle.customer.last_name || ''}`.trim(),
-          firstName: vehicle.customer.first_name || '',
-          lastName: vehicle.customer.last_name || '',
-          email: vehicle.customer.email || '',
-          phone: vehicle.customer.phone_number || vehicle.customer.phone || ''
-        } : undefined,
+        customer: vehicle.customer
+          ? {
+              id: vehicle.customer.id?.toString() || '',
+              name: vehicle.customer.name || `${vehicle.customer.first_name || ''} ${vehicle.customer.last_name || ''}`.trim(),
+              firstName: vehicle.customer.first_name || '',
+              lastName: vehicle.customer.last_name || '',
+              email: vehicle.customer.email || '',
+              phone: vehicle.customer.phone_number || vehicle.customer.phone || ''
+            }
+          : undefined,
         lastServiceDate: vehicle.last_service_date,
         nextServiceDue: vehicle.next_service_due,
         repairHistory: vehicle.repair_history || []
-      })) || [],
-      total: response.count || 0,
+      })),
+      total: (response as VehicleListAPIResponse).count || 0,
       page: query.page || 1,
       limit: query.limit || 10,
-      totalPages: Math.ceil((response.count || 0) / (query.limit || 10))
+      totalPages: Math.ceil(((response as VehicleListAPIResponse).count || 0) / (query.limit || 10))
     };
   },
 
@@ -176,9 +82,9 @@ export const vehicleMngtService = {
       
       // Try the new nested route approach first (recommended by backend team)
       try {
-        const response = await apiGet<any[]>(`/shop/customers/${customerId}/vehicles/`);
+        const response = await apiGet<VehicleRawData[]>(`/shop/customers/${customerId}/vehicles/`);
         
-        const customerVehicles = response.map((vehicle: any) => ({
+        const customerVehicles = response.map((vehicle: VehicleRawData) => ({
           id: vehicle.id?.toString() || '',
           customerId: vehicle.customer_id?.toString() || '',
           make: vehicle.make || '',
@@ -210,14 +116,14 @@ export const vehicleMngtService = {
         
         console.log(`Nested route returned ${customerVehicles.length} vehicles for customer ${customerId}`);
         return customerVehicles;
-      } catch (nestedError) {
+      } catch {
         console.log('Nested route failed, trying alternative endpoint...');
         
         // Fallback to action endpoint
         try {
-          const response = await apiGet<any[]>(`/shop/vehicles/by_customer/`, { customer_id: customerId });
+          const response = await apiGet<VehicleRawData[]>(`/shop/vehicles/by_customer/`, { customer_id: customerId });
           
-          const customerVehicles = response.map((vehicle: any) => ({
+          const customerVehicles = response.map((vehicle: VehicleRawData) => ({
             id: vehicle.id?.toString() || '',
             customerId: vehicle.customer_id?.toString() || '',
             make: vehicle.make || '',
@@ -249,12 +155,12 @@ export const vehicleMngtService = {
           
           console.log(`Action endpoint returned ${customerVehicles.length} vehicles for customer ${customerId}`);
           return customerVehicles;
-        } catch (actionError) {
+        } catch {
           console.log('Action endpoint failed, trying query parameter approach...');
           
           // Final fallback to original query parameter approach
           const response = await vehicleMngtService.getVehicles({
-            customerId,
+            customerId: Number(customerId),
             isActive: true,
             sortBy: 'created_at',
             sortOrder: 'desc',
@@ -266,13 +172,13 @@ export const vehicleMngtService = {
           return customerVehicles;
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error loading customer vehicles:', error);
       throw error;
     }
   },
   getVehicleById: async (vehicleId: string): Promise<Vehicle> => {
-    const response = await apiGet<any>(`/shop/vehicles/${vehicleId}/`);
+    const response = await apiGet<VehicleAPIResponse>(`/shop/vehicles/${vehicleId}/`);
     
     return {
       id: response.id?.toString() || '',
@@ -281,7 +187,7 @@ export const vehicleMngtService = {
       model: response.model || '',
       year: response.year || new Date().getFullYear(),
       vin: response.vin || '',
-      licensePlate: response.license_plate || '',
+      license_plate: response.license_plate || '',
       color: response.color,
       engine: response.engine,
       transmission: response.transmission,
@@ -293,15 +199,16 @@ export const vehicleMngtService = {
       updatedAt: response.updated_at || new Date().toISOString(),
       customer: response.customer ? {
         id: response.customer.id?.toString() || '',
-        name: response.customer.name || `${response.customer.first_name || ''} ${response.customer.last_name || ''}`.trim(),
-        firstName: response.customer.first_name || '',
-        lastName: response.customer.last_name || '',
+        name: response.customer.name ,
         email: response.customer.email || '',
         phone: response.customer.phone_number || response.customer.phone || ''
       } : undefined,
       lastServiceDate: response.last_service_date,
       nextServiceDue: response.next_service_due,
-      repairHistory: response.repair_history || []
+      repairHistory: (response.repair_history || []).map((item: ServiceRecord) => ({
+        ...item,
+        cost: item.cost !== undefined ? item.cost : 0
+      }))
     };
   },
 
@@ -313,25 +220,27 @@ export const vehicleMngtService = {
       model: vehicleData.model,
       year: vehicleData.year,
       vin: vehicleData.vin,
-      license_plate: vehicleData.licensePlate,
+      license_plate: vehicleData.license_plate,
       color: vehicleData.color,
-      engine: vehicleData.engine,
-      transmission: vehicleData.transmission,
-      mileage: vehicleData.mileage,
-      fuel_type: vehicleData.fuelType,
-      notes: vehicleData.notes
+      // engine: vehicleData.engine,
+      // transmission: vehicleData.transmission,
+      // mileage: vehicleData.mileage,
+      // fuel_type: vehicleData.fuelType,
+      // notes: vehicleData.notes
     };
     
-    const response = await apiPost<any>('/shop/vehicles/', createData);
-    
+    const response = await apiPost<VehicleAPIResponse>(`/shop/vehicles/`, createData);
+
     return {
       id: response.id?.toString() || '',
-      customerId: response.customer_id?.toString() || '',
+      customerId: typeof response.customer_id === 'number'
+        ? response.customer_id
+        : Number(response.customer_id) || 0,
       make: response.make || '',
       model: response.model || '',
       year: response.year || new Date().getFullYear(),
       vin: response.vin || '',
-      licensePlate: response.license_plate || '',
+      license_plate: response.license_plate || '',
       color: response.color,
       engine: response.engine,
       transmission: response.transmission,
@@ -343,9 +252,7 @@ export const vehicleMngtService = {
       updatedAt: response.updated_at || new Date().toISOString(),
       customer: response.customer ? {
         id: response.customer.id?.toString() || '',
-        name: response.customer.name || `${response.customer.first_name || ''} ${response.customer.last_name || ''}`.trim(),
-        firstName: response.customer.first_name || '',
-        lastName: response.customer.last_name || '',
+        name: response.customer.name ,
         email: response.customer.email || '',
         phone: response.customer.phone_number || response.customer.phone || ''
       } : undefined,
@@ -380,7 +287,7 @@ export const vehicleMngtService = {
       }
     });
     
-    const response = await apiPut<any>(`/shop/vehicles/${vehicleId}/`, updateData);
+    const response = await apiPut<VehicleAPIResponse>(`/shop/vehicles/${vehicleId}/`, updateData);
     
     return {
       id: response.id?.toString() || '',
@@ -389,7 +296,7 @@ export const vehicleMngtService = {
       model: response.model || '',
       year: response.year || new Date().getFullYear(),
       vin: response.vin || '',
-      licensePlate: response.license_plate || '',
+      license_plate: response.license_plate || '',
       color: response.color,
       engine: response.engine,
       transmission: response.transmission,
@@ -401,9 +308,7 @@ export const vehicleMngtService = {
       updatedAt: response.updated_at || new Date().toISOString(),
       customer: response.customer ? {
         id: response.customer.id?.toString() || '',
-        name: response.customer.name || `${response.customer.first_name || ''} ${response.customer.last_name || ''}`.trim(),
-        firstName: response.customer.first_name || '',
-        lastName: response.customer.last_name || '',
+        name: response.customer.name ,
         email: response.customer.email || '',
         phone: response.customer.phone_number || response.customer.phone || ''
       } : undefined,
@@ -459,18 +364,18 @@ export const vehicleMngtService = {
 
   // Get vehicle statistics
   getVehicleStats: async (): Promise<VehicleStats> => {
-    const response = await apiGet<any>('/shop/vehicles/stats/');
+    const response = await apiGet<VehicleStatsAPIResponse>('/shop/vehicles/stats/');
     
     return {
       totalVehicles: response.total_vehicles || 0,
       activeVehicles: response.active_vehicles || 0,
       servicesDue: response.services_due || 0,
       averageMileage: response.average_mileage || 0,
-      topMakes: response.top_makes?.map((item: any) => ({
+      topMakes: response.top_makes?.map((item: { make: string; count: number }) => ({
         make: item.make || '',
         count: item.count || 0
       })) || [],
-      recentlyAdded: response.recently_added?.map((vehicle: any) => ({
+      recentlyAdded: response.recently_added?.map((vehicle: VehicleAPIResponse) => ({
         id: vehicle.id?.toString() || '',
         customerId: vehicle.customer_id?.toString() || '',
         make: vehicle.make || '',
@@ -489,14 +394,20 @@ export const vehicleMngtService = {
         updatedAt: vehicle.updated_at || new Date().toISOString(),
         lastServiceDate: vehicle.last_service_date,
         nextServiceDue: vehicle.next_service_due,
-        repairHistory: vehicle.repair_history || []
+        repairHistory: vehicle.repair_history || [],
+        customer: vehicle.customer ? {
+          id: vehicle.customer.id?.toString() || '',
+          name: vehicle.customer.name ,
+          email: vehicle.customer.email || '',
+          phone: vehicle.customer.phone_number || vehicle.customer.phone || ''
+        } : undefined
       })) || []
     };
   },
 
   // Get vehicle service history
   getVehicleServiceHistory: async (vehicleId: string): Promise<VehicleServiceHistory> => {
-    const response = await apiGet<any>(`/shop/vehicles/${vehicleId}/service-history/`);
+    const response = await apiGet<VehicleServiceHistoryAPIResponse>(`/shop/vehicles/${vehicleId}/service-history/`);
     
     return {
       vehicleId,
@@ -510,9 +421,19 @@ export const vehicleMngtService = {
 
   // Get vehicles due for service
   getVehiclesDueForService: async (days: number = 30): Promise<Vehicle[]> => {
-    const response = await apiGet<any>(`/shop/vehicles/service-due/?days=${days}`);
+    const response = await apiGet<VehicleListAPIResponse>(`/shop/vehicles/service-due/?days=${days}`);
     
-    return response.vehicles?.map((vehicle: any) => ({
+    // Handle different response structures - API might return array directly or wrapped
+    let vehicleArray: VehicleRawData[] = [];
+    if (Array.isArray(response)) {
+      vehicleArray = response as VehicleRawData[];
+    } else if (Array.isArray((response as VehicleListAPIResponse).results)) {
+      vehicleArray = (response as VehicleListAPIResponse).results as VehicleRawData[];
+    } else if (Array.isArray((response as VehicleListAPIResponse).vehicles)) {
+      vehicleArray = (response as VehicleListAPIResponse).vehicles as VehicleRawData[];
+    }
+
+    return vehicleArray.map((vehicle: VehicleRawData) => ({
       id: vehicle.id?.toString() || '',
       customerId: vehicle.customer_id?.toString() || '',
       make: vehicle.make || '',
@@ -540,7 +461,7 @@ export const vehicleMngtService = {
       lastServiceDate: vehicle.last_service_date,
       nextServiceDue: vehicle.next_service_due,
       repairHistory: vehicle.repair_history || []
-    })) || [];
+    }));
   },
 
   // Update vehicle mileage
@@ -551,7 +472,7 @@ export const vehicleMngtService = {
   // Get vehicle by VIN
   getVehicleByVin: async (vin: string): Promise<Vehicle | null> => {
     try {
-      const response = await apiGet<any>(`/shop/vehicles/vin/${vin}/`);
+      const response = await apiGet<VehicleAPIResponse>(`/shop/vehicles/vin/${vin}/`);
       
       return {
         id: response.id?.toString() || '',
@@ -560,7 +481,7 @@ export const vehicleMngtService = {
         model: response.model || '',
         year: response.year || new Date().getFullYear(),
         vin: response.vin || '',
-        licensePlate: response.license_plate || '',
+        license_plate: response.license_plate || '',
         color: response.color,
         engine: response.engine,
         transmission: response.transmission,
@@ -572,9 +493,7 @@ export const vehicleMngtService = {
         updatedAt: response.updated_at || new Date().toISOString(),
         customer: response.customer ? {
           id: response.customer.id?.toString() || '',
-          name: response.customer.name || `${response.customer.first_name || ''} ${response.customer.last_name || ''}`.trim(),
-          firstName: response.customer.first_name || '',
-          lastName: response.customer.last_name || '',
+          name: response.customer.name ,
           email: response.customer.email || '',
           phone: response.customer.phone_number || response.customer.phone || ''
         } : undefined,
@@ -582,7 +501,7 @@ export const vehicleMngtService = {
         nextServiceDue: response.next_service_due,
         repairHistory: response.repair_history || []
       };
-    } catch (error) {
+    } catch {
       return null;
     }
   }

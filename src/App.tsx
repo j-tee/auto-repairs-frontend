@@ -17,6 +17,7 @@ import { VehicleManagement } from "./pages/VehicleManagement";
 import { CustomerManagement } from "./pages/CustomerManagement";
 import { AppointmentManagement } from "./pages/AppointmentManagement";
 import { RepairManagement } from "./pages/RepairManagement";
+import { RepairOrderManagement } from "./pages/RepairOrderManagement";
 import { ServiceCatalogManagement } from "./pages/ServiceCatalogManagement";
 import { useAuth } from "./hooks/useAuth";
 import { useAppDispatch } from "./store";
@@ -128,6 +129,14 @@ const AppContent: React.FC = () => {
           />
           <Route
             path="/repair-orders"
+            element={
+              <ProtectedRoute requiredRole="employee">
+                <RepairOrderManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/repair-management"
             element={
               <ProtectedRoute requiredRole="employee">
                 <RepairManagement />

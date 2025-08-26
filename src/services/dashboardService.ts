@@ -1,7 +1,8 @@
 import { appointmentMngtService, type AppointmentStats } from './appointmentMngtService';
 import { customerMngtService, type CustomerStats } from './customerMngtService';
 import { vehicleMngtService } from './vehicleMngtService';
-import { repairOrderMngtService, type RepairOrderStats } from './repairOrderMngtService';
+import { repairOrderMngtService } from './repairOrderMngtService';
+import type { RepairOrderStatsAPIResponse } from '../types/repairOrders';
 import { shopMngtService, type ShopStats } from './shopMngtService';
 
 // Dashboard Statistics Types
@@ -26,7 +27,7 @@ export interface DashboardStats {
   // Detailed breakdown
   appointments?: AppointmentStats;
   customers?: CustomerStats;
-  repairOrders?: RepairOrderStats;
+  repairOrders?: RepairOrderStatsAPIResponse;
   shop?: ShopStats;
 }
 
@@ -56,31 +57,28 @@ export const dashboardService = {
         // Customer-specific statistics
         if (userId) {
           try {
-            // Get customer appointments
+            // Get customer appointments - Fixed field names
             const appointmentResponse = await appointmentMngtService.getAppointments({
-              customerId: userId,
-              limit: 1000
+              customer_id: userId,
+              page_size: 1000
             });
             
-            // Get customer vehicles
+            // Get customer vehicles - Using frontend interface field names
             const vehiclesResponse = await vehicleMngtService.getVehicles({
               customerId: userId,
               limit: 1000
             });
             
-            // Get customer repair orders
-            const repairOrdersResponse = await repairOrderMngtService.getRepairOrders({
-              customerId: userId,
-              limit: 1000
-            });
+            // Get customer repair orders - Using frontend interface field names
+            const repairOrdersResponse = await repairOrderMngtService.getRepairOrdersByCustomer(parseInt(userId));
             
             stats.customerVehicles = vehiclesResponse.vehicles?.length || 0;
             stats.customerActiveAppointments = appointmentResponse.appointments.filter(
               apt => ['scheduled', 'confirmed', 'in_progress'].includes(apt.status)
             ).length;
-            stats.customerRepairOrders = repairOrdersResponse.repairOrders?.length || 0;
-            stats.customerTotalSpent = repairOrdersResponse.repairOrders?.reduce(
-              (sum, order) => sum + (order.total || 0), 0
+            stats.customerRepairOrders = repairOrdersResponse.length || 0;
+            stats.customerTotalSpent = repairOrdersResponse.reduce(
+              (sum: number, order) => sum + (order.total || 0), 0
             ) || 0;
             
           } catch (error) {
@@ -96,21 +94,24 @@ export const dashboardService = {
       } else {
         // Employee/Owner statistics - fetch from all services
         try {
-          // Get appointment statistics - Use existing appointments endpoint
-          const appointmentsResponse = await appointmentMngtService.getAppointments({ limit: 1000 });
+          // Get appointment statistics - Use existing appointments endpoint with correct field names
+          const appointmentsResponse = await appointmentMngtService.getAppointments({ page_size: 1000 });
           const appointments = appointmentsResponse.appointments;
           
-          // Calculate today's appointments
+          // Calculate today's appointments - use the 'date' field from backend
           const today = new Date().toISOString().split('T')[0];
-          stats.todaysAppointments = appointments.filter(apt => 
-            apt.scheduledDate === today
-          ).length;
+          stats.todaysAppointments = appointments.filter(apt => {
+            // Backend returns single 'date' field, frontend transforms to scheduledDate
+            const appointmentDate = apt.scheduledDate || apt.appointmentDate;
+            return appointmentDate === today;
+          }).length;
           
           // Calculate monthly appointments (completed this month)
           const thisMonth = new Date().toISOString().substring(0, 7); // YYYY-MM
-          stats.monthlyAppointments = appointments.filter(apt => 
-            apt.scheduledDate.startsWith(thisMonth) && apt.status === 'completed'
-          ).length;
+          stats.monthlyAppointments = appointments.filter(apt => {
+            const appointmentDate = apt.scheduledDate || apt.appointmentDate;
+            return appointmentDate && appointmentDate.startsWith(thisMonth) && apt.status === 'completed';
+          }).length;
           
         } catch (error) {
           console.warn('Error fetching appointment stats:', error);
@@ -147,7 +148,7 @@ export const dashboardService = {
         }
 
         try {
-          // Get customer statistics - Use existing customers endpoint
+          // Get customer statistics - Use existing customers endpoint with frontend field names
           const customersResponse = await customerMngtService.getCustomers({ limit: 1000 });
           const customers = customersResponse.customers;
           
@@ -204,9 +205,9 @@ export const dashboardService = {
     try {
       const today = new Date().toISOString().split('T')[0];
       const response = await appointmentMngtService.getAppointments({
-        dateFrom: today,
-        dateTo: today,
-        limit: 1 // We only need the count
+        date_from: today,
+        date_to: today,
+        page_size: 1 // We only need the count
       });
       return response.total;
     } catch (error) {
@@ -245,13 +246,11 @@ export const dashboardService = {
     try {
       const today = new Date().toISOString().split('T')[0];
       const response = await repairOrderMngtService.getRepairOrders({
-        status: 'completed',
-        dateFrom: today,
-        dateTo: today,
-        limit: 100 // Get all today's completed orders
+        date_from: today,
+        date_to: today
       });
       
-      return response.repairOrders.reduce((total, order) => {
+      return response.reduce((total: number, order) => {
         return total + (order.total || 0);
       }, 0);
     } catch (error) {

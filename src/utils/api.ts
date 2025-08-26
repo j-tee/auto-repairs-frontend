@@ -89,11 +89,6 @@ apiClient.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    // Add request timestamp for debugging (store in a WeakMap to avoid modifying axios types)
-    const requestMetadata = new WeakMap();
-    requestMetadata.set(config, { startTime: new Date() });
-    (config as any).__metadata = requestMetadata.get(config);
-
     // Log requests in development
     if (import.meta.env.DEV) {
       console.log(`🚀 ${config.method?.toUpperCase()} ${config.url}`, {
@@ -113,15 +108,9 @@ apiClient.interceptors.request.use(
 // Response interceptor for error handling
 apiClient.interceptors.response.use(
   (response) => {
-    // Calculate request duration
-    const metadata = (response.config as any).__metadata;
-    const duration = metadata?.startTime 
-      ? new Date().getTime() - metadata.startTime.getTime()
-      : 0;
-
     // Log successful responses in development
     if (import.meta.env.DEV) {
-      console.log(`✅ ${response.config.method?.toUpperCase()} ${response.config.url} (${duration}ms)`, response.data);
+      console.log(`✅ ${response.config.method?.toUpperCase()} ${response.config.url}`, response.data);
     }
     return response;
   },
@@ -169,7 +158,7 @@ const handleAxiosError = (error: AxiosError): ApiError => {
 // Utility function to build query string
 export const buildQueryString = (params: ApiQueryParams): string => {
   const filteredParams = Object.fromEntries(
-    Object.entries(params).filter(([_, value]) => value !== undefined && value !== null && value !== '')
+    Object.entries(params).filter(([, value]) => value !== undefined && value !== null && value !== '')
   );
   
   return qs.stringify(filteredParams, QS_CONFIG);

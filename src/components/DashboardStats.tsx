@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Card, Row, Col, Spinner, Alert } from "react-bootstrap";
-import { appointmentMngtService, vehicleProblemService } from "../services";
+import { appointmentMngtService, vehicleProblemMngtService } from "../services";
 import "./DashboardStats.scss";
 
 interface DashboardStatsProps {
@@ -48,16 +48,20 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({
         // Load appointment and problem stats in parallel for better performance
         const [appointmentStats, problemStats] = await Promise.all([
           appointmentMngtService.getAppointmentStats(),
-          vehicleProblemService.getProblemStats(),
+          vehicleProblemMngtService.getProblemStats(),
         ]);
 
         setStats({
           appointments: appointmentStats,
           problems: problemStats,
         });
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Error loading dashboard stats:", err);
-        setError(err.message || "Failed to load dashboard statistics");
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError("Failed to load dashboard statistics");
+        }
       } finally {
         setLoading(false);
       }

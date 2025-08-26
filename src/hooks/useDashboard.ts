@@ -15,12 +15,12 @@ import { ApiError } from '../utils/api';
 
 // Dashboard summary interface
 interface DashboardSummary {
-  vehicles: any[];
-  customers: any[];
-  repairOrders: any[];
-  appointments: any[];
-  employees: any[];
-  shops: any[];
+  vehicles: unknown[];
+  customers: unknown[];
+  repairOrders: unknown[];
+  appointments: unknown[];
+  employees: unknown[];
+  shops: unknown[];
   totalCounts: {
     vehicles: number;
     customers: number;
@@ -94,7 +94,7 @@ export const useDashboard = (): DashboardHookReturn => {
 
       // Filter results by search query
       const vehicles = vehicleResults.status === 'fulfilled' 
-        ? vehicleResults.value.vehicles.filter((v: any) => 
+        ? vehicleResults.value.vehicles.filter((v: unknown) => 
             v.make?.toLowerCase().includes(query.toLowerCase()) ||
             v.model?.toLowerCase().includes(query.toLowerCase()) ||
             v.licensePlate?.toLowerCase().includes(query.toLowerCase()) ||
@@ -103,7 +103,7 @@ export const useDashboard = (): DashboardHookReturn => {
         : [];
 
       const customers = customerResults.status === 'fulfilled'
-        ? customerResults.value.customers.filter((c: any) => 
+        ? customerResults.value.customers.filter((c: unknown) => 
             c.name?.toLowerCase().includes(query.toLowerCase()) ||
             c.firstName?.toLowerCase().includes(query.toLowerCase()) ||
             c.lastName?.toLowerCase().includes(query.toLowerCase()) ||
@@ -113,7 +113,7 @@ export const useDashboard = (): DashboardHookReturn => {
         : [];
 
       const repairOrders = repairOrderResults.status === 'fulfilled'
-        ? repairOrderResults.value.repairOrders.filter((r: any) => 
+        ? (repairOrderResults.value.repairOrders || []).filter((r: unknown) => 
             r.description?.toLowerCase().includes(query.toLowerCase()) ||
             r.workOrderNumber?.toLowerCase().includes(query.toLowerCase()) ||
             r.customerComplaints?.toLowerCase().includes(query.toLowerCase())
@@ -121,13 +121,13 @@ export const useDashboard = (): DashboardHookReturn => {
         : [];
 
       const appointments = appointmentResults.status === 'fulfilled'
-        ? appointmentResults.value.appointments.filter((a: any) => 
+        ? appointmentResults.value.appointments.filter((a: unknown) => 
             a.description?.toLowerCase().includes(query.toLowerCase())
           )
         : [];
 
       const employees = employeeResults.status === 'fulfilled'
-        ? employeeResults.value.employees.filter((e: any) => 
+        ? employeeResults.value.employees.filter((e: unknown) => 
             e.firstName?.toLowerCase().includes(query.toLowerCase()) ||
             e.lastName?.toLowerCase().includes(query.toLowerCase()) ||
             e.email?.toLowerCase().includes(query.toLowerCase())
@@ -135,7 +135,7 @@ export const useDashboard = (): DashboardHookReturn => {
         : [];
 
       const shops = shopResults.status === 'fulfilled'
-        ? shopResults.value.shops.filter((s: any) => 
+        ? shopResults.value.shops.filter((s: unknown) => 
             s.name?.toLowerCase().includes(query.toLowerCase()) ||
             s.address?.toLowerCase().includes(query.toLowerCase())
           )
@@ -169,7 +169,7 @@ export const useDashboard = (): DashboardHookReturn => {
         query,
         vehicleCount: vehicles.length,
         customerCount: customers.length,
-        repairOrderCount: repairOrders.length,
+        repairOrderCount: (repairOrders || []).length,
         appointmentCount: appointments.length,
         employeeCount: employees.length,
         shopCount: shops.length
@@ -248,14 +248,14 @@ export const useDashboard = (): DashboardHookReturn => {
       const result: DashboardSummary = {
         vehicles,
         customers,
-        repairOrders,
+        repairOrders: repairOrders || [],
         appointments,
         employees,
         shops,
         totalCounts: {
           vehicles: vehicles.length,
           customers: customers.length,
-          repairOrders: repairOrders.length,
+          repairOrders: (repairOrders || []).length,
           appointments: appointments.length,
           employees: employees.length,
           shops: shops.length
@@ -272,7 +272,7 @@ export const useDashboard = (): DashboardHookReturn => {
       console.log('🎯 Dashboard.loadAll() completed:', {
         vehicleCount: vehicles.length,
         customerCount: customers.length,
-        repairOrderCount: repairOrders.length,
+        repairOrderCount: (repairOrders || []).length,
         appointmentCount: appointments.length,
         employeeCount: employees.length,
         shopCount: shops.length
@@ -343,7 +343,7 @@ export const useDashboard = (): DashboardHookReturn => {
  */
 export const useDashboardTest = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const [lastResult, setLastResult] = useState<any>(null);
+  const [lastResult, setLastResult] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
 
   const testVehicleSearch = useCallback(async (query: string) => {
@@ -351,7 +351,7 @@ export const useDashboardTest = () => {
       setIsLoading(true);
       setError(null);
       const result = await vehicleMngtService.getVehicles({ limit: 10 });
-      const filtered = result.vehicles.filter((v: any) =>
+      const filtered = result.vehicles.filter((v: unknown) =>
         v.make?.toLowerCase().includes(query.toLowerCase()) ||
         v.model?.toLowerCase().includes(query.toLowerCase()) ||
         v.licensePlate?.toLowerCase().includes(query.toLowerCase())
@@ -372,7 +372,7 @@ export const useDashboardTest = () => {
       setIsLoading(true);
       setError(null);
       const result = await customerMngtService.getCustomers({ limit: 10 });
-      const filtered = result.customers.filter((c: any) =>
+      const filtered = result.customers.filter((c: unknown) =>
         c.name?.toLowerCase().includes(query.toLowerCase()) ||
         c.email?.toLowerCase().includes(query.toLowerCase()) ||
         c.phone?.toLowerCase().includes(query.toLowerCase())
@@ -393,7 +393,7 @@ export const useDashboardTest = () => {
       setIsLoading(true);
       setError(null);
       const result = await repairOrderMngtService.getRepairOrders({ limit: 10 });
-      const filtered = result.repairOrders.filter((r: any) =>
+      const filtered = (result.repairOrders || []).filter((r: unknown) =>
         r.description?.toLowerCase().includes(query.toLowerCase()) ||
         r.workOrderNumber?.toLowerCase().includes(query.toLowerCase())
       );

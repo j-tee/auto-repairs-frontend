@@ -1,3 +1,10 @@
+// Extend Window interface for debugAuth property
+declare global {
+  interface Window {
+    debugAuth?: typeof debugAuthStatus;
+  }
+}
+
 // Debug utility to check auth token status
 export const debugAuthStatus = () => {
   console.log('=== AUTH DEBUG STATUS ===');
@@ -43,6 +50,6 @@ export const debugAuthStatus = () => {
 
 // Auto-run debug in development
 if (import.meta.env.DEV) {
-  (window as any).debugAuth = debugAuthStatus;
+  (window as Window & typeof globalThis).debugAuth = debugAuthStatus;
   console.log('Debug auth function available as window.debugAuth()');
 }

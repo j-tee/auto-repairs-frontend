@@ -6,7 +6,6 @@ import {
   logoutUser,
   refreshToken,
   getCurrentUser,
-  initializeAuth,
   requestPasswordReset,
   resetPassword,
   updateProfile,

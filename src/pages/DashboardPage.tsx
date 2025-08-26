@@ -23,16 +23,15 @@ export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
 
   // Modal states
-  const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [showVehicleModal, setShowVehicleModal] = useState(false);
-  const [showAppointmentModal, setShowAppointmentModal] = useState(false);
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [showRepairOrderModal, setShowRepairOrderModal] = useState(false);
   const [showProblemModal, setShowProblemModal] = useState(false);
 
   // Success message
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const handleSuccess = (entityType: string, _data: any) => {
+  const handleSuccess = (entityType: string) => {
     setSuccessMessage(`${entityType} created successfully!`);
     setTimeout(() => setSuccessMessage(null), 5000);
   };
@@ -67,8 +66,8 @@ export const DashboardPage: React.FC = () => {
         {
           title: "Book Appointment",
           icon: "📅",
-          action: () => setShowAppointmentModal(true),
-          variant: "primary" as const,
+          action: () => {}, // TODO: Implement appointment modal
+          variant: "secondary" as const,
           description: "Schedule service",
         },
       ];
@@ -80,8 +79,8 @@ export const DashboardPage: React.FC = () => {
         {
           title: "Schedule Service",
           icon: "📅",
-          action: () => setShowAppointmentModal(true),
-          variant: "primary" as const,
+          action: () => {}, // TODO: Implement appointment modal
+          variant: "secondary" as const,
           description: "Book appointment",
         },
         {
@@ -174,13 +173,13 @@ export const DashboardPage: React.FC = () => {
       <AddCustomerModal
         show={showCustomerModal}
         onHide={() => setShowCustomerModal(false)}
-        onSuccess={(data) => handleSuccess("Customer", data)}
+        onSuccess={() => handleSuccess("Customer")}
       />
 
       <AddVehicleModal
         show={showVehicleModal}
         onHide={() => setShowVehicleModal(false)}
-        onSuccess={(data) => handleSuccess("Vehicle", data)}
+        onSuccess={() => handleSuccess("Vehicle")}
       />
 
       {/* TODO: AddAppointmentModal needs to be implemented */}
@@ -195,13 +194,13 @@ export const DashboardPage: React.FC = () => {
       <AddRepairOrderModal
         show={showRepairOrderModal}
         onHide={() => setShowRepairOrderModal(false)}
-        onSuccess={(data) => handleSuccess("Repair Order", data)}
+        onSuccess={() => handleSuccess("Repair Order")}
       />
 
       <AddVehicleProblemModal
         show={showProblemModal}
         onHide={() => setShowProblemModal(false)}
-        onSuccess={(data) => handleSuccess("Problem Report", data)}
+        onSuccess={() => handleSuccess("Problem Report")}
       />
     </Container>
   );

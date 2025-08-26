@@ -1,5 +1,36 @@
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api';
 
+// API Response interfaces
+interface PartAPIResponse {
+  id: number | string;
+  name: string;
+  part_number?: string;
+  partNumber?: string;
+  description: string;
+  brand: string;
+  category: string;
+  price: string | number;
+  cost: string | number;
+  quantity: string | number;
+  minimum_stock?: number;
+  minimumStock?: number;
+  location: string;
+  is_active?: boolean;
+  shop_id?: number | string;
+  shop?: number | string;
+  created_at?: string;
+  createdAt?: string;
+  updated_at?: string;
+  updatedAt?: string;
+}
+
+interface PartListResponse {
+  results?: PartAPIResponse[];
+  count?: number;
+  next?: string;
+  previous?: string;
+}
+
 // Part types
 export interface Part {
   id: string;
@@ -60,6 +91,19 @@ export interface PartQuery {
   offset?: number;
 }
 
+// Utility functions for safe type conversion
+const safeParseFloat = (value: string | number | undefined | null): number => {
+  if (value === null || value === undefined) return 0;
+  const parsed = parseFloat(String(value));
+  return isNaN(parsed) ? 0 : parsed;
+};
+
+const safeParseInt = (value: string | number | undefined | null): number => {
+  if (value === null || value === undefined) return 0;
+  const parsed = parseInt(String(value), 10);
+  return isNaN(parsed) ? 0 : parsed;
+};
+
 // Parts Management Service
 export const partMngtService = {
   // Get all parts
@@ -76,22 +120,22 @@ export const partMngtService = {
     if (query.offset) params.append('offset', query.offset.toString());
     
     const endpoint = `/shop/parts/${params.toString() ? `?${params.toString()}` : ''}`;
-    const response = await apiGet<any>(endpoint);
+    const response = await apiGet<PartListResponse | PartAPIResponse[]>(endpoint);
     
     // Handle both paginated and non-paginated responses
-    const parts = response.results || response;
+    const parts = Array.isArray(response) ? response : (response.results || []);
     
-    return parts.map((part: any): Part => ({
+    return parts.map((part: PartAPIResponse): Part => ({
       id: part.id?.toString() || '',
       name: part.name || '',
       partNumber: part.part_number || part.partNumber || '',
       description: part.description || '',
       brand: part.brand || '',
       category: part.category || '',
-      price: parseFloat(part.price) || 0,
-      cost: parseFloat(part.cost) || 0,
-      quantity: parseInt(part.quantity) || 0,
-      minimumStock: parseInt(part.minimum_stock || part.minimumStock) || 0,
+      price: safeParseFloat(part.price),
+      cost: safeParseFloat(part.cost),
+      quantity: safeParseInt(part.quantity),
+      minimumStock: safeParseInt(part.minimum_stock || part.minimumStock),
       location: part.location || '',
       isActive: part.is_active ?? true,
       shopId: part.shop_id?.toString() || part.shop?.toString() || '',
@@ -102,7 +146,7 @@ export const partMngtService = {
 
   // Get part by ID
   getPartById: async (partId: string): Promise<Part> => {
-    const response = await apiGet<any>(`/shop/parts/${partId}/`);
+    const response = await apiGet<PartAPIResponse>(`/shop/parts/${partId}/`);
     
     return {
       id: response.id?.toString() || '',
@@ -111,10 +155,10 @@ export const partMngtService = {
       description: response.description || '',
       brand: response.brand || '',
       category: response.category || '',
-      price: parseFloat(response.price) || 0,
-      cost: parseFloat(response.cost) || 0,
-      quantity: parseInt(response.quantity) || 0,
-      minimumStock: parseInt(response.minimum_stock || response.minimumStock) || 0,
+      price: safeParseFloat(response.price),
+      cost: safeParseFloat(response.cost),
+      quantity: safeParseInt(response.quantity),
+      minimumStock: safeParseInt(response.minimum_stock || response.minimumStock),
       location: response.location || '',
       isActive: response.is_active ?? true,
       shopId: response.shop_id?.toString() || response.shop?.toString() || '',
@@ -140,7 +184,7 @@ export const partMngtService = {
       is_active: partData.isActive ?? true
     };
     
-    const response = await apiPost<any>('/shop/parts/', createData);
+    const response = await apiPost<PartAPIResponse>('/shop/parts/', createData);
     
     return {
       id: response.id?.toString() || '',
@@ -149,10 +193,10 @@ export const partMngtService = {
       description: response.description || '',
       brand: response.brand || '',
       category: response.category || '',
-      price: parseFloat(response.price) || 0,
-      cost: parseFloat(response.cost) || 0,
-      quantity: parseInt(response.quantity) || 0,
-      minimumStock: parseInt(response.minimum_stock || response.minimumStock) || 0,
+      price: safeParseFloat(response.price),
+      cost: safeParseFloat(response.cost),
+      quantity: safeParseInt(response.quantity),
+      minimumStock: safeParseInt(response.minimum_stock || response.minimumStock),
       location: response.location || '',
       isActive: response.is_active ?? true,
       shopId: response.shop_id?.toString() || response.shop?.toString() || '',
@@ -163,7 +207,7 @@ export const partMngtService = {
 
   // Update part
   updatePart: async (partId: string, partData: UpdatePartData): Promise<Part> => {
-    const updateData: any = {};
+    const updateData: Partial<PartAPIResponse> = {};
     
     if (partData.name !== undefined) updateData.name = partData.name;
     if (partData.partNumber !== undefined) updateData.part_number = partData.partNumber;
@@ -178,7 +222,7 @@ export const partMngtService = {
     if (partData.shopId !== undefined) updateData.shop_id = partData.shopId;
     if (partData.isActive !== undefined) updateData.is_active = partData.isActive;
     
-    const response = await apiPut<any>(`/shop/parts/${partId}/`, updateData);
+    const response = await apiPut<PartAPIResponse>(`/shop/parts/${partId}/`, updateData);
     
     return {
       id: response.id?.toString() || '',
@@ -187,10 +231,10 @@ export const partMngtService = {
       description: response.description || '',
       brand: response.brand || '',
       category: response.category || '',
-      price: parseFloat(response.price) || 0,
-      cost: parseFloat(response.cost) || 0,
-      quantity: parseInt(response.quantity) || 0,
-      minimumStock: parseInt(response.minimum_stock || response.minimumStock) || 0,
+      price: safeParseFloat(response.price),
+      cost: safeParseFloat(response.cost),
+      quantity: safeParseInt(response.quantity),
+      minimumStock: safeParseInt(response.minimum_stock || response.minimumStock),
       location: response.location || '',
       isActive: response.is_active ?? true,
       shopId: response.shop_id?.toString() || response.shop?.toString() || '',
@@ -207,21 +251,21 @@ export const partMngtService = {
   // Get low stock parts
   getLowStockParts: async (shopId?: string): Promise<Part[]> => {
     const endpoint = `/shop/parts/low_stock/${shopId ? `?shop_id=${shopId}` : ''}`;
-    const response = await apiGet<any>(endpoint);
+    const response = await apiGet<PartListResponse | PartAPIResponse[]>(endpoint);
     
-    const parts = response.results || response;
+    const parts = Array.isArray(response) ? response : (response.results || []);
     
-    return parts.map((part: any): Part => ({
+    return parts.map((part: PartAPIResponse): Part => ({
       id: part.id?.toString() || '',
       name: part.name || '',
       partNumber: part.part_number || part.partNumber || '',
       description: part.description || '',
       brand: part.brand || '',
       category: part.category || '',
-      price: parseFloat(part.price) || 0,
-      cost: parseFloat(part.cost) || 0,
-      quantity: parseInt(part.quantity) || 0,
-      minimumStock: parseInt(part.minimum_stock || part.minimumStock) || 0,
+      price: safeParseFloat(part.price),
+      cost: safeParseFloat(part.cost),
+      quantity: safeParseInt(part.quantity),
+      minimumStock: safeParseInt(part.minimum_stock || part.minimumStock),
       location: part.location || '',
       isActive: part.is_active ?? true,
       shopId: part.shop_id?.toString() || part.shop?.toString() || '',

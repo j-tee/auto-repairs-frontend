@@ -1,7 +1,7 @@
 // Business validation rules for automotive industry
 export interface ValidationRule {
   field: string;
-  rule: (value: any) => string | null;
+  rule: (value: unknown) => string | null;
   message: string;
 }
 
@@ -261,7 +261,7 @@ export class AutomotiveValidation {
   }
 
   // Comprehensive form validation
-  static validateForm(formType: string, formData: any): Record<string, string> {
+  static validateForm(formType: string, formData: unknown): Record<string, string> {
     const errors: Record<string, string> = {};
     
     switch (formType) {

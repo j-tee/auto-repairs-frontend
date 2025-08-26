@@ -1,255 +1,235 @@
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api';
+import type {
+  VehicleProblem,
+  VehicleProblemAPIResponse,
+  VehicleProblemListAPIResponse,
+  VehicleProblemCreateRequest,
+  CreateVehicleProblemData,
+  UpdateVehicleProblemData,
+  VehicleProblemQuery
+} from '../types/vehicles';
 
-// Vehicle Problem types
-export interface VehicleProblem {
-  id: string;
-  vehicleId: string;
-  title: string;
-  description: string;
-  severity: 'low' | 'medium' | 'high' | 'critical';
-  status: 'open' | 'in_progress' | 'resolved' | 'closed';
-  reportedDate: string;
-  resolvedDate?: string;
-  estimatedCost?: number;
-  actualCost?: number;
-  notes?: string;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-  // Related data
-  vehicle?: {
-    id: string;
-    make: string;
-    model: string;
-    year: number;
-    licensePlate: string;
+// Transformation helper functions
+const extractTitle = (description: string): string => {
+  const title = description.split('.')[0] || description;
+  return title.length > 50 ? title.substring(0, 47) + '...' : title;
+};
+
+const inferSeverity = (description: string): 'low' | 'medium' | 'high' | 'critical' => {
+  const desc = description.toLowerCase();
+  
+  if (desc.includes('critical') || desc.includes('emergency') || desc.includes('dangerous')) {
+    return 'critical';
+  }
+  if (desc.includes('urgent') || desc.includes('leak') || desc.includes('brake')) {
+    return 'high';
+  }
+  if (desc.includes('noise') || desc.includes('warning') || desc.includes('light')) {
+    return 'medium';
+  }
+  return 'low';
+};
+
+const estimateResolvedDate = (reportedDate: string): string => {
+  // Add 3-7 days to reported date as estimate
+  const reported = new Date(reportedDate);
+  const resolved = new Date(reported.getTime() + (Math.random() * 4 + 3) * 24 * 60 * 60 * 1000);
+  return resolved.toISOString();
+};
+
+const transformProblemData = (backendData: VehicleProblemAPIResponse): VehicleProblem => {
+  return {
+    // Direct mappings with type conversion
+    id: backendData.id.toString(),
+    vehicleId: backendData.vehicle.id.toString(),
+    description: backendData.description,
+    reportedDate: backendData.reported_date,
+    reported_date: backendData.reported_date,
+    
+    // Transform resolved boolean to status
+    status: backendData.resolved ? 'resolved' : 'open',
+    resolved: backendData.resolved,
+    
+    // Generate missing fields from description
+    title: extractTitle(backendData.description),
+    severity: inferSeverity(backendData.description),
+    
+    // Provide defaults for missing complex fields
+    estimatedCost: undefined,
+    actualCost: undefined,
+    resolvedDate: backendData.resolved ? estimateResolvedDate(backendData.reported_date) : undefined,
+    notes: '',
+    isActive: true,
+    createdAt: backendData.reported_date,
+    updatedAt: backendData.reported_date,
+    
+    // Vehicle details - store full vehicle object
+    vehicle: backendData.vehicle
   };
-}
+};
 
-export interface CreateVehicleProblemData {
-  vehicleId: string;
-  title: string;
-  description: string;
-  severity: 'low' | 'medium' | 'high' | 'critical';
-  estimatedCost?: number;
-  notes?: string;
-}
-
-export interface UpdateVehicleProblemData {
-  vehicleId?: string;
-  title?: string;
-  description?: string;
-  severity?: 'low' | 'medium' | 'high' | 'critical';
-  status?: 'open' | 'in_progress' | 'resolved' | 'closed';
-  estimatedCost?: number;
-  actualCost?: number;
-  notes?: string;
-  resolvedDate?: string;
-}
-
-export interface VehicleProblemQuery {
-  vehicleId?: string;
-  status?: 'open' | 'in_progress' | 'resolved' | 'closed';
-  severity?: 'low' | 'medium' | 'high' | 'critical';
-  search?: string;
-  dateFrom?: string;
-  dateTo?: string;
-  limit?: number;
-  offset?: number;
-}
+const transformToBackend = (frontendData: CreateVehicleProblemData | UpdateVehicleProblemData): VehicleProblemCreateRequest => {
+  let description = frontendData.description || '';
+  
+  // If we have title and notes, combine them
+  if ('title' in frontendData && frontendData.title && frontendData.title !== extractTitle(description)) {
+    description = frontendData.title + (frontendData.notes ? `: ${frontendData.notes}` : '');
+  }
+  
+  return {
+    vehicle_id: parseInt(frontendData.vehicleId || '0'),
+    description: description,
+    resolved: 'status' in frontendData ? frontendData.status === 'resolved' : false
+  };
+};
 
 // Vehicle Problems Management Service
 export const vehicleProblemMngtService = {
   // Get all vehicle problems
   getVehicleProblems: async (query: VehicleProblemQuery = {}): Promise<VehicleProblem[]> => {
-    const params = new URLSearchParams();
-    
-    if (query.vehicleId) params.append('vehicle_id', query.vehicleId);
-    if (query.status) params.append('status', query.status);
-    if (query.severity) params.append('severity', query.severity);
-    if (query.search) params.append('search', query.search);
-    if (query.dateFrom) params.append('date_from', query.dateFrom);
-    if (query.dateTo) params.append('date_to', query.dateTo);
-    if (query.limit) params.append('limit', query.limit.toString());
-    if (query.offset) params.append('offset', query.offset.toString());
-    
-    const endpoint = `/shop/vehicle-problems/${params.toString() ? `?${params.toString()}` : ''}`;
-    const response = await apiGet<any>(endpoint);
-    
-    // Handle both paginated and non-paginated responses
-    const problems = response.results || response;
-    
-    return problems.map((problem: any): VehicleProblem => ({
-      id: problem.id?.toString() || '',
-      vehicleId: problem.vehicle_id?.toString() || problem.vehicle?.toString() || '',
-      title: problem.title || '',
-      description: problem.description || '',
-      severity: problem.severity || 'medium',
-      status: problem.status || 'open',
-      reportedDate: problem.reported_date || problem.reportedDate || new Date().toISOString(),
-      resolvedDate: problem.resolved_date || problem.resolvedDate,
-      estimatedCost: problem.estimated_cost ? parseFloat(problem.estimated_cost) : undefined,
-      actualCost: problem.actual_cost ? parseFloat(problem.actual_cost) : undefined,
-      notes: problem.notes || '',
-      isActive: problem.is_active ?? true,
-      createdAt: problem.created_at || problem.createdAt || new Date().toISOString(),
-      updatedAt: problem.updated_at || problem.updatedAt || new Date().toISOString(),
-      vehicle: problem.vehicle_details ? {
-        id: problem.vehicle_details.id?.toString() || '',
-        make: problem.vehicle_details.make || '',
-        model: problem.vehicle_details.model || '',
-        year: parseInt(problem.vehicle_details.year) || 0,
-        licensePlate: problem.vehicle_details.license_plate || problem.vehicle_details.licensePlate || ''
-      } : undefined
-    }));
+    try {
+      console.log('🔄 Loading vehicle problems from backend...');
+      
+      const params = new URLSearchParams();
+      
+      if (query.vehicleId) params.append('vehicle', query.vehicleId);
+      if (query.status === 'resolved') params.append('resolved', 'true');
+      if (query.status === 'open') params.append('resolved', 'false');
+      if (query.search) params.append('search', query.search);
+      if (query.limit) params.append('limit', query.limit.toString());
+      if (query.offset) params.append('offset', query.offset.toString());
+      
+      const endpoint = `/shop/vehicle-problems/${params.toString() ? `?${params.toString()}` : ''}`;
+      const response = await apiGet<VehicleProblemListAPIResponse>(endpoint);
+      
+      console.log(`✅ Loaded ${response.results.length} vehicle problems from backend`);
+      return response.results.map(transformProblemData);
+      
+    } catch (error: unknown) {
+      console.error('❌ Error loading vehicle problems:', error);
+      throw error;
+    }
   },
 
   // Get vehicle problem by ID
   getVehicleProblemById: async (problemId: string): Promise<VehicleProblem> => {
-    const response = await apiGet<any>(`/shop/vehicle-problems/${problemId}/`);
-    
-    return {
-      id: response.id?.toString() || '',
-      vehicleId: response.vehicle_id?.toString() || response.vehicle?.toString() || '',
-      title: response.title || '',
-      description: response.description || '',
-      severity: response.severity || 'medium',
-      status: response.status || 'open',
-      reportedDate: response.reported_date || response.reportedDate || new Date().toISOString(),
-      resolvedDate: response.resolved_date || response.resolvedDate,
-      estimatedCost: response.estimated_cost ? parseFloat(response.estimated_cost) : undefined,
-      actualCost: response.actual_cost ? parseFloat(response.actual_cost) : undefined,
-      notes: response.notes || '',
-      isActive: response.is_active ?? true,
-      createdAt: response.created_at || response.createdAt || new Date().toISOString(),
-      updatedAt: response.updated_at || response.updatedAt || new Date().toISOString(),
-      vehicle: response.vehicle_details ? {
-        id: response.vehicle_details.id?.toString() || '',
-        make: response.vehicle_details.make || '',
-        model: response.vehicle_details.model || '',
-        year: parseInt(response.vehicle_details.year) || 0,
-        licensePlate: response.vehicle_details.license_plate || response.vehicle_details.licensePlate || ''
-      } : undefined
-    };
+    try {
+      console.log(`🔄 Loading vehicle problem ${problemId} from backend...`);
+      
+      const response = await apiGet<VehicleProblemAPIResponse>(`/shop/vehicle-problems/${problemId}/`);
+      
+      console.log(`✅ Loaded vehicle problem ${problemId} from backend`);
+      return transformProblemData(response);
+      
+    } catch (error: unknown) {
+      console.error(`❌ Error loading vehicle problem ${problemId}:`, error);
+      throw error;
+    }
   },
 
   // Create new vehicle problem
   createVehicleProblem: async (problemData: CreateVehicleProblemData): Promise<VehicleProblem> => {
-    const createData = {
-      vehicle_id: problemData.vehicleId,
-      title: problemData.title,
-      description: problemData.description,
-      severity: problemData.severity,
-      estimated_cost: problemData.estimatedCost,
-      notes: problemData.notes,
-      status: 'open' as const,
-      reported_date: new Date().toISOString()
-    };
-    
-    const response = await apiPost<any>('/shop/vehicle-problems/', createData);
-    
-    return {
-      id: response.id?.toString() || '',
-      vehicleId: response.vehicle_id?.toString() || response.vehicle?.toString() || '',
-      title: response.title || '',
-      description: response.description || '',
-      severity: response.severity || 'medium',
-      status: response.status || 'open',
-      reportedDate: response.reported_date || response.reportedDate || new Date().toISOString(),
-      resolvedDate: response.resolved_date || response.resolvedDate,
-      estimatedCost: response.estimated_cost ? parseFloat(response.estimated_cost) : undefined,
-      actualCost: response.actual_cost ? parseFloat(response.actual_cost) : undefined,
-      notes: response.notes || '',
-      isActive: response.is_active ?? true,
-      createdAt: response.created_at || response.createdAt || new Date().toISOString(),
-      updatedAt: response.updated_at || response.updatedAt || new Date().toISOString()
-    };
+    try {
+      console.log('🔄 Creating vehicle problem...');
+      
+      const backendData = transformToBackend(problemData);
+      const response = await apiPost<VehicleProblemAPIResponse>('/shop/vehicle-problems/', backendData);
+      
+      console.log(`✅ Created vehicle problem ${response.id}`);
+      return transformProblemData(response);
+      
+    } catch (error: unknown) {
+      console.error('❌ Error creating vehicle problem:', error);
+      throw error;
+    }
   },
 
   // Update vehicle problem
   updateVehicleProblem: async (problemId: string, problemData: UpdateVehicleProblemData): Promise<VehicleProblem> => {
-    const updateData: any = {};
-    
-    if (problemData.vehicleId !== undefined) updateData.vehicle_id = problemData.vehicleId;
-    if (problemData.title !== undefined) updateData.title = problemData.title;
-    if (problemData.description !== undefined) updateData.description = problemData.description;
-    if (problemData.severity !== undefined) updateData.severity = problemData.severity;
-    if (problemData.status !== undefined) updateData.status = problemData.status;
-    if (problemData.estimatedCost !== undefined) updateData.estimated_cost = problemData.estimatedCost;
-    if (problemData.actualCost !== undefined) updateData.actual_cost = problemData.actualCost;
-    if (problemData.notes !== undefined) updateData.notes = problemData.notes;
-    if (problemData.resolvedDate !== undefined) updateData.resolved_date = problemData.resolvedDate;
-    
-    const response = await apiPut<any>(`/shop/vehicle-problems/${problemId}/`, updateData);
-    
-    return {
-      id: response.id?.toString() || '',
-      vehicleId: response.vehicle_id?.toString() || response.vehicle?.toString() || '',
-      title: response.title || '',
-      description: response.description || '',
-      severity: response.severity || 'medium',
-      status: response.status || 'open',
-      reportedDate: response.reported_date || response.reportedDate || new Date().toISOString(),
-      resolvedDate: response.resolved_date || response.resolvedDate,
-      estimatedCost: response.estimated_cost ? parseFloat(response.estimated_cost) : undefined,
-      actualCost: response.actual_cost ? parseFloat(response.actual_cost) : undefined,
-      notes: response.notes || '',
-      isActive: response.is_active ?? true,
-      createdAt: response.created_at || response.createdAt || new Date().toISOString(),
-      updatedAt: response.updated_at || response.updatedAt || new Date().toISOString()
-    };
+    try {
+      console.log(`🔄 Updating vehicle problem ${problemId}...`);
+      
+      const backendData = transformToBackend(problemData);
+      const response = await apiPut<VehicleProblemAPIResponse>(`/shop/vehicle-problems/${problemId}/`, backendData);
+      
+      console.log(`✅ Updated vehicle problem ${problemId}`);
+      return transformProblemData(response);
+      
+    } catch (error: unknown) {
+      console.error(`❌ Error updating vehicle problem ${problemId}:`, error);
+      throw error;
+    }
   },
 
   // Delete vehicle problem
   deleteVehicleProblem: async (problemId: string): Promise<void> => {
-    await apiDelete(`/shop/vehicle-problems/${problemId}/`);
+    try {
+      console.log(`🔄 Deleting vehicle problem ${problemId}...`);
+      
+      await apiDelete(`/shop/vehicle-problems/${problemId}/`);
+      
+      console.log(`✅ Deleted vehicle problem ${problemId}`);
+      
+    } catch (error: unknown) {
+      console.error(`❌ Error deleting vehicle problem ${problemId}:`, error);
+      throw error;
+    }
   },
 
   // Get unresolved problems
   getUnresolvedProblems: async (): Promise<VehicleProblem[]> => {
-    const response = await apiGet<any>('/shop/vehicle-problems/unresolved/');
-    const problems = response.results || response;
-    
-    return problems.map((problem: any): VehicleProblem => ({
-      id: problem.id?.toString() || '',
-      vehicleId: problem.vehicle_id?.toString() || problem.vehicle?.toString() || '',
-      title: problem.title || '',
-      description: problem.description || '',
-      severity: problem.severity || 'medium',
-      status: problem.status || 'open',
-      reportedDate: problem.reported_date || problem.reportedDate || new Date().toISOString(),
-      resolvedDate: problem.resolved_date || problem.resolvedDate,
-      estimatedCost: problem.estimated_cost ? parseFloat(problem.estimated_cost) : undefined,
-      actualCost: problem.actual_cost ? parseFloat(problem.actual_cost) : undefined,
-      notes: problem.notes || '',
-      isActive: problem.is_active ?? true,
-      createdAt: problem.created_at || problem.createdAt || new Date().toISOString(),
-      updatedAt: problem.updated_at || problem.updatedAt || new Date().toISOString(),
-      vehicle: problem.vehicle_details ? {
-        id: problem.vehicle_details.id?.toString() || '',
-        make: problem.vehicle_details.make || '',
-        model: problem.vehicle_details.model || '',
-        year: parseInt(problem.vehicle_details.year) || 0,
-        licensePlate: problem.vehicle_details.license_plate || problem.vehicle_details.licensePlate || ''
-      } : undefined
-    }));
+    try {
+      console.log('🔄 Loading unresolved problems from backend...');
+      
+      const response = await apiGet<VehicleProblemAPIResponse[]>('/shop/vehicle-problems/unresolved/');
+      
+      console.log(`✅ Loaded ${response.length} unresolved problems`);
+      return response.map(transformProblemData);
+      
+    } catch (error: unknown) {
+      console.error('❌ Error loading unresolved problems:', error);
+      throw error;
+    }
   },
 
   // Get problems by vehicle
   getProblemsByVehicle: async (vehicleId: string): Promise<VehicleProblem[]> => {
-    return vehicleProblemMngtService.getVehicleProblems({ vehicleId });
+    try {
+      console.log(`🔄 Loading problems for vehicle ${vehicleId}...`);
+      
+      const response = await apiGet<VehicleProblemAPIResponse[]>(`/shop/vehicles/${vehicleId}/problems/`);
+      
+      console.log(`✅ Loaded ${response.length} problems for vehicle ${vehicleId}`);
+      return response.map(transformProblemData);
+      
+    } catch (error: unknown) {
+      console.error(`❌ Error loading problems for vehicle ${vehicleId}:`, error);
+      // Fallback to filtering by vehicleId
+      return vehicleProblemMngtService.getVehicleProblems({ vehicleId });
+    }
   },
 
   // Resolve problem
   resolveProblem: async (problemId: string, actualCost?: number, notes?: string): Promise<VehicleProblem> => {
-    const updateData: UpdateVehicleProblemData = {
-      status: 'resolved',
-      resolvedDate: new Date().toISOString()
-    };
-    
-    if (actualCost !== undefined) updateData.actualCost = actualCost;
-    if (notes !== undefined) updateData.notes = notes;
-    
-    return vehicleProblemMngtService.updateVehicleProblem(problemId, updateData);
+    try {
+      console.log(`🔄 Resolving vehicle problem ${problemId}...`);
+      
+      const updateData: UpdateVehicleProblemData = {
+        status: 'resolved',
+        resolvedDate: new Date().toISOString()
+      };
+      
+      if (actualCost !== undefined) updateData.actualCost = actualCost;
+      if (notes !== undefined) updateData.notes = notes;
+      
+      const result = await vehicleProblemMngtService.updateVehicleProblem(problemId, updateData);
+      
+      console.log(`✅ Resolved vehicle problem ${problemId}`);
+      return result;
+      
+    } catch (error: unknown) {
+      console.error(`❌ Error resolving vehicle problem ${problemId}:`, error);
+      throw error;
+    }
   }
 };

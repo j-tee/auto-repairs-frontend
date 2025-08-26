@@ -8,3 +8,7 @@ export { AddServiceModal } from './AddServiceModal';
 export { AddPartModal } from './AddPartModal';
 export { AddEmployeeModal } from './AddEmployeeModal';
 export { AddRepairOrderModal } from './AddRepairOrderModal';
+
+// Completion system modals
+export { CostBreakdownModal } from './CostBreakdownModal';
+export { RepairOrderCompletionModal } from './RepairOrderCompletionModal';

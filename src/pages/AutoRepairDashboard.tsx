@@ -20,14 +20,10 @@ import {
   AddVehicleProblemModal,
 } from "../components/modals";
 import { dashboardService, type DashboardSummary } from "../services";
-import {
-  appointmentMngtService,
-  type Appointment,
-} from "../services/appointmentMngtService";
-import {
-  repairOrderMngtService,
-  type RepairOrder,
-} from "../services/repairOrderMngtService";
+import { appointmentMngtService } from "../services/appointmentMngtService";
+import { repairOrderMngtService } from "../services/repairOrderMngtService";
+import type { Appointment } from "../types/appointments";
+import type { RepairOrder } from "../types/repairOrders";
 
 export const AutoRepairDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -73,7 +69,7 @@ export const AutoRepairDashboard: React.FC = () => {
 
       const data = await dashboardService.getDashboardStats(
         user?.role || "customer",
-        user?.id
+        user?.id !== undefined ? String(user.id) : undefined
       );
 
       setDashboardData(data);
@@ -97,9 +93,9 @@ export const AutoRepairDashboard: React.FC = () => {
           console.error("Failed to load repairs:", repairsResult.reason);
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error loading dashboard data:", error);
-      setDashboardError(error.message || "Failed to load dashboard data");
+      setDashboardError(error instanceof Error ? error.message : "Failed to load dashboard data");
 
       // Even if dashboard stats fail, try to load the appointments and repairs
       if (user?.role !== "customer") {
@@ -123,7 +119,7 @@ export const AutoRepairDashboard: React.FC = () => {
       const appointments = await appointmentMngtService.getTodaysAppointments();
       console.log("Today's appointments data:", appointments);
       setTodaysAppointments(appointments.slice(0, 5)); // Show max 5 appointments
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error loading today's appointments:", error);
       setTodaysAppointments([]); // Fall back to empty array
     } finally {
@@ -141,7 +137,7 @@ export const AutoRepairDashboard: React.FC = () => {
       console.log(`✅ Loaded ${activeRepairs.length} active repair orders`);
 
       setActiveRepairs(activeRepairs.slice(0, 5)); // Show max 5 active repairs
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error loading active repairs:", error);
       setActiveRepairs([]); // Fall back to empty array
     } finally {
@@ -186,7 +182,7 @@ export const AutoRepairDashboard: React.FC = () => {
     }
   };
 
-  const handleSuccess = (entityType: string, _data: any) => {
+  const handleSuccess = (entityType: string) => {
     setSuccessMessage(`${entityType} created successfully!`);
     setTimeout(() => setSuccessMessage(null), 5000);
   };
@@ -541,7 +537,7 @@ export const AutoRepairDashboard: React.FC = () => {
                   </div>
                 ) : (
                   <>
-                    {todaysAppointments.map((appointment, index) => (
+                    {todaysAppointments.map((appointment) => (
                       <div key={appointment.id} className="mb-3">
                         <strong>
                           {formatAppointmentTime(appointment)} -{" "}
@@ -606,53 +602,29 @@ export const AutoRepairDashboard: React.FC = () => {
                   </div>
                 ) : (
                   <>
-                    {activeRepairs.map((repair: any, index) => {
+                    {activeRepairs.map((repair: RepairOrder, index) => {
                       const progress = getRepairProgress(repair);
 
                       // Helper function to safely get vehicle info
-                      const getVehicleInfo = (repair: any) => {
+                      const getVehicleInfo = (repair: RepairOrder) => {
                         // Try different possible field structures
                         const vehicle = repair.vehicle;
-                        if (vehicle) {
-                          const year = vehicle.year || vehicle.model_year;
-                          const make = vehicle.make || vehicle.manufacturer;
-                          const model = vehicle.model;
-
-                          if (year && make && model) {
-                            return `${year} ${make} ${model}`;
-                          }
-                          if (make && model) {
-                            return `${make} ${model}`;
-                          }
-                          if (vehicle.license_plate || vehicle.licensePlate) {
-                            return `Vehicle: ${
-                              vehicle.license_plate || vehicle.licensePlate
-                            }`;
-                          }
+                        if (vehicle && typeof vehicle === 'object') {
+                          const v = vehicle as { year?: string | number; model_year?: string | number; make?: string; model?: string };
+                          const year = v.year ?? v.model_year ?? '';
+                          const make = v.make ?? '';
+                          const model = v.model ?? '';
+                          return `${year} ${make} ${model}`.trim();
                         }
-                        return `Vehicle ID: ${
-                          repair.vehicleId || repair.vehicle_id || repair.id
-                        }`;
+                        return "Unknown Vehicle";
                       };
 
                       // Helper function to safely get description
-                      const getDescription = (repair: any) => {
-                        // Try different possible field names that might contain description
-                        return (
-                          repair.description ||
-                          repair.notes ||
-                          repair.diagnosis ||
-                          repair.service_type ||
-                          repair.work_description ||
-                          (repair.orderNumber
-                            ? `Repair Order #${repair.orderNumber}`
-                            : null) ||
-                          (repair.order_number
-                            ? `Repair Order #${repair.order_number}`
-                            : null) ||
-                          (repair.id ? `Repair Order #${repair.id}` : null) ||
-                          "Repair Service"
-                        );
+                      const getDescription = (repair: RepairOrder) => {
+                        if (repair.description) return repair.description;
+                        if (repair.notes) return repair.notes;
+                        if (repair.customerComplaints) return repair.customerComplaints;
+                        return "No description available";
                       };
 
                       return (
@@ -671,9 +643,9 @@ export const AutoRepairDashboard: React.FC = () => {
                               style={{ width: `${progress}%` }}
                             ></div>
                           </div>
-                          {(repair.orderNumber || repair.order_number) && (
+                          {repair.orderNumber && (
                             <small className="text-muted d-block mt-1">
-                              Order #{repair.orderNumber || repair.order_number}
+                              Order #{repair.orderNumber}
                             </small>
                           )}
                         </div>
@@ -809,31 +781,31 @@ export const AutoRepairDashboard: React.FC = () => {
       <AddCustomerModal
         show={showCustomerModal}
         onHide={() => setShowCustomerModal(false)}
-        onSuccess={(data: any) => handleSuccess("Customer", data)}
+        onSuccess={() => handleSuccess("Customer")}
       />
 
       <AddVehicleModal
         show={showVehicleModal}
         onHide={() => setShowVehicleModal(false)}
-        onSuccess={(data: any) => handleSuccess("Vehicle", data)}
+        onSuccess={() => handleSuccess("Vehicle")}
       />
 
       <AddAppointmentModal
         show={showAppointmentModal}
         onHide={() => setShowAppointmentModal(false)}
-        onSuccess={(data: any) => handleSuccess("Appointment", data)}
+        onSuccess={() => handleSuccess("Appointment")}
       />
 
       <AddRepairOrderModal
         show={showRepairOrderModal}
         onHide={() => setShowRepairOrderModal(false)}
-        onSuccess={(data: any) => handleSuccess("Repair Order", data)}
+        onSuccess={() => handleSuccess("Repair Order")}
       />
 
       <AddVehicleProblemModal
         show={showProblemModal}
         onHide={() => setShowProblemModal(false)}
-        onSuccess={(data: any) => handleSuccess("Problem Report", data)}
+        onSuccess={() => handleSuccess("Problem Report")}
       />
     </div>
   );

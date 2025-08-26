@@ -5,7 +5,7 @@ export const UserManagementAPI = {
   // Get password policy settings
   getPasswordPolicy: async (): Promise<PasswordPolicy> => {
     try {
-      const response = await apiGet<any>('/admin/settings/password-policy/');
+      const response = await apiGet<unknown>('/admin/settings/password-policy/');
       return {
         minLength: response.min_length || 8,
         requireUppercase: response.require_uppercase ?? true,
@@ -45,9 +45,9 @@ export const UserManagementAPI = {
   },
 
   // Get system settings
-  getSystemSettings: async (): Promise<any> => {
+  getSystemSettings: async (): Promise<unknown> => {
     try {
-      const response = await apiGet<any>('/admin/settings/system/');
+      const response = await apiGet<unknown>('/admin/settings/system/');
       return response;
     } catch (error) {
       return {};
@@ -55,14 +55,14 @@ export const UserManagementAPI = {
   },
 
   // Update system settings
-  updateSystemSettings: async (settings: any): Promise<void> => {
+  updateSystemSettings: async (settings: unknown): Promise<void> => {
     await apiPut('/admin/settings/system/', settings);
   },
 
   // Get notification settings
-  getNotificationSettings: async (): Promise<any> => {
+  getNotificationSettings: async (): Promise<unknown> => {
     try {
-      const response = await apiGet<any>('/admin/settings/notifications/');
+      const response = await apiGet<unknown>('/admin/settings/notifications/');
       return response;
     } catch (error) {
       return {
@@ -76,14 +76,14 @@ export const UserManagementAPI = {
   },
 
   // Update notification settings
-  updateNotificationSettings: async (settings: any): Promise<void> => {
+  updateNotificationSettings: async (settings: unknown): Promise<void> => {
     await apiPut('/admin/settings/notifications/', settings);
   },
 
   // Get backup settings
-  getBackupSettings: async (): Promise<any> => {
+  getBackupSettings: async (): Promise<unknown> => {
     try {
-      const response = await apiGet<any>('/admin/settings/backup/');
+      const response = await apiGet<unknown>('/admin/settings/backup/');
       return response;
     } catch (error) {
       return {
@@ -96,14 +96,14 @@ export const UserManagementAPI = {
   },
 
   // Update backup settings
-  updateBackupSettings: async (settings: any): Promise<void> => {
+  updateBackupSettings: async (settings: unknown): Promise<void> => {
     await apiPut('/admin/settings/backup/', settings);
   },
 
   // Trigger manual backup
   triggerBackup: async (): Promise<{ success: boolean; message: string }> => {
     try {
-      const response = await apiPost<any>('/admin/backup/trigger/', {});
+      const response = await apiPost<unknown>('/admin/backup/trigger/', {});
       return {
         success: true,
         message: response.message || 'Backup initiated successfully',

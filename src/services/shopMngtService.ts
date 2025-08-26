@@ -1,139 +1,158 @@
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api';
 
-// Shop types
-export interface Shop {
-  id: string;
+// Backend API response interfaces - exact match to actual backend
+export interface Service {
+  id: number;
+  shop: number;
   name: string;
-  address: string;
+  description: string;
+  labor_cost: string;
+  taxable: boolean;
+  warranty_months: number;
+}
+
+export interface Part {
+  id: number;
+  shop: number;
+  name: string;
+  category: string;
+  part_number: string;
+  description: string;
+  manufacturer: string;
+  unit_price: string;
+  taxable: boolean;
+  warranty_months: number;
+  stock_quantity: number;
+  total_cost: string;
+  created_at: string;
+}
+
+export interface Employee {
+  id: number;
+  shop: number;
+  name: string;
+  role: string;
+  phone_number: string;
+  email: string;
+  picture: string;
+  user: number;
+}
+
+export interface ShopAPIResponse {
+  id: number;
+  name: string;
+  address: string;              // Single field, not structured
+  phone: string;
+  email: string;
+  bay_count: number;            // NOT totalBays, NOT camelCase
+  is_active: boolean;           // NOT isActive, NOT camelCase  
+  created_at: string;           // NOT createdAt, NOT camelCase
+  updated_at: string;           // NOT updatedAt, NOT camelCase
+  services: Service[];          // Array of Service objects
+  parts: Part[];               // Array of Part objects
+  employees: Employee[];        // Array of Employee objects
+  customers: unknown[];        // Always empty array
+  appointments: unknown[];     // Always empty array
+  repair_orders: unknown[];    // Always empty array
+}
+
+export interface ShopListAPIResponse {
+  results: ShopAPIResponse[];
+  count: number;
+  next: string | null;
+  previous: string | null;
+}
+
+export interface ShopStatsAPIResponse {
+  total_shops: number;
+  active_shops: number;
+  total_bays: number;
+  available_bays: number;
+  utilization_rate: number;
+  monthly_appointments: number;
+  monthly_revenue: number;     // Number, not string
+  average_rating: number;
+  top_services: Array<{
+    service: string;
+    count: number;
+  }>;
+}
+
+export interface ShopCreateRequest {
+  name: string;
+  address: string;             // Single field for full address
+  phone: string;
+  email?: string;
+  bay_count?: number;          // snake_case
+  is_active?: boolean;         // snake_case
+}
+
+// Frontend interfaces - transformed from backend data
+export interface AddressComponents {
+  street: string;
   city: string;
   state: string;
   zipCode: string;
   country: string;
+  full: string;
+}
+
+export interface BusinessHours {
+  monday: { open: string; close: string; isClosed: boolean };
+  tuesday: { open: string; close: string; isClosed: boolean };
+  wednesday: { open: string; close: string; isClosed: boolean };
+  thursday: { open: string; close: string; isClosed: boolean };
+  friday: { open: string; close: string; isClosed: boolean };
+  saturday: { open: string; close: string; isClosed: boolean };
+  sunday: { open: string; close: string; isClosed: boolean };
+}
+
+export interface ShopCapacity {
+  totalBays: number;
+  availableBays: number;
+  maxDailyAppointments: number;
+}
+
+export interface ShopSettings {
+  allowOnlineBooking: boolean;
+  requireApproval: boolean;
+  sendReminders: boolean;
+  reminderHours: number;
+  bufferTime: number;
+  advanceBookingDays: number;
+}
+
+export interface Shop {
+  id: number;
+  name: string;
   phone: string;
   email: string;
-  website?: string;
-  description?: string;
-  businessHours: {
-    monday: { open: string; close: string; isClosed?: boolean };
-    tuesday: { open: string; close: string; isClosed?: boolean };
-    wednesday: { open: string; close: string; isClosed?: boolean };
-    thursday: { open: string; close: string; isClosed?: boolean };
-    friday: { open: string; close: string; isClosed?: boolean };
-    saturday: { open: string; close: string; isClosed?: boolean };
-    sunday: { open: string; close: string; isClosed?: boolean };
-  };
-  services: string[];
-  specialties: string[];
-  certifications: string[];
-  equipment: string[];
-  capacity: {
-    totalBays: number;
-    availableBays: number;
-    maxDailyAppointments: number;
-  };
   isActive: boolean;
-  isMainLocation: boolean;
-  taxRate: number;
-  currency: string;
-  timeZone: string;
-  logoUrl?: string;
-  images?: string[];
-  socialMedia?: {
-    facebook?: string;
-    twitter?: string;
-    instagram?: string;
-    linkedin?: string;
-  };
-  settings: {
-    allowOnlineBooking: boolean;
-    requireApproval: boolean;
-    sendReminders: boolean;
-    reminderHours: number;
-    autoConfirmAppointments: boolean;
-    emailNotifications: boolean;
-    smsNotifications: boolean;
-  };
-  manager?: {
-    name: string;
-    email: string;
-    phone: string;
-  };
+  totalBays: number;
   createdAt: string;
   updatedAt: string;
-}
-
-export interface CreateShopData {
-  name: string;
-  address: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  country: string;
-  phone: string;
-  email: string;
-  website?: string;
-  description?: string;
-  businessHours: Shop['businessHours'];
-  services?: string[];
-  specialties?: string[];
-  certifications?: string[];
-  equipment?: string[];
-  capacity: Shop['capacity'];
-  taxRate?: number;
-  currency?: string;
-  timeZone?: string;
-  isMainLocation?: boolean;
-  settings?: Shop['settings'];
-  manager?: Shop['manager'];
-}
-
-export interface UpdateShopData {
-  name?: string;
-  address?: string;
-  city?: string;
-  state?: string;
-  zipCode?: string;
-  country?: string;
-  phone?: string;
-  email?: string;
-  website?: string;
-  description?: string;
-  businessHours?: Shop['businessHours'];
-  services?: string[];
-  specialties?: string[];
-  certifications?: string[];
-  equipment?: string[];
-  capacity?: Shop['capacity'];
-  isActive?: boolean;
-  taxRate?: number;
-  currency?: string;
-  timeZone?: string;
-  logoUrl?: string;
-  images?: string[];
-  socialMedia?: Shop['socialMedia'];
-  settings?: Shop['settings'];
-  manager?: Shop['manager'];
+  address: AddressComponents;
+  services: string[];
+  employees: Employee[];
+  availableParts: Part[];
+  businessHours: BusinessHours;
+  capacity: ShopCapacity;
+  settings: ShopSettings;
+  // Mock missing fields with defaults
+  isMainLocation: boolean;
+  taxRate: number;
+  timeZone: string;
+  logoUrl: string | null;
+  images: string[];
+  socialMedia: Record<string, string>;
 }
 
 export interface ShopQuery {
-  page?: number;
-  limit?: number;
+  name?: string;
   search?: string;
-  city?: string;
-  state?: string;
-  isActive?: boolean;
-  service?: string;
-  specialty?: string;
-  sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
-}
-
-export interface ShopListResponse {
-  shops: Shop[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
+  ordering?: string;
+  page?: number;
+  [key: string]: string | number | undefined;
 }
 
 export interface ShopStats {
@@ -145,514 +164,249 @@ export interface ShopStats {
   monthlyAppointments: number;
   monthlyRevenue: number;
   averageRating: number;
-  topServices: { service: string; count: number }[];
+  topServices: Array<{
+    service: string;
+    count: number;
+  }>;
 }
 
-export interface ShopAvailability {
-  shopId: string;
-  date: string;
-  availableSlots: {
-    time: string;
-    duration: number;
-    bayNumber?: number;
-    technicianId?: string;
-  }[];
-  busySlots: {
-    time: string;
-    duration: number;
-    reason: string;
-  }[];
-}
-
-export interface DashboardData {
-  todaysAppointments: number;
-  todaysRevenue: number;
-  activeJobs: number;
-  availableBays: number;
-  weeklyStats: {
-    appointments: number[];
-    revenue: number[];
-    labels: string[];
+// Transformation helper functions
+const parseAddress = (addressString: string): AddressComponents => {
+  const parts = addressString.split(', ');
+  const lastPart = parts[parts.length - 1] || '';
+  const stateZip = lastPart.split(' ');
+  
+  return {
+    street: parts[0] || '',
+    city: parts[1] || '',
+    state: stateZip[0] || '',
+    zipCode: stateZip[1] || '',
+    country: 'USA',
+    full: addressString
   };
-  recentActivity: any[];
-  upcomingAppointments: any[];
-  lowInventoryItems: any[];
-  employeePerformance: any[];
-}
+};
+
+const getDefaultBusinessHours = (): BusinessHours => {
+  const defaultDay = { open: "08:00", close: "18:00", isClosed: false };
+  return {
+    monday: defaultDay,
+    tuesday: defaultDay,
+    wednesday: defaultDay,
+    thursday: defaultDay,
+    friday: defaultDay,
+    saturday: { open: "09:00", close: "17:00", isClosed: false },
+    sunday: { open: "00:00", close: "00:00", isClosed: true }
+  };
+};
+
+const getDefaultSettings = (): ShopSettings => {
+  return {
+    allowOnlineBooking: true,
+    requireApproval: false,
+    sendReminders: true,
+    reminderHours: 24,
+    bufferTime: 15,
+    advanceBookingDays: 30
+  };
+};
+
+const transformShopData = (backendData: ShopAPIResponse): Shop => {
+  return {
+    // Direct mappings
+    id: backendData.id,
+    name: backendData.name,
+    phone: backendData.phone,
+    email: backendData.email,
+    
+    // Transform field names (snake_case → camelCase)
+    isActive: backendData.is_active,
+    totalBays: backendData.bay_count,
+    createdAt: backendData.created_at,
+    updatedAt: backendData.updated_at,
+    
+    // Parse single address field into components
+    address: parseAddress(backendData.address),
+    
+    // Transform services array (objects → names)
+    services: backendData.services.map(s => s.name),
+    
+    // Use related data
+    employees: backendData.employees,
+    availableParts: backendData.parts,
+    
+    // Provide defaults for missing complex fields
+    businessHours: getDefaultBusinessHours(),
+    capacity: {
+      totalBays: backendData.bay_count,
+      availableBays: backendData.bay_count, // Default - no real tracking
+      maxDailyAppointments: backendData.bay_count * 4
+    },
+    settings: getDefaultSettings(),
+    
+    // Mock missing fields
+    isMainLocation: false,               // Not in backend
+    taxRate: 0.0825,                    // Default
+    timeZone: 'America/New_York',       // Default
+    logoUrl: null,                      // Not implemented
+    images: [],                         // Not implemented
+    socialMedia: {}                     // Not implemented
+  };
+};
+
+const transformToBackend = (frontendData: Partial<Shop>): ShopCreateRequest => {
+  return {
+    name: frontendData.name || '',
+    address: frontendData.address?.full || 
+             `${frontendData.address?.street || ''}, ${frontendData.address?.city || ''}, ${frontendData.address?.state || ''} ${frontendData.address?.zipCode || ''}`.trim(),
+    phone: frontendData.phone || '',
+    email: frontendData.email,
+    bay_count: frontendData.totalBays,
+    is_active: frontendData.isActive
+  };
+};
+
+const transformStatsData = (backendData: ShopStatsAPIResponse): ShopStats => {
+  return {
+    totalShops: backendData.total_shops,
+    activeShops: backendData.active_shops,
+    totalBays: backendData.total_bays,
+    availableBays: backendData.available_bays,
+    utilizationRate: backendData.utilization_rate,
+    monthlyAppointments: backendData.monthly_appointments,
+    monthlyRevenue: backendData.monthly_revenue,
+    averageRating: backendData.average_rating,
+    topServices: backendData.top_services
+  };
+};
 
 // Shop Management Service
 export const shopMngtService = {
   // Get all shops with filtering and pagination
-  getShops: async (query: ShopQuery = {}): Promise<ShopListResponse> => {
-    const params = new URLSearchParams();
-    
-    if (query.page) params.append('page', query.page.toString());
-    if (query.limit) params.append('limit', query.limit.toString());
-    if (query.search) params.append('search', query.search);
-    if (query.city) params.append('city', query.city);
-    if (query.state) params.append('state', query.state);
-    if (query.isActive !== undefined) params.append('is_active', query.isActive.toString());
-    if (query.service) params.append('service', query.service);
-    if (query.specialty) params.append('specialty', query.specialty);
-    if (query.sortBy) params.append('sort_by', query.sortBy);
-    if (query.sortOrder) params.append('sort_order', query.sortOrder);
-    
-    const queryString = params.toString();
-    const endpoint = `/shop/shops/${queryString ? `?${queryString}` : ''}`;
-    
-    const response = await apiGet<any>(endpoint);
-    
-    return {
-      shops: response.results?.map((shop: any) => ({
-        id: shop.id?.toString() || '',
-        name: shop.name || '',
-        address: shop.address || '',
-        city: shop.city || '',
-        state: shop.state || '',
-        zipCode: shop.zip_code || '',
-        country: shop.country || '',
-        phone: shop.phone || '',
-        email: shop.email || '',
-        website: shop.website,
-        description: shop.description,
-        businessHours: shop.business_hours || {
-          monday: { open: '08:00', close: '17:00' },
-          tuesday: { open: '08:00', close: '17:00' },
-          wednesday: { open: '08:00', close: '17:00' },
-          thursday: { open: '08:00', close: '17:00' },
-          friday: { open: '08:00', close: '17:00' },
-          saturday: { open: '08:00', close: '12:00' },
-          sunday: { open: '00:00', close: '00:00', isClosed: true }
-        },
-        services: shop.services || [],
-        specialties: shop.specialties || [],
-        certifications: shop.certifications || [],
-        equipment: shop.equipment || [],
-        capacity: shop.capacity || {
-          totalBays: 0,
-          availableBays: 0,
-          maxDailyAppointments: 0
-        },
-        isActive: shop.is_active ?? true,
-        isMainLocation: shop.is_main_location ?? false,
-        taxRate: shop.tax_rate || 0,
-        currency: shop.currency || 'USD',
-        timeZone: shop.time_zone || 'America/New_York',
-        logoUrl: shop.logo_url,
-        images: shop.images || [],
-        socialMedia: shop.social_media,
-        settings: shop.settings || {
-          allowOnlineBooking: true,
-          requireApproval: false,
-          sendReminders: true,
-          reminderHours: 24,
-          autoConfirmAppointments: true,
-          emailNotifications: true,
-          smsNotifications: false
-        },
-        manager: shop.manager,
-        createdAt: shop.created_at || new Date().toISOString(),
-        updatedAt: shop.updated_at || new Date().toISOString()
-      })) || [],
-      total: response.count || 0,
-      page: query.page || 1,
-      limit: query.limit || 10,
-      totalPages: Math.ceil((response.count || 0) / (query.limit || 10))
-    };
+  getShops: async (query: ShopQuery = {}): Promise<Shop[]> => {
+    try {
+      console.log('🔄 Loading shops from backend...');
+      
+      const response = await apiGet<ShopListAPIResponse>('/shop/shops/', query);
+      
+      console.log(`✅ Loaded ${response.results.length} shops from backend`);
+      return response.results.map(transformShopData);
+      
+    } catch (error: unknown) {
+      console.error('❌ Error loading shops:', error);
+      throw error;
+    }
   },
 
-  // Get shop by ID
-  getShopById: async (shopId: string): Promise<Shop> => {
-    const response = await apiGet<any>(`/shop/shops/${shopId}/`);
-    
-    return {
-      id: response.id?.toString() || '',
-      name: response.name || '',
-      address: response.address || '',
-      city: response.city || '',
-      state: response.state || '',
-      zipCode: response.zip_code || '',
-      country: response.country || '',
-      phone: response.phone || '',
-      email: response.email || '',
-      website: response.website,
-      description: response.description,
-      businessHours: response.business_hours || {
-        monday: { open: '08:00', close: '17:00' },
-        tuesday: { open: '08:00', close: '17:00' },
-        wednesday: { open: '08:00', close: '17:00' },
-        thursday: { open: '08:00', close: '17:00' },
-        friday: { open: '08:00', close: '17:00' },
-        saturday: { open: '08:00', close: '12:00' },
-        sunday: { open: '00:00', close: '00:00', isClosed: true }
-      },
-      services: response.services || [],
-      specialties: response.specialties || [],
-      certifications: response.certifications || [],
-      equipment: response.equipment || [],
-      capacity: response.capacity || {
-        totalBays: 0,
-        availableBays: 0,
-        maxDailyAppointments: 0
-      },
-      isActive: response.is_active ?? true,
-      isMainLocation: response.is_main_location ?? false,
-      taxRate: response.tax_rate || 0,
-      currency: response.currency || 'USD',
-      timeZone: response.time_zone || 'America/New_York',
-      logoUrl: response.logo_url,
-      images: response.images || [],
-      socialMedia: response.social_media,
-      settings: response.settings || {
-        allowOnlineBooking: true,
-        requireApproval: false,
-        sendReminders: true,
-        reminderHours: 24,
-        autoConfirmAppointments: true,
-        emailNotifications: true,
-        smsNotifications: false
-      },
-      manager: response.manager,
-      createdAt: response.created_at || new Date().toISOString(),
-      updatedAt: response.updated_at || new Date().toISOString()
-    };
+  // Get single shop by ID
+  getShopById: async (shopId: number): Promise<Shop> => {
+    try {
+      console.log(`🔄 Loading shop ${shopId} from backend...`);
+      
+      const response = await apiGet<ShopAPIResponse>(`/shop/shops/${shopId}/`);
+      
+      console.log(`✅ Loaded shop ${shopId} from backend`);
+      return transformShopData(response);
+      
+    } catch (error: unknown) {
+      console.error(`❌ Error loading shop ${shopId}:`, error);
+      throw error;
+    }
   },
 
   // Create new shop
-  createShop: async (shopData: CreateShopData): Promise<Shop> => {
-    const createData = {
-      name: shopData.name,
-      address: shopData.address,
-      city: shopData.city,
-      state: shopData.state,
-      zip_code: shopData.zipCode,
-      country: shopData.country,
-      phone: shopData.phone,
-      email: shopData.email,
-      website: shopData.website,
-      description: shopData.description,
-      business_hours: shopData.businessHours,
-      services: shopData.services || [],
-      specialties: shopData.specialties || [],
-      certifications: shopData.certifications || [],
-      equipment: shopData.equipment || [],
-      capacity: shopData.capacity,
-      tax_rate: shopData.taxRate || 0,
-      currency: shopData.currency || 'USD',
-      time_zone: shopData.timeZone || 'America/New_York',
-      is_main_location: shopData.isMainLocation || false,
-      settings: shopData.settings || {
-        allowOnlineBooking: true,
-        requireApproval: false,
-        sendReminders: true,
-        reminderHours: 24,
-        autoConfirmAppointments: true,
-        emailNotifications: true,
-        smsNotifications: false
-      },
-      manager: shopData.manager
-    };
-    
-    const response = await apiPost<any>('/shop/shops/', createData);
-    
-    return {
-      id: response.id?.toString() || '',
-      name: response.name || '',
-      address: response.address || '',
-      city: response.city || '',
-      state: response.state || '',
-      zipCode: response.zip_code || '',
-      country: response.country || '',
-      phone: response.phone || '',
-      email: response.email || '',
-      website: response.website,
-      description: response.description,
-      businessHours: response.business_hours || createData.business_hours,
-      services: response.services || [],
-      specialties: response.specialties || [],
-      certifications: response.certifications || [],
-      equipment: response.equipment || [],
-      capacity: response.capacity || createData.capacity,
-      isActive: response.is_active ?? true,
-      isMainLocation: response.is_main_location ?? false,
-      taxRate: response.tax_rate || 0,
-      currency: response.currency || 'USD',
-      timeZone: response.time_zone || 'America/New_York',
-      logoUrl: response.logo_url,
-      images: response.images || [],
-      socialMedia: response.social_media,
-      settings: response.settings || createData.settings,
-      manager: response.manager,
-      createdAt: response.created_at || new Date().toISOString(),
-      updatedAt: response.updated_at || new Date().toISOString()
-    };
+  createShop: async (shopData: Partial<Shop>): Promise<Shop> => {
+    try {
+      console.log('🔄 Creating shop...');
+      
+      const backendData = transformToBackend(shopData);
+      const response = await apiPost<ShopAPIResponse>('/shop/shops/', backendData);
+      
+      console.log(`✅ Created shop ${response.id}`);
+      return transformShopData(response);
+      
+    } catch (error: unknown) {
+      console.error('❌ Error creating shop:', error);
+      throw error;
+    }
   },
 
-  // Update shop
-  updateShop: async (shopId: string, shopData: UpdateShopData): Promise<Shop> => {
-    const updateData = {
-      name: shopData.name,
-      address: shopData.address,
-      city: shopData.city,
-      state: shopData.state,
-      zip_code: shopData.zipCode,
-      country: shopData.country,
-      phone: shopData.phone,
-      email: shopData.email,
-      website: shopData.website,
-      description: shopData.description,
-      business_hours: shopData.businessHours,
-      services: shopData.services,
-      specialties: shopData.specialties,
-      certifications: shopData.certifications,
-      equipment: shopData.equipment,
-      capacity: shopData.capacity,
-      is_active: shopData.isActive,
-      tax_rate: shopData.taxRate,
-      currency: shopData.currency,
-      time_zone: shopData.timeZone,
-      logo_url: shopData.logoUrl,
-      images: shopData.images,
-      social_media: shopData.socialMedia,
-      settings: shopData.settings,
-      manager: shopData.manager
-    };
-    
-    // Remove undefined fields
-    Object.keys(updateData).forEach(key => {
-      if (updateData[key as keyof typeof updateData] === undefined) {
-        delete updateData[key as keyof typeof updateData];
-      }
-    });
-    
-    const response = await apiPut<any>(`/shop/shops/${shopId}/`, updateData);
-    
-    return {
-      id: response.id?.toString() || '',
-      name: response.name || '',
-      address: response.address || '',
-      city: response.city || '',
-      state: response.state || '',
-      zipCode: response.zip_code || '',
-      country: response.country || '',
-      phone: response.phone || '',
-      email: response.email || '',
-      website: response.website,
-      description: response.description,
-      businessHours: response.business_hours || {
-        monday: { open: '08:00', close: '17:00' },
-        tuesday: { open: '08:00', close: '17:00' },
-        wednesday: { open: '08:00', close: '17:00' },
-        thursday: { open: '08:00', close: '17:00' },
-        friday: { open: '08:00', close: '17:00' },
-        saturday: { open: '08:00', close: '12:00' },
-        sunday: { open: '00:00', close: '00:00', isClosed: true }
-      },
-      services: response.services || [],
-      specialties: response.specialties || [],
-      certifications: response.certifications || [],
-      equipment: response.equipment || [],
-      capacity: response.capacity || {
-        totalBays: 0,
-        availableBays: 0,
-        maxDailyAppointments: 0
-      },
-      isActive: response.is_active ?? true,
-      isMainLocation: response.is_main_location ?? false,
-      taxRate: response.tax_rate || 0,
-      currency: response.currency || 'USD',
-      timeZone: response.time_zone || 'America/New_York',
-      logoUrl: response.logo_url,
-      images: response.images || [],
-      socialMedia: response.social_media,
-      settings: response.settings || {
-        allowOnlineBooking: true,
-        requireApproval: false,
-        sendReminders: true,
-        reminderHours: 24,
-        autoConfirmAppointments: true,
-        emailNotifications: true,
-        smsNotifications: false
-      },
-      manager: response.manager,
-      createdAt: response.created_at || new Date().toISOString(),
-      updatedAt: response.updated_at || new Date().toISOString()
-    };
+  // Update existing shop
+  updateShop: async (shopId: number, shopData: Partial<Shop>): Promise<Shop> => {
+    try {
+      console.log(`🔄 Updating shop ${shopId}...`);
+      
+      const backendData = transformToBackend(shopData);
+      const response = await apiPut<ShopAPIResponse>(`/shop/shops/${shopId}/`, backendData);
+      
+      console.log(`✅ Updated shop ${shopId}`);
+      return transformShopData(response);
+      
+    } catch (error: unknown) {
+      console.error(`❌ Error updating shop ${shopId}:`, error);
+      throw error;
+    }
   },
 
   // Delete shop
-  deleteShop: async (shopId: string): Promise<void> => {
-    await apiDelete(`/shop/shops/${shopId}/`);
-  },
-
-  // Deactivate shop
-  deactivateShop: async (shopId: string): Promise<Shop> => {
-    return await shopMngtService.updateShop(shopId, { isActive: false });
-  },
-
-  // Activate shop
-  activateShop: async (shopId: string): Promise<Shop> => {
-    return await shopMngtService.updateShop(shopId, { isActive: true });
-  },
-
-  // Get main shop
-  getMainShop: async (): Promise<Shop | null> => {
+  deleteShop: async (shopId: number): Promise<void> => {
     try {
-      const query: ShopQuery = {
-        limit: 1,
-        isActive: true
-      };
+      console.log(`🔄 Deleting shop ${shopId}...`);
       
-      const response = await shopMngtService.getShops(query);
-      const mainShop = response.shops.find(shop => shop.isMainLocation);
+      await apiDelete(`/shop/shops/${shopId}/`);
       
-      return mainShop || (response.shops.length > 0 ? response.shops[0] : null);
-    } catch (error) {
-      return null;
+      console.log(`✅ Deleted shop ${shopId}`);
+      
+    } catch (error: unknown) {
+      console.error(`❌ Error deleting shop ${shopId}:`, error);
+      throw error;
     }
   },
 
-  // Get shop statistics
-  getShopStats: async (shopId?: string): Promise<ShopStats> => {
-    const endpoint = shopId ? `/shop/shops/${shopId}/stats/` : '/shop/shops/stats/';
-    const response = await apiGet<any>(endpoint);
-    
-    return {
-      totalShops: response.total_shops || 0,
-      activeShops: response.active_shops || 0,
-      totalBays: response.total_bays || 0,
-      availableBays: response.available_bays || 0,
-      utilizationRate: response.utilization_rate || 0,
-      monthlyAppointments: response.monthly_appointments || 0,
-      monthlyRevenue: response.monthly_revenue || 0,
-      averageRating: response.average_rating || 0,
-      topServices: response.top_services?.map((service: any) => ({
-        service: service.service || '',
-        count: service.count || 0
-      })) || []
-    };
-  },
-
-  // Get shop availability
-  getShopAvailability: async (shopId: string, date: string): Promise<ShopAvailability> => {
-    const response = await apiGet<any>(`/shop/shops/${shopId}/availability/?date=${date}`);
-    
-    return {
-      shopId,
-      date,
-      availableSlots: response.available_slots?.map((slot: any) => ({
-        time: slot.time || '',
-        duration: slot.duration || 60,
-        bayNumber: slot.bay_number,
-        technicianId: slot.technician_id?.toString()
-      })) || [],
-      busySlots: response.busy_slots?.map((slot: any) => ({
-        time: slot.time || '',
-        duration: slot.duration || 60,
-        reason: slot.reason || ''
-      })) || []
-    };
-  },
-
-  // Update shop hours
-  updateShopHours: async (shopId: string, businessHours: Shop['businessHours']): Promise<Shop> => {
-    return await shopMngtService.updateShop(shopId, { businessHours });
-  },
-
-  // Update shop settings
-  updateShopSettings: async (shopId: string, settings: Shop['settings']): Promise<Shop> => {
-    return await shopMngtService.updateShop(shopId, { settings });
-  },
-
-  // Get dashboard data
-  getDashboardData: async (shopId?: string): Promise<DashboardData> => {
-    const endpoint = shopId ? `/shop/shops/${shopId}/dashboard/` : '/dashboard/';
-    const response = await apiGet<any>(endpoint);
-    
-    return {
-      todaysAppointments: response.todays_appointments || 0,
-      todaysRevenue: response.todays_revenue || 0,
-      activeJobs: response.active_jobs || 0,
-      availableBays: response.available_bays || 0,
-      weeklyStats: {
-        appointments: response.weekly_stats?.appointments || [],
-        revenue: response.weekly_stats?.revenue || [],
-        labels: response.weekly_stats?.labels || []
-      },
-      recentActivity: response.recent_activity || [],
-      upcomingAppointments: response.upcoming_appointments || [],
-      lowInventoryItems: response.low_inventory_items || [],
-      employeePerformance: response.employee_performance || []
-    };
-  },
-
-  // Search shops
-  searchShops: async (searchTerm: string, options: { limit?: number; city?: string; state?: string } = {}): Promise<Shop[]> => {
-    const query: ShopQuery = {
-      search: searchTerm,
-      limit: options.limit || 10,
-      isActive: true
-    };
-    
-    if (options.city) {
-      query.city = options.city;
+  // Get shop employees
+  getShopEmployees: async (shopId: number): Promise<Employee[]> => {
+    try {
+      console.log(`🔄 Loading employees for shop ${shopId}...`);
+      
+      const response = await apiGet<Employee[]>(`/shop/shops/${shopId}/employees/`);
+      
+      console.log(`✅ Loaded ${response.length} employees for shop ${shopId}`);
+      return response;
+      
+    } catch (error: unknown) {
+      console.error(`❌ Error loading shop employees:`, error);
+      throw error;
     }
-    
-    if (options.state) {
-      query.state = options.state;
-    }
-    
-    const response = await shopMngtService.getShops(query);
-    return response.shops;
   },
 
-  // Get shop by location
-  getShopsByLocation: async (city: string, state?: string): Promise<Shop[]> => {
-    const query: ShopQuery = {
-      city,
-      isActive: true,
-      sortBy: 'name',
-      sortOrder: 'asc'
-    };
-    
-    if (state) {
-      query.state = state;
+  // Get shop services
+  getShopServices: async (shopId: number): Promise<Service[]> => {
+    try {
+      console.log(`🔄 Loading services for shop ${shopId}...`);
+      
+      const response = await apiGet<Service[]>(`/shop/shops/${shopId}/services/`);
+      
+      console.log(`✅ Loaded ${response.length} services for shop ${shopId}`);
+      return response;
+      
+    } catch (error: unknown) {
+      console.error(`❌ Error loading shop services:`, error);
+      throw error;
     }
-    
-    const response = await shopMngtService.getShops(query);
-    return response.shops;
   },
 
-  // Upload shop logo
-  uploadShopLogo: async (shopId: string, file: File): Promise<Shop> => {
-    const formData = new FormData();
-    formData.append('logo', file);
-    
-    const response = await fetch(`/shop/shops/${shopId}/upload-logo/`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      },
-      body: formData
-    });
-    
-    if (!response.ok) {
-      throw new Error('Logo upload failed');
+  // Get shop statistics (the only complex endpoint that works)
+  getShopStats: async (): Promise<ShopStats> => {
+    try {
+      console.log('🔄 Loading shop statistics...');
+      
+      const response = await apiGet<ShopStatsAPIResponse>('/shop/shops/stats/');
+      
+      console.log('✅ Loaded shop statistics');
+      return transformStatsData(response);
+      
+    } catch (error: unknown) {
+      console.error('❌ Error loading shop statistics:', error);
+      throw error;
     }
-    
-    const result = await response.json();
-    return await shopMngtService.getShopById(shopId);
-  },
-
-  // Check if shop is open
-  isShopOpen: async (shopId: string, datetime?: string): Promise<boolean> => {
-    const params = new URLSearchParams();
-    if (datetime) params.append('datetime', datetime);
-    
-    const queryString = params.toString();
-    const endpoint = `/shop/shops/${shopId}/is-open/${queryString ? `?${queryString}` : ''}`;
-    
-    const response = await apiGet<any>(endpoint);
-    return response.is_open || false;
   }
 };

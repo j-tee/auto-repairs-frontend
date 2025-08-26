@@ -173,7 +173,7 @@ export function displayEnvironmentStatus(): void {
 
 // Make environment tools available globally in development
 if (import.meta.env.DEV) {
-  (window as any).envConfig = {
+  (window as unknown).envConfig = {
     get: getEnvironmentConfig,
     debug: debugEnvironmentConfig,
     validate: validateEnvironmentConfig,

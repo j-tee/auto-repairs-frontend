@@ -1,5 +1,24 @@
 // Backend entity types based on Django models
 
+// User and authentication-related types
+export interface User {
+  id?: number;
+  username: string;
+  email: string;
+  first_name?: string;
+  last_name?: string;
+  role: 'owner' | 'employee' | 'customer';
+  is_active?: boolean;
+  date_joined?: string;
+}
+
+export interface UserProfile {
+  user: number; // Foreign key to User
+  phone_number?: string;
+  address?: string;
+  profile_picture?: string; // URL to profile picture
+}
+
 export interface Shop {
   id?: number;
   name: string;
@@ -30,27 +49,9 @@ export interface Customer {
   user?: number; // Foreign key to User
 }
 
-export interface Vehicle {
-  id?: number;
-  customer: number | object; // Foreign key to Customer OR full customer object from backend
-  customer_name?: string; // ✅ Backend-provided customer name (use this!)
-  customer_email?: string; // ✅ Backend-provided customer email
-  customer_phone?: string; // ✅ Backend-provided customer phone
-  make: string;
-  model: string;
-  year: number;
-  vin: string;
-  license_plate?: string;
-  color?: string;
-}
 
-export interface VehicleProblem {
-  id?: number;
-  vehicle: number; // Foreign key to Vehicle
-  description: string;
-  reported_date?: string;
-  resolved: boolean;
-}
+
+
 
 export interface Service {
   id?: number;

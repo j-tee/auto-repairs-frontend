@@ -1,142 +1,48 @@
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api';
-import type { Customer } from '../types/autoRepairs';
+import type { AppointmentQuery, CreateAppointmentData } from '../types';
+import type { Appointment, AppointmentAPIResponse, AppointmentListAPIResponse, AppointmentListResponse, AppointmentStats, AvailableSlotsAPIResponse, CreateAppointmentAPIData, TimeSlot, UpdateAppointmentData } from '../types/appointments';
 
-// Type for embedded customer data from the enhanced API
-interface EmbeddedCustomer {
-  id: string;
-  name: string;
-  email: string;
-  phone_number: string;
-  address?: string;
-}
 
-// Appointment types
-export interface Appointment {
-  id: string;
-  customerId: string;
-  vehicleId: string;
-  serviceType: string;
-  scheduledDate: string;
-  scheduledTime: string;
-  duration: number; // in minutes
-  status: 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no_show' | 'pending';
-  priority: 'low' | 'medium' | 'high' | 'urgent';
-  description?: string;
-  notes?: string;
-  estimatedCost?: number;
-  assignedTechnician?: string;
-  createdAt: string;
-  updatedAt: string;
-  reportedProblemId?: string; // Link to vehicle problem
-  customer?: EmbeddedCustomer | Customer;
-  vehicle?: {
-    id: string;
-    make: string;
-    model: string;
-    year: number;
-    licensePlate: string;
-    vin?: string;
-    color?: string;
+// Helper function to transform backend response to frontend format
+const transformAppointmentData = (appointment: AppointmentAPIResponse): Appointment => {
+  // Parse the single date field into separate date/time components
+  const appointmentDate = new Date(appointment.date);
+  const scheduledDate = appointmentDate.toISOString().split('T')[0];
+  const scheduledTime = appointmentDate.toTimeString().substring(0, 5);
+
+  return {
+    id: appointment.id.toString(),
+    customerId: appointment.customer_id.toString(),
+    vehicleId: appointment.vehicle_id.toString(),
+    employeeId: '', // Not in backend
+    shopId: '', // Not in backend
+    serviceType: 'General Service', // Not in backend
+    scheduledDate,
+    scheduledTime,
+    appointmentDate: scheduledDate,
+    appointmentTime: scheduledTime,
+    duration: 60, // Default duration
+    status: appointment.status === 'pending' ? 'pending' : 
+           appointment.status === 'in_progress' ? 'in_progress' :
+           appointment.status === 'completed' ? 'completed' :
+           appointment.status === 'cancelled' ? 'cancelled' : 'pending',
+    priority: 'medium', // Default priority
+    description: appointment.description || '',
+    notes: appointment.description || '',
+    estimatedCost: 0, // Not in backend
+    assignedTechnician: '', // Not in backend
+    reminderSent: false, // Not in backend
+    createdAt: appointment.date,
+    updatedAt: appointment.date,
+    date: appointment.date, // Add the required 'date' property
+    reportedProblemId: appointment.reported_problem_id?.toString(),
+    customer: appointment.customer,
+    vehicle: appointment.vehicle,
+    reportedProblem: appointment.reported_problem,
+    checkedIn: false, // Not in backend
+    checkedInAt: undefined // Not in backend
   };
-  reportedProblem?: {
-    id: string;
-    description: string;
-    resolved: boolean;
-    reportedDate: string;
-  };
-  technician?: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    specialties: string[];
-  };
-  reminderSent?: boolean;
-  checkedIn?: boolean;
-  checkedInAt?: string;
-}
-
-export interface CreateAppointmentData {
-  customerId: string;
-  vehicleId: string;
-  serviceType: string;
-  scheduledDate: string;
-  scheduledTime: string;
-  duration?: number;
-  priority?: Appointment['priority'];
-  description?: string;
-  notes?: string;
-  estimatedCost?: number;
-  assignedTechnician?: string;
-  reportedProblemId?: string; // Link to vehicle problem
-}
-
-export interface UpdateAppointmentData {
-  customerId?: string;
-  vehicleId?: string;
-  serviceType?: string;
-  scheduledDate?: string;
-  scheduledTime?: string;
-  duration?: number;
-  status?: Appointment['status'];
-  priority?: Appointment['priority'];
-  description?: string;
-  notes?: string;
-  estimatedCost?: number;
-  assignedTechnician?: string;
-  reminderSent?: boolean;
-  checkedIn?: boolean;
-}
-
-export interface AppointmentQuery {
-  page?: number;
-  limit?: number;
-  search?: string;
-  customerId?: string;
-  vehicleId?: string;
-  technicianId?: string;
-  status?: Appointment['status'];
-  priority?: Appointment['priority'];
-  dateFrom?: string;
-  dateTo?: string;
-  serviceType?: string;
-  sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
-  [key: string]: any; // Index signature for API compatibility
-}
-
-export interface AppointmentListResponse {
-  appointments: Appointment[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
-export interface AppointmentStats {
-  totalAppointments: number;
-  todaysAppointments: number;
-  upcomingAppointments: number;
-  completedThisMonth: number;
-  cancelledThisMonth: number;
-  averageDuration: number;
-  appointmentsByStatus: {
-    scheduled: number;
-    confirmed: number;
-    in_progress: number;
-    completed: number;
-    cancelled: number;
-    no_show: number;
-  };
-  revenueThisMonth: number;
-}
-
-export interface TimeSlot {
-  date: string;
-  time: string;
-  available: boolean;
-  duration: number;
-  technicianId?: string;
-}
+};
 
 // Appointment Management Service
 export const appointmentMngtService = {
@@ -144,224 +50,76 @@ export const appointmentMngtService = {
   getAppointments: async (query: AppointmentQuery = {}): Promise<AppointmentListResponse> => {
     try {
       const endpoint = '/shop/appointments/';
-      const response = await apiGet<any>(endpoint, query);
+      const response = await apiGet<AppointmentListAPIResponse>(endpoint, query as Record<string, string | number | boolean>);
       
       return {
-        appointments: (response.results || response || [])?.map((appointment: any) => ({
-          id: appointment.id?.toString() || '',
-          customerId: appointment.customer_id?.toString() || '',
-          vehicleId: appointment.vehicle_id?.toString() || '',
-          serviceType: 'General Service', // Default since not in backend schema
-          scheduledDate: appointment.date ? appointment.date.split('T')[0] : '',
-          scheduledTime: appointment.date ? appointment.date.split('T')[1]?.substring(0, 5) : '',
-          duration: 60, // Default duration
-          status: appointment.status || 'pending',
-          priority: 'medium', // Default since not in backend schema
-          description: appointment.description || '',
-          notes: appointment.notes || '',
-          estimatedCost: 0, // Default since not in backend schema
-          assignedTechnician: '', // Default since not in backend schema
-          createdAt: appointment.date || '',
-          updatedAt: appointment.date || '',
-          reportedProblemId: appointment.reported_problem_id?.toString() || '',
-          // Map the enhanced customer data from backend
-          customer: appointment.customer ? {
-            id: appointment.customer.id?.toString() || '',
-            name: appointment.customer.name || 
-                  (appointment.customer.first_name && appointment.customer.last_name ? 
-                   `${appointment.customer.first_name} ${appointment.customer.last_name}` : '') ||
-                  appointment.customer.username || 
-                  'Unknown Customer',
-            email: appointment.customer.email || '',
-            phone_number: appointment.customer.phone_number || appointment.customer.phone || '',
-            address: appointment.customer.address || ''
-          } : undefined,
-          // Map the enhanced vehicle data from backend
-          vehicle: appointment.vehicle ? {
-            id: appointment.vehicle.id?.toString() || '',
-            make: appointment.vehicle.make || '',
-            model: appointment.vehicle.model || '',
-            year: appointment.vehicle.year || 2020,
-            licensePlate: appointment.vehicle.license_plate || '',
-            vin: appointment.vehicle.vin || '',
-            color: appointment.vehicle.color || ''
-          } : undefined,
-          // Map the enhanced vehicle problem data from backend
-          reportedProblem: appointment.reported_problem ? {
-            id: appointment.reported_problem.id?.toString() || '',
-            description: appointment.reported_problem.description || '',
-            resolved: appointment.reported_problem.resolved || false,
-            reportedDate: appointment.reported_problem.reported_date || ''
-          } : undefined
-        })) || [],
-        total: response.count || (response.results || response || []).length,
-        page: 1, // Default page
-        limit: 50, // Default limit
-        totalPages: 1 // Default total pages
+        appointments: (response.results || []).map(transformAppointmentData),
+        total: response.count || 0,
+        page: query.page || 1,
+        limit: query.page_size || 25,
+        totalPages: Math.ceil((response.count || 0) / (query.page_size || 25))
       };
-    } catch (error: any) {
-      // Re-throw the error to let the app handle it properly (auth errors, etc.)
+    } catch (error: unknown) {
+      console.error('Error fetching appointments:', error);
       throw error;
     }
   },
 
   // Get appointment by ID
   getAppointmentById: async (appointmentId: string): Promise<Appointment> => {
-    const response = await apiGet<any>(`/shop/appointments/${appointmentId}/`);
-    
-    return {
-      id: response.id?.toString() || '',
-      customerId: response.customer_id?.toString() || '',
-      vehicleId: response.vehicle_id?.toString() || '',
-      serviceType: response.service_type || '',
-      scheduledDate: response.scheduled_date || '',
-      scheduledTime: response.scheduled_time || '',
-      duration: response.duration || 60,
-      status: response.status || 'scheduled',
-      priority: response.priority || 'medium',
-      description: response.description,
-      notes: response.notes,
-      estimatedCost: response.estimated_cost,
-      assignedTechnician: response.assigned_technician?.toString(),
-      createdAt: response.created_at || new Date().toISOString(),
-      updatedAt: response.updated_at || new Date().toISOString(),
-      customer: response.customer ? {
-        id: response.customer.id?.toString() || '',
-        name: response.customer.name || '',
-        email: response.customer.email || '',
-        phone_number: response.customer.phone_number || '',
-        address: response.customer.address || ''
-      } : undefined,
-      vehicle: response.vehicle ? {
-        id: response.vehicle.id?.toString() || '',
-        make: response.vehicle.make || '',
-        model: response.vehicle.model || '',
-        year: response.vehicle.year || new Date().getFullYear(),
-        licensePlate: response.vehicle.license_plate || ''
-      } : undefined,
-      technician: response.technician ? {
-        id: response.technician.id?.toString() || '',
-        firstName: response.technician.first_name || '',
-        lastName: response.technician.last_name || '',
-        specialties: response.technician.specialties || []
-      } : undefined,
-      reminderSent: response.reminder_sent || false,
-      checkedIn: response.checked_in || false,
-      checkedInAt: response.checked_in_at
-    };
+    const response = await apiGet<AppointmentAPIResponse>(`/shop/appointments/${appointmentId}/`);
+    return transformAppointmentData(response);
   },
 
   // Create new appointment
   createAppointment: async (appointmentData: CreateAppointmentData): Promise<Appointment> => {
-    // Combine date and time for the backend
+    // Combine date and time for the backend's single 'date' field
     const combinedDateTime = `${appointmentData.scheduledDate}T${appointmentData.scheduledTime}:00`;
     
-    const createData: any = {
-      vehicle_id: parseInt(appointmentData.vehicleId),
+    const createData: CreateAppointmentData = {
+      vehicle_id: parseInt(String(appointmentData.vehicleId) || ''),
+      description: appointmentData.description || appointmentData.notes || '',
       date: combinedDateTime,
-      description: appointmentData.description || `${appointmentData.serviceType} service`,
       status: 'pending'
     };
     
     // Add reported problem ID if provided
-    if (appointmentData.reportedProblemId) {
-      createData.reported_problem_id = parseInt(appointmentData.reportedProblemId);
+    if (appointmentData.reportedProblemId !== undefined && appointmentData.reportedProblemId !== null) {
+      createData.reported_problem_id = appointmentData.reportedProblemId //parseInt(String(), 10);
     }
     
-    const response = await apiPost<any>('/shop/appointments/', createData);
-    
-    // Parse the date field back into separate components
-    const dateObj = new Date(response.date);
-    const scheduledDate = dateObj.toISOString().split('T')[0];
-    const scheduledTime = dateObj.toTimeString().substring(0, 5);
-    
-    return {
-      id: response.id?.toString() || '',
-      customerId: response.vehicle?.customer?.id?.toString() || appointmentData.customerId,
-      vehicleId: response.vehicle_id?.toString() || '',
-      serviceType: appointmentData.serviceType || 'General Service',
-      scheduledDate: scheduledDate,
-      scheduledTime: scheduledTime,
-      duration: appointmentData.duration || 60,
-      status: response.status || 'pending',
-      priority: appointmentData.priority || 'medium',
-      description: response.description || '',
-      notes: appointmentData.notes || '',
-      estimatedCost: appointmentData.estimatedCost || 0,
-      assignedTechnician: appointmentData.assignedTechnician || '',
-      createdAt: response.date || new Date().toISOString(),
-      updatedAt: response.date || new Date().toISOString()
-    };
+    const response = await apiPost<AppointmentAPIResponse>('/shop/appointments/', createData);
+    return transformAppointmentData(response);
   },
 
   // Update appointment
   updateAppointment: async (appointmentId: string, appointmentData: UpdateAppointmentData): Promise<Appointment> => {
-    const updateData = {
-      customer_id: appointmentData.customerId,
-      vehicle_id: appointmentData.vehicleId,
-      service_type: appointmentData.serviceType,
-      scheduled_date: appointmentData.scheduledDate,
-      scheduled_time: appointmentData.scheduledTime,
-      duration: appointmentData.duration,
-      status: appointmentData.status,
-      priority: appointmentData.priority,
-      description: appointmentData.description,
-      notes: appointmentData.notes,
-      estimated_cost: appointmentData.estimatedCost,
-      assigned_technician: appointmentData.assignedTechnician,
-      reminder_sent: appointmentData.reminderSent,
-      checked_in: appointmentData.checkedIn
-    };
+    const updateData: Partial<CreateAppointmentAPIData> = {};
     
-    // Remove undefined fields
-    Object.keys(updateData).forEach(key => {
-      if (updateData[key as keyof typeof updateData] === undefined) {
-        delete updateData[key as keyof typeof updateData];
-      }
-    });
+    // Only update fields that exist in the backend
+    if (appointmentData.vehicleId !== undefined) {
+      updateData.vehicle_id = parseInt(String(appointmentData.vehicleId));
+    }
     
-    const response = await apiPut<any>(`/shop/appointments/${appointmentId}/`, updateData);
+    if (appointmentData.description !== undefined || appointmentData.notes !== undefined) {
+      updateData.description = appointmentData.description || appointmentData.notes;
+    }
     
-    return {
-      id: response.id?.toString() || '',
-      customerId: response.customer_id?.toString() || '',
-      vehicleId: response.vehicle_id?.toString() || '',
-      serviceType: response.service_type || '',
-      scheduledDate: response.scheduled_date || '',
-      scheduledTime: response.scheduled_time || '',
-      duration: response.duration || 60,
-      status: response.status || 'scheduled',
-      priority: response.priority || 'medium',
-      description: response.description,
-      notes: response.notes,
-      estimatedCost: response.estimated_cost,
-      assignedTechnician: response.assigned_technician?.toString(),
-      createdAt: response.created_at || new Date().toISOString(),
-      updatedAt: response.updated_at || new Date().toISOString(),
-      customer: response.customer ? {
-        id: response.customer.id?.toString() || '',
-        name: response.customer.name || '',
-        email: response.customer.email || '',
-        phone_number: response.customer.phone_number || '',
-        address: response.customer.address || ''
-      } : undefined,
-      vehicle: response.vehicle ? {
-        id: response.vehicle.id?.toString() || '',
-        make: response.vehicle.make || '',
-        model: response.vehicle.model || '',
-        year: response.vehicle.year || new Date().getFullYear(),
-        licensePlate: response.vehicle.license_plate || ''
-      } : undefined,
-      technician: response.technician ? {
-        id: response.technician.id?.toString() || '',
-        firstName: response.technician.first_name || '',
-        lastName: response.technician.last_name || '',
-        specialties: response.technician.specialties || []
-      } : undefined,
-      reminderSent: response.reminder_sent || false,
-      checkedIn: response.checked_in || false,
-      checkedInAt: response.checked_in_at
-    };
+    if (appointmentData.scheduledDate && appointmentData.scheduledTime) {
+      updateData.date = `${appointmentData.scheduledDate}T${appointmentData.scheduledTime}:00`;
+    }
+    
+    if (appointmentData.status !== undefined) {
+      // Map frontend status to backend status
+      const backendStatus = appointmentData.status === 'scheduled' ? 'pending' :
+                           appointmentData.status === 'confirmed' ? 'pending' :
+                           appointmentData.status === 'no_show' ? 'cancelled' :
+                           appointmentData.status;
+      updateData.status = backendStatus as 'pending' | 'in_progress' | 'completed' | 'cancelled';
+    }
+    
+    const response = await apiPut<AppointmentAPIResponse>(`/shop/appointments/${appointmentId}/`, updateData);
+    return transformAppointmentData(response);
   },
 
   // Delete appointment
@@ -382,15 +140,14 @@ export const appointmentMngtService = {
     return await appointmentMngtService.updateAppointment(appointmentId, updateData);
   },
 
-  // Confirm appointment
+  // Confirm appointment (map to pending since backend doesn't have confirmed status)
   confirmAppointment: async (appointmentId: string): Promise<Appointment> => {
-    return await appointmentMngtService.updateAppointment(appointmentId, { status: 'confirmed' });
+    return await appointmentMngtService.updateAppointment(appointmentId, { status: 'pending' });
   },
 
-  // Check in appointment
+  // Check in appointment (map to in_progress)
   checkInAppointment: async (appointmentId: string): Promise<Appointment> => {
     return await appointmentMngtService.updateAppointment(appointmentId, { 
-      checkedIn: true,
       status: 'in_progress'
     });
   },
@@ -400,9 +157,6 @@ export const appointmentMngtService = {
     return await appointmentMngtService.updateAppointment(appointmentId, { status: 'completed' });
   },
 
-  // Get today's appointments
-  // (removed duplicate getTodaysAppointments to resolve object literal property conflict)
-
   // Get upcoming appointments (legacy, by days range)
   getUpcomingAppointmentsByDays: async (days: number = 7): Promise<Appointment[]> => {
     const today = new Date();
@@ -410,42 +164,46 @@ export const appointmentMngtService = {
     futureDate.setDate(today.getDate() + days);
     
     const query: AppointmentQuery = {
-      dateFrom: today.toISOString().split('T')[0],
-      dateTo: futureDate.toISOString().split('T')[0],
-      status: 'scheduled',
-      sortBy: 'scheduled_date',
-      sortOrder: 'asc'
+      date_from: today.toISOString().split('T')[0],
+      date_to: futureDate.toISOString().split('T')[0],
+      status: 'pending',
+      ordering: 'date'
     };
     
     const response = await appointmentMngtService.getAppointments(query);
     return response.appointments;
   },
 
-  // Get appointment statistics
-  // (removed duplicate getAppointmentStats method to resolve object literal property conflict)
-
-  // Get available time slots
+  // Get available time slots (placeholder - not implemented in backend)
   getAvailableTimeSlots: async (date: string, duration: number = 60, technicianId?: string): Promise<TimeSlot[]> => {
     const params = new URLSearchParams();
     params.append('date', date);
     params.append('duration', duration.toString());
     if (technicianId) params.append('technician_id', technicianId);
     
-    const response = await apiGet<any>(`/shop/appointments/available-slots/?${params.toString()}`);
-    
-    return response.slots?.map((slot: any) => ({
-      date: slot.date || '',
-      time: slot.time || '',
-      available: slot.available || false,
-      duration: slot.duration || 60,
-      technicianId: slot.technician_id?.toString()
-    })) || [];
+    try {
+      const response = await apiGet<AvailableSlotsAPIResponse>(`/shop/appointments/available-slots/?${params.toString()}`);
+      return response.slots?.map((slot: TimeSlot) => ({
+        date: slot.date || '',
+        time: slot.time || '',
+        available: slot.available || false,
+        duration: slot.duration || 60,
+        technicianId: slot.technicianId
+      })) || [];
+    } catch {
+      // Return empty array if endpoint doesn't exist
+      return [];
+    }
   },
 
-  // Send appointment reminder
+  // Send appointment reminder (placeholder - not implemented in backend)
   sendAppointmentReminder: async (appointmentId: string): Promise<void> => {
-    await apiPost(`/shop/appointments/${appointmentId}/send-reminder/`, {});
-    await appointmentMngtService.updateAppointment(appointmentId, { reminderSent: true });
+    try {
+      await apiPost(`/shop/appointments/${appointmentId}/send-reminder/`, {});
+    } catch {
+      // Silently fail if endpoint doesn't exist
+      console.warn('Appointment reminder endpoint not available');
+    }
   },
 
   // Reschedule appointment
@@ -460,89 +218,59 @@ export const appointmentMngtService = {
   searchAppointments: async (searchTerm: string, options: { limit?: number; status?: Appointment['status'] } = {}): Promise<Appointment[]> => {
     const query: AppointmentQuery = {
       search: searchTerm,
-      limit: options.limit || 10
+      page_size: options.limit || 10
     };
     
     if (options.status) {
-      query.status = options.status;
+      // Map frontend status to backend status
+      const backendStatus = options.status === 'scheduled' ? 'pending' :
+                           options.status === 'confirmed' ? 'pending' :
+                           options.status === 'no_show' ? 'cancelled' :
+                           options.status;
+      query.status = backendStatus as 'pending' | 'in_progress' | 'completed' | 'cancelled';
     }
     
     const response = await appointmentMngtService.getAppointments(query);
     return response.appointments;
   },
 
-  // ====== NEW ENHANCED API METHODS ======
-
-  // Get upcoming appointments using specialized endpoint
+  // Get upcoming appointments using backend filtering
   getUpcomingAppointments: async (): Promise<Appointment[]> => {
     try {
-      const response = await apiGet<any>('/shop/appointments/upcoming/');
+      const today = new Date();
+      const futureDate = new Date(today);
+      futureDate.setDate(today.getDate() + 30); // Next 30 days
       
-      return (response || []).map((appointment: any) => ({
-        id: appointment.id?.toString() || '',
-        customerId: appointment.customer_id?.toString() || '',
-        vehicleId: appointment.vehicle_id?.toString() || '',
-        serviceType: 'General Service', // Default since not in backend schema
-        scheduledDate: appointment.date ? appointment.date.split('T')[0] : '',
-        scheduledTime: appointment.date ? appointment.date.split('T')[1]?.substring(0, 5) : '',
-        duration: 60, // Default duration
-        status: appointment.status || 'pending',
-        priority: 'medium', // Default since not in backend schema
-        description: appointment.description || '',
-        notes: appointment.notes || '',
-        estimatedCost: 0, // Default since not in backend schema
-        assignedTechnician: '', // Default since not in backend schema
-        createdAt: appointment.date || '',
-        updatedAt: appointment.date || '',
-        // Use embedded data - no additional API calls needed!
-        customer: appointment.customer ? {
-          id: appointment.customer.id?.toString() || '',
-          name: appointment.customer.name || 
-                (appointment.customer.first_name && appointment.customer.last_name ? 
-                 `${appointment.customer.first_name} ${appointment.customer.last_name}` : '') ||
-                appointment.customer.username || 
-                'Unknown Customer',
-          email: appointment.customer.email || '',
-          phone_number: appointment.customer.phone_number || appointment.customer.phone || '',
-          address: appointment.customer.address || ''
-        } : undefined,
-        vehicle: appointment.vehicle ? {
-          id: appointment.vehicle.id?.toString() || '',
-          make: appointment.vehicle.make || '',
-          model: appointment.vehicle.model || '',
-          year: appointment.vehicle.year || 2020,
-          licensePlate: appointment.vehicle.license_plate || ''
-        } : undefined
-      }));
-    } catch (error: any) {
+      const query: AppointmentQuery = {
+        date_from: today.toISOString().split('T')[0],
+        date_to: futureDate.toISOString().split('T')[0],
+        status: 'pending',
+        ordering: 'date',
+        page_size: 50
+      };
+      
+      const response = await appointmentMngtService.getAppointments(query);
+      return response.appointments;
+    } catch (error: unknown) {
       console.error('Error fetching upcoming appointments:', error);
       throw error;
     }
   },
 
-  // Get appointment statistics using specialized endpoint
+  // Get appointment statistics using backend endpoint
   getAppointmentStats: async (): Promise<AppointmentStats> => {
     try {
-      const response = await apiGet<any>('/shop/appointments/stats/');
+      const response = await apiGet<AppointmentStats>('/shop/appointments/stats/');
       
       return {
-        totalAppointments: response.total_appointments || 0,
-        todaysAppointments: response.todays_appointments || 0,
-        upcomingAppointments: response.upcoming_appointments || 0,
-        completedThisMonth: response.completed_this_month || 0,
-        cancelledThisMonth: response.cancelled_this_month || 0,
-        averageDuration: response.average_duration || 60,
-        appointmentsByStatus: {
-          scheduled: response.appointments_by_status?.scheduled || 0,
-          confirmed: response.appointments_by_status?.confirmed || 0,
-          in_progress: response.appointments_by_status?.in_progress || 0,
-          completed: response.appointments_by_status?.completed || 0,
-          cancelled: response.appointments_by_status?.cancelled || 0,
-          no_show: response.appointments_by_status?.no_show || 0
-        },
-        revenueThisMonth: response.revenue_this_month || 0
+        total_appointments: response.total_appointments || 0,
+        todays_appointments: response.todays_appointments || 0,
+        upcoming_appointments: response.upcoming_appointments || 0,
+        completed_this_month: response.completed_this_month || 0,
+        appointments_by_status: response.appointments_by_status || [],
+        this_week_count: response.this_week_count || 0
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching appointment stats:', error);
       throw error;
     }
@@ -552,19 +280,23 @@ export const appointmentMngtService = {
   getCustomerAppointments: async (customerId: string, options: { status?: string; limit?: number } = {}): Promise<Appointment[]> => {
     try {
       const query: AppointmentQuery = {
-        customerId,
-        limit: options.limit || 50,
-        sortBy: 'date',
-        sortOrder: 'desc'
+        customer_id: customerId,
+        page_size: options.limit || 50,
+        ordering: '-date' // Most recent first
       };
       
       if (options.status) {
-        query.status = options.status as Appointment['status'];
+        // Map frontend status to backend status
+        const backendStatus = options.status === 'scheduled' ? 'pending' :
+                             options.status === 'confirmed' ? 'pending' :
+                             options.status === 'no_show' ? 'cancelled' :
+                             options.status;
+        query.status = backendStatus as 'pending' | 'in_progress' | 'completed' | 'cancelled';
       }
       
       const response = await appointmentMngtService.getAppointments(query);
       return response.appointments;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching customer appointments:', error);
       throw error;
     }
@@ -574,19 +306,23 @@ export const appointmentMngtService = {
   getVehicleAppointments: async (vehicleId: string, options: { status?: string; limit?: number } = {}): Promise<Appointment[]> => {
     try {
       const query: AppointmentQuery = {
-        vehicleId,
-        limit: options.limit || 50,
-        sortBy: 'date',
-        sortOrder: 'desc'
+        vehicle_id: vehicleId,
+        page_size: options.limit || 50,
+        ordering: '-date' // Most recent first
       };
       
       if (options.status) {
-        query.status = options.status as Appointment['status'];
+        // Map frontend status to backend status
+        const backendStatus = options.status === 'scheduled' ? 'pending' :
+                             options.status === 'confirmed' ? 'pending' :
+                             options.status === 'no_show' ? 'cancelled' :
+                             options.status;
+        query.status = backendStatus as 'pending' | 'in_progress' | 'completed' | 'cancelled';
       }
       
       const response = await appointmentMngtService.getAppointments(query);
       return response.appointments;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching vehicle appointments:', error);
       throw error;
     }
@@ -597,15 +333,15 @@ export const appointmentMngtService = {
     try {
       const today = new Date().toISOString().split('T')[0];
       const query: AppointmentQuery = {
-        dateFrom: today,
-        dateTo: today,
-        sortBy: 'date',
-        sortOrder: 'asc'
+        date_from: today,
+        date_to: today,
+        ordering: 'date',
+        page_size: 100
       };
       
       const response = await appointmentMngtService.getAppointments(query);
       return response.appointments;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching today\'s appointments:', error);
       throw error;
     }

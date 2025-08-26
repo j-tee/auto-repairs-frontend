@@ -21,9 +21,6 @@ export const ServiceCatalogManagement: React.FC = () => {
   // State for services
   const [services, setServices] = useState<Service[]>([]);
 
-  // Modal states
-  const [showServiceModal, setShowServiceModal] = useState(false);
-
   useEffect(() => {
     loadData();
   }, []);
@@ -52,12 +49,6 @@ export const ServiceCatalogManagement: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleSuccess = (entityType: string, _data: any) => {
-    setSuccessMessage(`${entityType} created successfully!`);
-    setTimeout(() => setSuccessMessage(null), 5000);
-    loadData(); // Refresh data
   };
 
   if (loading) {
@@ -95,8 +86,8 @@ export const ServiceCatalogManagement: React.FC = () => {
           <p className="text-muted">Manage your shop's service offerings</p>
         </Col>
         <Col xs="auto">
-          <Button variant="primary" onClick={() => setShowServiceModal(true)}>
-            + Add Service
+                    <Button variant="primary" disabled>
+            Add New Service
           </Button>
         </Col>
       </Row>
@@ -111,7 +102,7 @@ export const ServiceCatalogManagement: React.FC = () => {
                 <p className="text-muted">Add your first service offering!</p>
                 <Button
                   variant="info"
-                  onClick={() => setShowServiceModal(true)}
+                  disabled
                 >
                   Add First Service
                 </Button>
