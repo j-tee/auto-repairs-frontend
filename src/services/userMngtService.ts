@@ -1,86 +1,33 @@
-import { authService, type User, type UserPermissions } from './authService';
-import { apiGet, apiPost, apiPut, apiDelete, type ApiQueryParams, API_CONFIG } from '../utils/api';
+import { authService } from './authService';
+import { apiGet, apiPost, apiPut, apiDelete, API_CONFIG } from '../utils/api';
+import type { 
+  AdminUser, 
+  CreateUserData, 
+  UpdateUserData, 
+  UserQueryParams, 
+  UserStats, 
+  UserListResponse,
+  ActivityLogEntry,
+  PasswordPolicy
+} from '../types/userManagement';
 
-// Extended User interface for admin operations
-export interface AdminUser extends User {
-  isActive: boolean;
-  lastLogin?: string;
-  createdBy?: string;
-  updatedAt?: string;
-}
+// Re-export types for component convenience
+export type { 
+  AdminUser, 
+  CreateUserData, 
+  UpdateUserData, 
+  UserQueryParams, 
+  UserStats, 
+  UserListResponse,
+  ActivityLogEntry,
+  PasswordPolicy
+};
 
-// User creation data for admin
-export interface CreateUserData {
-  email: string;
-  username: string;
-  password: string;
-  first_name: string;
-  last_name: string;
-  role: 'owner' | 'employee' | 'customer';
-  is_active?: boolean;
-}
-
-// User update data for admin
-export interface UpdateUserData {
-  email?: string;
-  username?: string;
-  first_name?: string;
-  last_name?: string;
-  role?: 'owner' | 'employee' | 'customer';
-  is_active?: boolean;
-  permissions?: Partial<UserPermissions>;
-}
-
-// User query parameters
-export interface UserQueryParams extends ApiQueryParams {
-  search?: string;
-  role?: string;
-  is_active?: boolean;
-  page?: number;
-  limit?: number;
-}
-
-// User statistics
-export interface UserStats {
-  total_users: number;
-  active_users: number;
-  inactive_users: number;
-  owners: number;
-  employees: number;
-  customers: number;
-  recent_registrations: number;
-}
-
-// Password policy
-export interface PasswordPolicy {
-  min_length: number;
-  require_uppercase: boolean;
-  require_lowercase: boolean;
-  require_numbers: boolean;
-  require_special_chars: boolean;
-  password_expiry: number;
-  prevent_reuse: number;
-}
-
-// Activity log entry
-export interface ActivityLogEntry {
-  id: string;
-  user_id: string;
-  action: string;
-  description: string;
-  ip_address?: string;
-  user_agent?: string;
-  timestamp: string;
-}
-
-// User list response
-export interface UserListResponse {
-  users: AdminUser[];
-  total: number;
-  page: number;
-  limit: number;
-  total_pages: number;
-}
+/**
+ * User Management Service
+ * Handles all user-related operations for administrators
+ * Includes CRUD operations, user statistics, activity tracking, and password policies
+ */
 
 // User management service
 export const userMngtService = {

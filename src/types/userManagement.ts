@@ -1,7 +1,8 @@
-import type { User } from '../store/slices/autoRepairsSlice';
+import type { User } from './index';
+import type { ApiQueryParams } from '../utils/api';
 
 // Extended user interface for admin management
-export interface AdminUser extends User {
+export interface AdminUser extends Omit<User, 'permissions'> {
   permissions?: {
     can_manage_shops: boolean;
     can_view_financial_data: boolean;
@@ -21,15 +22,24 @@ export interface AdminUser extends User {
   lastPasswordChange?: string;
   passwordExpiresAt?: string;
   twoFactorEnabled?: boolean;
+  phone?: string;
+  address?: string;
   shopId?: string; // For employees - which shop they work at
   shopName?: string; // For display purposes
+  // Additional admin fields
+  createdBy?: string;
+  updatedAt?: string;
 }
 
-// User creation form data for admins
+// User creation form data for admins (backend-compatible)
 export interface CreateUserData {
   email: string;
-  firstName: string;
-  lastName: string;
+  username: string;
+  password: string;
+  firstName?: string; // Optional frontend field
+  lastName?: string; // Optional frontend field
+  first_name: string; // Backend compatibility - required
+  last_name: string; // Backend compatibility - required
   role: User['role'];
   phone?: string;
   address?: string;
@@ -38,8 +48,8 @@ export interface CreateUserData {
   hireDate?: string;
   manager?: string;
   notes?: string;
-  isActive: boolean;
-  sendWelcomeEmail: boolean;
+  is_active?: boolean;
+  sendWelcomeEmail?: boolean;
   temporaryPassword?: string;
 }
 
@@ -61,7 +71,7 @@ export interface UpdateUserData {
 }
 
 // User search and filter criteria
-export interface UserSearchCriteria {
+export interface UserSearchCriteria extends ApiQueryParams {
   searchTerm?: string;
   role?: User['role'] | 'all';
   department?: string;
@@ -97,6 +107,20 @@ export interface UserActivityLog {
   userAgent?: string;
   timestamp: string;
   performedBy?: string; // Admin who performed the action
+}
+
+// Aliases for backwards compatibility
+export type UserQueryParams = UserSearchCriteria;
+export type UserStats = UserStatistics;
+export type ActivityLogEntry = UserActivityLog;
+
+// User list response structure
+export interface UserListResponse {
+  users: AdminUser[];
+  total: number;
+  page: number;
+  limit: number;
+  total_pages: number;
 }
 
 // Bulk operations

@@ -15,6 +15,8 @@ export * from './customers';
 // Vehicle types  
 export * from './vehicles';
 export type { VehicleProblem as VehicleProblemType } from './vehicles';
+export type { VehicleProblemFormData } from './entities';
+export type { RepairOrderFormData } from './entities';
 
 // Employee types
 export * from './employees';
@@ -98,5 +100,10 @@ export type {
   AddServiceData,
   AddPartData,
   CostBreakdown,
-  WorkmanshipAnalytics
+  WorkmanshipAnalytics,
+  // Individual components
+  Service,
+  Part,
+  RepairOrderPart,
+  RepairOrderService
 } from './repairOrders';

@@ -47,7 +47,7 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
     setLoading(true);
     try {
       // Load activity logs using the available service method
-      const logs = await userMngtService.getUserActivityLog(user.id, {
+      const logs = await userMngtService.getUserActivityLog(String(user.id), {
         page: 1,
         limit: 20,
       });
@@ -55,9 +55,16 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
 
       // For now, set empty arrays for sessions and permissions until backend provides these endpoints
       setUserSessions([]);
-      setPermissions(user.permissions || []);
-    } catch (err: any) {
+      // Convert permissions object to string array
+      const permissionsArray = user.permissions 
+        ? Object.entries(user.permissions)
+            .filter(([, value]) => value === true)
+            .map(([key]) => key)
+        : [];
+      setPermissions(permissionsArray);
+    } catch (error: unknown) {
       setError("Failed to load user details");
+      console.error("Failed to load user details:", error);
     } finally {
       setLoading(false);
     }
@@ -109,7 +116,7 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
         sessionId
       );
       setError("Session termination feature is not yet available");
-    } catch (err) {
+    } catch {
       setError("Failed to terminate session");
     }
   };
@@ -124,7 +131,7 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
         user.id
       );
       setError("Welcome email feature is not yet available");
-    } catch (err) {
+    } catch {
       setError("Failed to send welcome email");
     }
   };

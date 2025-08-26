@@ -12,12 +12,14 @@ import {
   clearAuthError,
   clearAllAuthErrors,
   clearPasswordResetEmail,
+} from '../store/slices/autoRepairsSlice';
+import {
   type LoginCredentials,
   type RegisterData,
   type User,
   type PasswordResetRequest,
   type PasswordReset
-} from '../store/slices/autoRepairsSlice';
+} from '../types';
 
 export const useAuth = () => {
   const dispatch = useAppDispatch();

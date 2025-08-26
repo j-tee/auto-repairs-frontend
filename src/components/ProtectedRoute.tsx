@@ -1,7 +1,7 @@
 import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import type { User } from "../store/slices/autoRepairsSlice";
+import type { User } from "../types";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;

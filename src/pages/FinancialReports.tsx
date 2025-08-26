@@ -13,7 +13,7 @@ import {
   Tabs,
   Tab,
 } from "react-bootstrap";
-import { usePermissions } from "../components/PermissionGuard";
+import { usePermissions } from "../hooks/usePermissions";
 
 interface FinancialData {
   totalRevenue: number;
@@ -97,7 +97,8 @@ export const FinancialReports: React.FC = () => {
         ],
       };
       setFinancialData(mockData);
-    } catch (err) {
+    } catch (error) {
+      console.error("Failed to load financial data:", error);
       setError("Failed to load financial data");
     } finally {
       setLoading(false);

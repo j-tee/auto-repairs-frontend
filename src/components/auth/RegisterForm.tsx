@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useAuth } from "../../hooks/useAuth";
-import type { RegisterData, User } from "../../store/slices/autoRepairsSlice";
+import type { RegisterData, User } from "../../types";
 import "./auth.scss";
 
 type UserRole = User["role"];
@@ -23,7 +23,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     firstName: "",
     lastName: "",
     phone: "",
-    role: defaultRole,
+    role: (defaultRole === 'owner' ? 'employee' : defaultRole) as 'customer' | 'employee',
   });
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -67,7 +67,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     }
 
     // Phone validation
-    const phoneRegex = /^\+?[\d\s\-\(\)]{10,}$/;
+    const phoneRegex = /^\+?[\d\s\-()]{10,}$/;
     if (formData.phone && !phoneRegex.test(formData.phone)) {
       errors.phone = "Please enter a valid phone number";
     }
@@ -77,9 +77,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
   };
 
   const handleInputChange = (field: keyof RegisterData, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev: RegisterData) => ({ ...prev, [field]: value }));
     // Clear validation error when user starts typing
-    if (validationErrors[field]) {
+    if (validationErrors[field as keyof typeof validationErrors]) {
       setValidationErrors((prev) => ({ ...prev, [field]: "" }));
     }
   };

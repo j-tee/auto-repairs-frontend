@@ -11,7 +11,7 @@ import {
   Spinner,
 } from "react-bootstrap";
 import { useAuth } from "../hooks/useAuth";
-import type { Vehicle, Customer } from "../types/entities";
+import type { Vehicle, Customer } from "../types";
 import { apiGet } from "../utils/api";
 import {
   AddVehicleModal,
@@ -65,22 +65,38 @@ export const VehicleManagement: React.FC = () => {
       });
 
       setVehicles(vehiclesWithCustomers);
-    } catch (err) {
+    } catch (error) {
+      console.error("Failed to load data:", error);
       setError("Failed to load data");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSuccess = (entityType: string, _data: any) => {
+  const handleSuccess = (entityType: string) => {
     setSuccessMessage(`${entityType} created successfully!`);
     setTimeout(() => setSuccessMessage(null), 5000);
     loadData(); // Refresh data
   };
 
-  const handleReportProblem = (vehicleId: number) => {
-    setSelectedVehicleId(vehicleId);
+  const handleReportProblem = (vehicleId: string | number) => {
+    setSelectedVehicleId(Number(vehicleId));
     setShowProblemModal(true);
+  };
+
+  const findCustomerForVehicle = (vehicle: Vehicle) => {
+    // Handle different customer reference types
+    if (typeof vehicle.customer === 'object' && vehicle.customer?.id) {
+      return customers.find((c) => c.id === vehicle.customer?.id);
+    }
+    if (vehicle.customerId) {
+      return customers.find((c) => c.id === vehicle.customerId);
+    }
+    if (typeof vehicle.customer === 'string' || typeof vehicle.customer === 'number') {
+      const customerId = vehicle.customer;
+      return customers.find((c) => c.id === customerId);
+    }
+    return undefined;
   };
 
   const getVehicleDisplayName = (
@@ -167,7 +183,19 @@ export const VehicleManagement: React.FC = () => {
                 {customers.reduce(
                   (acc, customer) =>
                     acc +
-                    vehicles.filter((v) => v.customer === customer.id).length,
+                    vehicles.filter((v) => {
+                      // Handle different customer reference types
+                      if (typeof v.customer === 'object' && v.customer?.id) {
+                        return v.customer.id === customer.id;
+                      }
+                      if (v.customerId) {
+                        return v.customerId === customer.id;
+                      }
+                      if (typeof v.customer === 'string' || typeof v.customer === 'number') {
+                        return v.customer === customer.id;
+                      }
+                      return false;
+                    }).length,
                   0
                 )}
               </h2>
@@ -218,13 +246,12 @@ export const VehicleManagement: React.FC = () => {
                             <strong>{vehicle.customer_name}</strong>
                             <br />
                             <small className="text-muted">
-                              {customers.find((c) => c.id === vehicle.customer)
-                                ?.phone_number &&
-                                formatPhoneNumber(
-                                  customers.find(
-                                    (c) => c.id === vehicle.customer
-                                  )!.phone_number
-                                )}
+                              {(() => {
+                                const customer = findCustomerForVehicle(vehicle);
+                                return customer?.phone_number 
+                                  ? formatPhoneNumber(customer.phone_number)
+                                  : 'No phone';
+                              })()}
                             </small>
                           </div>
                         </td>
@@ -321,13 +348,13 @@ export const VehicleManagement: React.FC = () => {
       <AddCustomerModal
         show={showCustomerModal}
         onHide={() => setShowCustomerModal(false)}
-        onSuccess={(data) => handleSuccess("Customer", data)}
+        onSuccess={() => handleSuccess("Customer")}
       />
 
       <AddVehicleModal
         show={showVehicleModal}
         onHide={() => setShowVehicleModal(false)}
-        onSuccess={(data) => handleSuccess("Vehicle", data)}
+        onSuccess={() => handleSuccess("Vehicle")}
       />
 
       <AddVehicleProblemModal
@@ -336,7 +363,7 @@ export const VehicleManagement: React.FC = () => {
           setShowProblemModal(false);
           setSelectedVehicleId(undefined);
         }}
-        onSuccess={(data) => handleSuccess("Problem Report", data)}
+        onSuccess={() => handleSuccess("Problem Report")}
         vehicleId={selectedVehicleId}
       />
     </Container>

@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Modal, Button, Form, Alert } from "react-bootstrap";
-import type { VehicleProblemFormData, Vehicle } from "../../types/entities";
+import type { VehicleProblemFormData, Vehicle } from "../../types";
 import { apiPost, apiGet } from "../../utils/api";
 
 interface AddVehicleProblemModalProps {
   show: boolean;
   onHide: () => void;
-  onSuccess: (problem: any) => void;
+  onSuccess: (problem: VehicleProblemFormData) => void;
   vehicleId?: number; // Pre-select vehicle if provided
 }
 
@@ -48,7 +48,7 @@ export const AddVehicleProblemModal: React.FC<AddVehicleProblemModalProps> = ({
 
       // Backend provides customer_name, customer_email, customer_phone directly
       setVehicles(vehiclesResponse as (Vehicle & { customer_name: string })[]);
-    } catch (err) {
+    } catch {
       setError("Failed to load vehicles");
     } finally {
       setLoadingData(false);
@@ -83,7 +83,7 @@ export const AddVehicleProblemModal: React.FC<AddVehicleProblemModalProps> = ({
 
     try {
       const response = await apiPost("/vehicle-problems/", formData);
-      onSuccess(response);
+      onSuccess(response as VehicleProblemFormData);
       handleClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to report problem");

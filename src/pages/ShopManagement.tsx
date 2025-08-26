@@ -11,7 +11,7 @@ import {
   Spinner,
   Modal,
 } from "react-bootstrap";
-import { usePermissions } from "../components/PermissionGuard";
+import { usePermissions } from "../hooks/usePermissions";
 
 interface Shop {
   id: string;
@@ -74,7 +74,8 @@ export const ShopManagement: React.FC = () => {
         },
       ];
       setShops(mockShops);
-    } catch (err) {
+    } catch (error) {
+      console.error("Failed to load shops:", error);
       setError("Failed to load shops");
     } finally {
       setLoading(false);

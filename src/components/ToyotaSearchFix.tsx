@@ -7,7 +7,7 @@
 import React, { useState } from "react";
 import { Card, Button, Form, Alert, Spinner, Badge } from "react-bootstrap";
 import { apiClient } from "../utils/api";
-import type { Vehicle } from "../types/entities";
+import type { Vehicle } from "../types";
 
 interface SearchResult {
   vehicles: Vehicle[];

@@ -10,10 +10,10 @@ import {
 } from "react-bootstrap";
 import type {
   RepairOrderFormData,
-  Vehicle,
   Service,
   Part,
-} from "../../types/entities";
+  Vehicle,
+} from "../../types";
 import { apiPost, apiGet } from "../../utils/api";
 
 interface AddRepairOrderModalProps {
@@ -65,7 +65,7 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
 
   useEffect(() => {
     if (vehicleId) {
-      setFormData((prev) => ({ ...prev, vehicle: vehicleId }));
+      setFormData((prev: RepairOrderFormData) => ({ ...prev, vehicle: vehicleId }));
     }
   }, [vehicleId]);
 
@@ -96,7 +96,7 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
     >
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
+    setFormData((prev: RepairOrderFormData) => ({
       ...prev,
       [name]:
         name === "vehicle"
@@ -109,26 +109,26 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
     }));
   };
 
-  const addService = (serviceId: number) => {
+  const addService = (serviceId: string) => {
     const service = availableServices.find((s) => s.id === serviceId);
     if (service && !selectedServices.find((s) => s.id === serviceId)) {
       setSelectedServices((prev) => [...prev, service]);
-      setFormData((prev) => ({
+      setFormData((prev: RepairOrderFormData) => ({
         ...prev,
-        services: [...prev.services, serviceId],
+        services: [...prev.services, parseInt(serviceId)],
       }));
     }
   };
 
-  const removeService = (serviceId: number) => {
+  const removeService = (serviceId: string) => {
     setSelectedServices((prev) => prev.filter((s) => s.id !== serviceId));
-    setFormData((prev) => ({
+    setFormData((prev: RepairOrderFormData) => ({
       ...prev,
-      services: prev.services.filter((id) => id !== serviceId),
+      services: prev.services.filter((id: number) => id !== parseInt(serviceId)),
     }));
   };
 
-  const addPart = (partId: number, quantity: number = 1) => {
+  const addPart = (partId: string, quantity: number = 1) => {
     const part = availableParts.find((p) => p.id === partId);
     if (part && quantity > 0 && quantity <= part.stock_quantity) {
       const existingIndex = selectedParts.findIndex(
@@ -149,16 +149,16 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
     }
   };
 
-  const removePart = (partId: number) => {
+  const removePart = (partId: string) => {
     setSelectedParts((prev) => prev.filter((sp) => sp.part.id !== partId));
     updatePartsInFormData();
   };
 
   const updatePartsInFormData = () => {
-    setFormData((prev) => ({
+    setFormData((prev: RepairOrderFormData) => ({
       ...prev,
       parts: selectedParts.map((sp) => ({
-        part: sp.part.id!,
+        part: parseInt(sp.part.id!),
         quantity: sp.quantity,
         warranty_override_months: sp.warranty_override_months,
       })),
@@ -272,7 +272,7 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
               <Form.Label>Add Service</Form.Label>
               <Form.Select
                 onChange={(e) =>
-                  e.target.value && addService(parseInt(e.target.value))
+                  e.target.value && addService(e.target.value)
                 }
                 value=""
               >
@@ -335,7 +335,7 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
               <Form.Label>Add Part</Form.Label>
               <Form.Select
                 onChange={(e) =>
-                  e.target.value && addPart(parseInt(e.target.value))
+                  e.target.value && addPart(e.target.value)
                 }
                 value=""
               >

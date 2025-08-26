@@ -41,11 +41,11 @@ import {
 import type { 
   Vehicle, 
   Customer, 
-  Appointment, 
   RepairOrder, 
   Employee, 
   Shop
-} from '../types/autoRepairs';
+} from '../types';
+import type { Appointment } from '../types/appointments';
 
 export const useAutoRepairs = () => {
   const dispatch = useAppDispatch();

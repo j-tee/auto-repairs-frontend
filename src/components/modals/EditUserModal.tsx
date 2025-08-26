@@ -5,7 +5,7 @@ import {
   type AdminUser,
 } from "../../services/userMngtService";
 import type { UpdateUserData } from "../../types/userManagement";
-import type { User } from "../../store/slices/autoRepairsSlice";
+import type { User } from "../../types";
 
 interface EditUserModalProps {
   show: boolean;
@@ -45,7 +45,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
   useEffect(() => {
     if (user && show) {
       setFormData({
-        id: user.id,
+        id: String(user.id),
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
@@ -79,7 +79,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
       errors.lastName = "Last name is required";
     }
 
-    if (formData.phone && !/^\+?[\d\s\-\(\)]+$/.test(formData.phone)) {
+    if (formData.phone && !/^\+?[\d\s\-()]+$/.test(formData.phone)) {
       errors.phone = "Please enter a valid phone number";
     }
 
@@ -91,7 +91,10 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
     return Object.keys(errors).length === 0;
   };
 
-  const handleInputChange = (field: keyof UpdateUserData, value: any) => {
+  const handleInputChange = <K extends keyof UpdateUserData>(
+    field: K,
+    value: UpdateUserData[K]
+  ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
 
     // Clear validation error for this field
@@ -117,8 +120,12 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
       );
       onSuccess(updatedUser);
       handleClose();
-    } catch (err: any) {
-      setError(err.message || "Failed to update user");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Failed to update user");
+      }
     } finally {
       setLoading(false);
     }

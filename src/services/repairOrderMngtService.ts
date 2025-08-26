@@ -273,8 +273,29 @@ export const repairOrderMngtService = {
       return (response.results ?? []).map(transformRepairOrderData);
       
     } catch (error: unknown) {
-      console.error('❌ Error loading active repair orders:', error);
-      throw error;
+      console.error('❌ Error loading active repair orders from /active/ endpoint:', error);
+      
+      // Fallback: Try to get all repair orders and filter for active ones on frontend
+      console.log('🔄 Attempting fallback: fetching all repair orders and filtering for active...');
+      try {
+        const fallbackResponse = await apiGet<RepairOrderListAPIResponse>('/shop/repair-orders/', {
+          status: 'pending,in_progress,scheduled' // Common active statuses
+        });
+        
+        console.log(`✅ Fallback: Loaded ${(fallbackResponse.results?.length ?? 0)} repair orders, filtering for active`);
+        const activeOrders = (fallbackResponse.results ?? [])
+          .filter(order => ['pending', 'in_progress', 'scheduled'].includes(order.status?.toLowerCase() || ''))
+          .map(transformRepairOrderData);
+          
+        console.log(`✅ Fallback successful: Found ${activeOrders.length} active repair orders`);
+        return activeOrders;
+        
+      } catch (fallbackError: unknown) {
+        console.error('❌ Fallback also failed:', fallbackError);
+        // Return empty array to prevent UI crashes
+        console.log('⚠️ Returning empty array to prevent UI crashes');
+        return [];
+      }
     }
   },
 

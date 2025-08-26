@@ -11,7 +11,7 @@ import {
   Form,
 } from "react-bootstrap";
 import { useAuth } from "../hooks/useAuth";
-import type { Customer, Vehicle } from "../types/entities";
+import type { Customer, Vehicle } from "../types";
 import { apiGet } from "../utils/api";
 import { AddCustomerModal, AddVehicleModal } from "../components/modals";
 import { formatPhoneNumber } from "../utils/validation";
@@ -43,21 +43,36 @@ export const CustomerManagement: React.FC = () => {
 
       setCustomers(customersResponse);
       setVehicles(vehiclesResponse);
-    } catch (err) {
+    } catch (error) {
+      console.error("Failed to load data:", error);
       setError("Failed to load data");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSuccess = (entityType: string, _data: any) => {
+  const handleSuccess = (entityType: string) => {
     setSuccessMessage(`${entityType} created successfully!`);
     setTimeout(() => setSuccessMessage(null), 5000);
     loadData(); // Refresh data
   };
 
-  const getCustomerVehicles = (customerId: number) => {
-    return vehicles.filter((v) => v.customer === customerId);
+  const getCustomerVehicles = (customerId: string | number) => {
+    return vehicles.filter((v) => {
+      // Handle different customer reference types
+      if (typeof v.customer === 'object' && v.customer?.id) {
+        return v.customer.id === customerId;
+      }
+      // Check customerId field
+      if (v.customerId) {
+        return v.customerId === customerId;
+      }
+      // Fallback: if customer is a primitive value (ID)
+      if (typeof v.customer === 'string' || typeof v.customer === 'number') {
+        return v.customer === customerId;
+      }
+      return false;
+    });
   };
 
   const filteredCustomers = customers.filter(
@@ -65,10 +80,10 @@ export const CustomerManagement: React.FC = () => {
       customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (customer.email &&
         customer.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      customer.phone_number.includes(searchTerm)
+      (customer.phone_number && customer.phone_number.includes(searchTerm))
   );
 
-  const handleAddVehicleForCustomer = (_customerId: number) => {
+  const handleAddVehicleForCustomer = () => {
     setShowVehicleModal(true);
   };
 
@@ -180,7 +195,7 @@ export const CustomerManagement: React.FC = () => {
           ) : (
             <Row>
               {filteredCustomers.map((customer) => {
-                const customerVehicles = getCustomerVehicles(customer.id!);
+                const customerVehicles = getCustomerVehicles(customer.id);
                 return (
                   <Col key={customer.id} lg={6} xl={4} className="mb-4">
                     <Card className="h-100 shadow-sm">
@@ -210,7 +225,7 @@ export const CustomerManagement: React.FC = () => {
                               href={`tel:${customer.phone_number}`}
                               className="text-decoration-none"
                             >
-                              {formatPhoneNumber(customer.phone_number)}
+                              {customer.phone_number ? formatPhoneNumber(customer.phone_number) : 'No phone'}
                             </a>
                           </div>
                           {customer.address && (
@@ -288,7 +303,7 @@ export const CustomerManagement: React.FC = () => {
                             size="sm"
                             variant="primary"
                             onClick={() =>
-                              handleAddVehicleForCustomer(customer.id!)
+                              handleAddVehicleForCustomer()
                             }
                             className="flex-grow-1"
                           >
@@ -347,13 +362,13 @@ export const CustomerManagement: React.FC = () => {
       <AddCustomerModal
         show={showCustomerModal}
         onHide={() => setShowCustomerModal(false)}
-        onSuccess={(data) => handleSuccess("Customer", data)}
+        onSuccess={() => handleSuccess("Customer")}
       />
 
       <AddVehicleModal
         show={showVehicleModal}
         onHide={() => setShowVehicleModal(false)}
-        onSuccess={(data) => handleSuccess("Vehicle", data)}
+        onSuccess={() => handleSuccess("Vehicle")}
       />
     </Container>
   );
