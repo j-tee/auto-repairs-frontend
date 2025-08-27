@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Check Authentication State</title>
+</head>
+<body>
+    <h1>Authentication Debug</h1>
+    <div id="results"></div>
+
+    <script>
+        function checkAuth() {
+            const token = localStorage.getItem('auth_token');
+            const user = localStorage.getItem('user');
+            const userProfile = localStorage.getItem('userProfile');
+            
+            document.getElementById('results').innerHTML = `
+                <h2>LocalStorage Contents:</h2>
+                <p><strong>auth_token:</strong> ${token || 'NOT FOUND'}</p>
+                <p><strong>user:</strong> ${user || 'NOT FOUND'}</p>
+                <p><strong>userProfile:</strong> ${userProfile || 'NOT FOUND'}</p>
+                
+                <h2>All LocalStorage Keys:</h2>
+                <ul>
+                    ${Object.keys(localStorage).map(key => `<li>${key}: ${localStorage.getItem(key)}</li>`).join('')}
+                </ul>
+                
+                <h2>Try Login:</h2>
+                <button onclick="tryMockLogin()">Set Mock Auth Token</button>
+            `;
+        }
+        
+        function tryMockLogin() {
+            // Set a mock token to test
+            localStorage.setItem('auth_token', 'mock_token_12345');
+            localStorage.setItem('user', JSON.stringify({
+                id: 1,
+                username: 'shop_owner',
+                role: 'OWNER',
+                firstName: 'Shop',
+                lastName: 'Owner'
+            }));
+            
+            alert('Mock auth token set! Refresh the main application.');
+        }
+        
+        checkAuth();
+    </script>
+</body>
+</html>

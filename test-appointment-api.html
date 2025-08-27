@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Appointment API</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test { margin: 20px 0; padding: 10px; border: 1px solid #ddd; }
+        .success { background: #d4edda; }
+        .error { background: #f8d7da; }
+        pre { background: #f8f9fa; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Test Appointment API Filtering</h1>
+    <div id="results"></div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:8000/api';
+        
+        function log(message, isError = false) {
+            const div = document.createElement('div');
+            div.className = `test ${isError ? 'error' : 'success'}`;
+            div.innerHTML = message;
+            document.getElementById('results').appendChild(div);
+        }
+        
+        async function testAPI(url, description) {
+            try {
+                console.log(`Testing: ${description}`);
+                console.log(`URL: ${url}`);
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                log(`
+                    <strong>${description}</strong><br>
+                    URL: <code>${url}</code><br>
+                    Status: ${response.status}<br>
+                    Count: ${data.count || 0}<br>
+                    Results: <pre>${JSON.stringify(data.results || [], null, 2)}</pre>
+                `);
+                
+                return data;
+            } catch (error) {
+                log(`
+                    <strong>ERROR: ${description}</strong><br>
+                    URL: <code>${url}</code><br>
+                    Error: ${error.message}
+                `, true);
+            }
+        }
+        
+        async function runTests() {
+            // Test 1: Get all appointments
+            await testAPI(`${API_BASE}/shop/appointments/`, 'All Appointments');
+            
+            // Test 2: Filter by date_from/date_to (what frontend currently uses)
+            await testAPI(`${API_BASE}/shop/appointments/?date_from=2025-08-27&date_to=2025-08-27`, 'Today (date_from/date_to)');
+            
+            // Test 3: Try different date formats
+            await testAPI(`${API_BASE}/shop/appointments/?date_from=2025-08-27T00:00:00&date_to=2025-08-27T23:59:59`, 'Today (full datetime range)');
+            
+            // Test 4: Try date field directly
+            await testAPI(`${API_BASE}/shop/appointments/?date=2025-08-27`, 'Today (date field)');
+            
+            // Test 5: Try scheduled_date field
+            await testAPI(`${API_BASE}/shop/appointments/?scheduled_date=2025-08-27`, 'Today (scheduled_date field)');
+            
+            // Test 6: Check if backend has any filtering docs
+            await testAPI(`${API_BASE}/shop/appointments/?format=json`, 'API Docs Format');
+        }
+        
+        // Run tests when page loads
+        runTests();
+    </script>
+</body>
+</html>

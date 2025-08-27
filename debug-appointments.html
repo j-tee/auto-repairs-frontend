@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Appointments API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+        }
+        button {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #005a87;
+        }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <h1>Debug Appointments API</h1>
+    
+    <div class="section">
+        <h2>Current Date Information</h2>
+        <div id="dateInfo"></div>
+    </div>
+    
+    <div class="section">
+        <h2>API Tests</h2>
+        <button onclick="testAllAppointments()">Get All Appointments</button>
+        <button onclick="testTodaysAppointments()">Get Today's Appointments (Frontend Logic)</button>
+        <button onclick="testTodaysAppointmentsBackend()">Get Today's Appointments (Backend Filter)</button>
+        <button onclick="testCreateAppointment()">Create Test Appointment</button>
+    </div>
+    
+    <div class="section">
+        <h2>Results</h2>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:8000/api';
+        
+        function log(message, type = 'info') {
+            const resultsDiv = document.getElementById('results');
+            const timestamp = new Date().toLocaleTimeString();
+            resultsDiv.innerHTML += `<div class="${type}">[${timestamp}] ${message}</div>`;
+        }
+        
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+        
+        // Show current date information
+        function showDateInfo() {
+            const now = new Date();
+            const today = now.toISOString().split('T')[0];
+            const isoDateTime = now.toISOString();
+            const localDateTime = now.toLocaleString();
+            
+            document.getElementById('dateInfo').innerHTML = `
+                <strong>Current Date/Time Information:</strong><br>
+                Local: ${localDateTime}<br>
+                ISO Date Only: ${today}<br>
+                Full ISO: ${isoDateTime}<br>
+                Timezone Offset: ${now.getTimezoneOffset()} minutes
+            `;
+        }
+        
+        async function apiRequest(endpoint, options = {}) {
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                return await response.json();
+            } catch (error) {
+                log(`API Error: ${error.message}`, 'error');
+                throw error;
+            }
+        }
+        
+        async function testAllAppointments() {
+            clearResults();
+            log('Testing: Get All Appointments');
+            
+            try {
+                const data = await apiRequest('/shop/appointments/');
+                log(`Success: Found ${data.count || 0} total appointments`, 'success');
+                log(`Response structure: <pre>${JSON.stringify(data, null, 2)}</pre>`);
+                
+                if (data.results && data.results.length > 0) {
+                    log('Sample appointment data:');
+                    data.results.slice(0, 3).forEach((apt, idx) => {
+                        log(`<pre>Appointment ${idx + 1}: ${JSON.stringify(apt, null, 2)}</pre>`);
+                    });
+                }
+            } catch (error) {
+                log(`Failed to get appointments: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testTodaysAppointments() {
+            clearResults();
+            log('Testing: Today\'s Appointments (Frontend Date Logic)');
+            
+            const today = new Date().toISOString().split('T')[0];
+            log(`Using date: ${today}`);
+            
+            try {
+                const params = new URLSearchParams({
+                    date_from: today,
+                    date_to: today
+                });
+                
+                const data = await apiRequest(`/shop/appointments/?${params.toString()}`);
+                log(`Success: Found ${data.count || 0} appointments for today`, 'success');
+                log(`Query: /shop/appointments/?${params.toString()}`);
+                log(`Response: <pre>${JSON.stringify(data, null, 2)}</pre>`);
+            } catch (error) {
+                log(`Failed to get today's appointments: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testTodaysAppointmentsBackend() {
+            clearResults();
+            log('Testing: Today\'s Appointments (Backend Date Field)');
+            
+            const today = new Date().toISOString().split('T')[0];
+            
+            try {
+                // Try different date field names
+                const testCases = [
+                    { date_from: today, date_to: today },
+                    { scheduled_date: today },
+                    { date: today },
+                    { appointment_date: today }
+                ];
+                
+                for (const params of testCases) {
+                    const paramString = new URLSearchParams(params).toString();
+                    log(`Trying: /shop/appointments/?${paramString}`);
+                    
+                    try {
+                        const data = await apiRequest(`/shop/appointments/?${paramString}`);
+                        log(`✓ Found ${data.count || 0} appointments with params: ${JSON.stringify(params)}`, 'success');
+                        if (data.count > 0) {
+                            log(`Response: <pre>${JSON.stringify(data, null, 2)}</pre>`);
+                        }
+                    } catch (err) {
+                        log(`✗ Failed with params ${JSON.stringify(params)}: ${err.message}`, 'error');
+                    }
+                }
+            } catch (error) {
+                log(`Test failed: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testCreateAppointment() {
+            clearResults();
+            log('Testing: Create Test Appointment for Today');
+            
+            const today = new Date();
+            const appointmentDateTime = new Date(today.getTime() + 60 * 60 * 1000); // 1 hour from now
+            
+            const testAppointment = {
+                customer_id: 1, // Assuming customer ID 1 exists
+                vehicle_id: 1,  // Assuming vehicle ID 1 exists
+                date: appointmentDateTime.toISOString(),
+                status: 'scheduled',
+                description: 'Test appointment for debugging - ' + new Date().toLocaleString()
+            };
+            
+            log(`Creating appointment: <pre>${JSON.stringify(testAppointment, null, 2)}</pre>`);
+            
+            try {
+                const data = await apiRequest('/shop/appointments/', {
+                    method: 'POST',
+                    body: JSON.stringify(testAppointment)
+                });
+                
+                log(`Success: Created appointment with ID ${data.id}`, 'success');
+                log(`Created appointment: <pre>${JSON.stringify(data, null, 2)}</pre>`);
+                
+                // Now test if it shows up in today's appointments
+                setTimeout(() => testTodaysAppointments(), 1000);
+                
+            } catch (error) {
+                log(`Failed to create appointment: ${error.message}`, 'error');
+            }
+        }
+        
+        // Initialize
+        showDateInfo();
+        
+        // Auto-test on load
+        setTimeout(() => {
+            testAllAppointments();
+        }, 500);
+    </script>
+</body>
+</html>

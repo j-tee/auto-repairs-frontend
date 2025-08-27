@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Test Appointment</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+        }
+        button {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #005a87;
+        }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        input, select, textarea {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+        .form-group {
+            margin: 10px 0;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Create Test Appointment for Today</h1>
+    
+    <div class="section">
+        <h2>Quick Test - Create Appointment for Today</h2>
+        <p>This will create a test appointment for today (2025-08-27) to verify the appointment system is working.</p>
+        
+        <button onclick="createTodayAppointment()">Create Test Appointment for Today</button>
+        <button onclick="checkAppointments()">Check All Appointments</button>
+        <button onclick="checkCustomersAndVehicles()">Check Customers & Vehicles</button>
+    </div>
+
+    <div class="section">
+        <h2>Custom Appointment</h2>
+        <div class="form-group">
+            <label>Customer ID:</label>
+            <input type="number" id="customerId" value="1" min="1">
+        </div>
+        <div class="form-group">
+            <label>Vehicle ID:</label>
+            <input type="number" id="vehicleId" value="1" min="1">
+        </div>
+        <div class="form-group">
+            <label>Date:</label>
+            <input type="date" id="appointmentDate" value="2025-08-27">
+        </div>
+        <div class="form-group">
+            <label>Time:</label>
+            <input type="time" id="appointmentTime" value="14:00">
+        </div>
+        <div class="form-group">
+            <label>Description:</label>
+            <textarea id="description" placeholder="Appointment description">Oil change and inspection</textarea>
+        </div>
+        <div class="form-group">
+            <label>Status:</label>
+            <select id="status">
+                <option value="scheduled">Scheduled</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="pending">Pending</option>
+            </select>
+        </div>
+        
+        <button onclick="createCustomAppointment()">Create Custom Appointment</button>
+    </div>
+    
+    <div class="section">
+        <h2>Results</h2>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:8000/api';
+        
+        function log(message, type = 'info') {
+            const resultsDiv = document.getElementById('results');
+            const timestamp = new Date().toLocaleTimeString();
+            resultsDiv.innerHTML += `<div class="${type}">[${timestamp}] ${message}</div>`;
+        }
+        
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+        
+        async function apiRequest(endpoint, options = {}) {
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
+                }
+                
+                return await response.json();
+            } catch (error) {
+                log(`API Error: ${error.message}`, 'error');
+                throw error;
+            }
+        }
+        
+        async function createTodayAppointment() {
+            clearResults();
+            log('Creating test appointment for today...');
+            
+            // Create appointment for 2:00 PM today
+            const today = new Date();
+            today.setHours(14, 0, 0, 0); // 2:00 PM
+            
+            const appointmentData = {
+                customer_id: 1,
+                vehicle_id: 1,
+                date: today.toISOString(),
+                status: 'scheduled',
+                description: 'Test appointment created on ' + new Date().toLocaleString()
+            };
+            
+            log(`Appointment data: <pre>${JSON.stringify(appointmentData, null, 2)}</pre>`);
+            
+            try {
+                const result = await apiRequest('/shop/appointments/', {
+                    method: 'POST',
+                    body: JSON.stringify(appointmentData)
+                });
+                
+                log(`✅ Successfully created appointment with ID: ${result.id}`, 'success');
+                log(`Created appointment: <pre>${JSON.stringify(result, null, 2)}</pre>`);
+                
+                // Wait a moment then check appointments
+                setTimeout(checkAppointments, 1000);
+                
+            } catch (error) {
+                log(`❌ Failed to create appointment: ${error.message}`, 'error');
+                
+                // If it fails, let's check what customers and vehicles exist
+                setTimeout(checkCustomersAndVehicles, 1000);
+            }
+        }
+        
+        async function createCustomAppointment() {
+            clearResults();
+            log('Creating custom appointment...');
+            
+            const customerId = document.getElementById('customerId').value;
+            const vehicleId = document.getElementById('vehicleId').value;
+            const date = document.getElementById('appointmentDate').value;
+            const time = document.getElementById('appointmentTime').value;
+            const description = document.getElementById('description').value;
+            const status = document.getElementById('status').value;
+            
+            // Combine date and time into ISO string
+            const appointmentDateTime = new Date(`${date}T${time}:00`);
+            
+            const appointmentData = {
+                customer_id: parseInt(customerId),
+                vehicle_id: parseInt(vehicleId),
+                date: appointmentDateTime.toISOString(),
+                status: status,
+                description: description
+            };
+            
+            log(`Appointment data: <pre>${JSON.stringify(appointmentData, null, 2)}</pre>`);
+            
+            try {
+                const result = await apiRequest('/shop/appointments/', {
+                    method: 'POST',
+                    body: JSON.stringify(appointmentData)
+                });
+                
+                log(`✅ Successfully created appointment with ID: ${result.id}`, 'success');
+                log(`Created appointment: <pre>${JSON.stringify(result, null, 2)}</pre>`);
+                
+            } catch (error) {
+                log(`❌ Failed to create appointment: ${error.message}`, 'error');
+            }
+        }
+        
+        async function checkAppointments() {
+            log('Checking all appointments...');
+            
+            try {
+                const data = await apiRequest('/shop/appointments/');
+                log(`Found ${data.count || 0} total appointments`, 'success');
+                
+                if (data.results && data.results.length > 0) {
+                    log(`Appointments: <pre>${JSON.stringify(data.results, null, 2)}</pre>`);
+                    
+                    // Check which ones are for today
+                    const today = '2025-08-27';
+                    const todaysAppointments = data.results.filter(apt => {
+                        const aptDate = new Date(apt.date).toISOString().split('T')[0];
+                        return aptDate === today;
+                    });
+                    
+                    log(`Appointments for today (${today}): ${todaysAppointments.length}`, 'info');
+                    if (todaysAppointments.length > 0) {
+                        log(`Today's appointments: <pre>${JSON.stringify(todaysAppointments, null, 2)}</pre>`);
+                    }
+                } else {
+                    log('No appointments found in database', 'info');
+                }
+                
+            } catch (error) {
+                log(`Failed to check appointments: ${error.message}`, 'error');
+            }
+        }
+        
+        async function checkCustomersAndVehicles() {
+            log('Checking customers and vehicles...');
+            
+            try {
+                // Check customers
+                const customers = await apiRequest('/shop/customers/');
+                log(`Found ${customers.count || 0} customers`, 'info');
+                
+                if (customers.results && customers.results.length > 0) {
+                    log(`First few customers: <pre>${JSON.stringify(customers.results.slice(0, 3), null, 2)}</pre>`);
+                }
+                
+                // Check vehicles
+                const vehicles = await apiRequest('/shop/vehicles/');
+                log(`Found ${vehicles.count || 0} vehicles`, 'info');
+                
+                if (vehicles.results && vehicles.results.length > 0) {
+                    log(`First few vehicles: <pre>${JSON.stringify(vehicles.results.slice(0, 3), null, 2)}</pre>`);
+                }
+                
+            } catch (error) {
+                log(`Failed to check customers/vehicles: ${error.message}`, 'error');
+            }
+        }
+        
+        // Auto-check on load
+        setTimeout(checkAppointments, 500);
+    </script>
+</body>
+</html>

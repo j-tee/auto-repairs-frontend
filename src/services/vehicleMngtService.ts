@@ -121,7 +121,7 @@ export const vehicleMngtService = {
         
         // Fallback to action endpoint
         try {
-          const response = await apiGet<VehicleRawData[]>(`/shop/vehicles/by_customer/`, { customer_id: customerId });
+          const response = await apiGet<VehicleRawData[]>(`/shop/vehicles/by_customer/?customer_id=${customerId}`);
           
           const customerVehicles = response.map((vehicle: VehicleRawData) => ({
             id: vehicle.id?.toString() || '',

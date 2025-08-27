@@ -36,6 +36,9 @@ export const AutoRepairDashboard: React.FC = () => {
 
   // Success message
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  
+  // Backend status warning
+  const [backendWarning, setBackendWarning] = useState<string | null>(null);
 
   // Dashboard data state
   const [dashboardData, setDashboardData] = useState<DashboardSummary | null>(
@@ -53,6 +56,57 @@ export const AutoRepairDashboard: React.FC = () => {
   // Active repairs data
   const [activeRepairs, setActiveRepairs] = useState<RepairOrder[]>([]);
   const [repairsLoading, setRepairsLoading] = useState(false);
+
+  const loadTodaysAppointments = useCallback(async () => {
+    try {
+      setAppointmentsLoading(true);
+      const appointments =
+        await appointmentMngtService.getTodaysAppointments();
+
+      console.log(`✅ Loaded ${appointments.length} appointments for today`);
+
+      setTodaysAppointments(appointments.slice(0, 5)); // Show max 5 appointments
+    } catch (error: unknown) {
+      console.error("Error loading today's appointments:", error);
+      setTodaysAppointments([]); // Fall back to empty array
+    } finally {
+      setAppointmentsLoading(false);
+    }
+  }, []);
+
+  const loadActiveRepairs = useCallback(async () => {
+    try {
+      setRepairsLoading(true);
+      // Use the smart method that filters by appointment status
+      const activeRepairs =
+        await repairOrderMngtService.getActiveRepairOrders();
+
+      console.log(`✅ Loaded ${activeRepairs.length} active repair orders`);
+
+      setActiveRepairs(activeRepairs.slice(0, 5)); // Show max 5 active repairs
+      
+      // Clear any previous backend warnings if successful
+      if (backendWarning && backendWarning.includes('repair orders')) {
+        setBackendWarning(null);
+      }
+      
+    } catch (error: unknown) {
+      console.error("Error loading active repairs:", error);
+      setActiveRepairs([]); // Fall back to empty array
+      
+      // Show user-friendly warning about backend issues
+      setBackendWarning(
+        "Some repair order data may be temporarily unavailable due to a backend issue. " +
+        "The system is using fallback data. Please contact IT support if this persists."
+      );
+      
+      // Auto-hide warning after 10 seconds
+      setTimeout(() => setBackendWarning(null), 10000);
+      
+    } finally {
+      setRepairsLoading(false);
+    }
+  }, [backendWarning]);
 
   const loadDashboardData = useCallback(async () => {
     try {
@@ -103,7 +157,7 @@ export const AutoRepairDashboard: React.FC = () => {
     } finally {
       setDashboardLoading(false);
     }
-  }, [user?.role, user?.id]);
+  }, [user?.role, user?.id, loadTodaysAppointments, loadActiveRepairs]);
 
   // Load dashboard data on component mount
   useEffect(() => {
@@ -111,38 +165,6 @@ export const AutoRepairDashboard: React.FC = () => {
       loadDashboardData();
     }
   }, [user?.role, user?.id, loadDashboardData]);
-
-  const loadTodaysAppointments = async () => {
-    try {
-      setAppointmentsLoading(true);
-      const appointments = await appointmentMngtService.getTodaysAppointments();
-      console.log("Today's appointments data:", appointments);
-      setTodaysAppointments(appointments.slice(0, 5)); // Show max 5 appointments
-    } catch (error: unknown) {
-      console.error("Error loading today's appointments:", error);
-      setTodaysAppointments([]); // Fall back to empty array
-    } finally {
-      setAppointmentsLoading(false);
-    }
-  };
-
-  const loadActiveRepairs = async () => {
-    try {
-      setRepairsLoading(true);
-      // Use the smart method that filters by appointment status
-      const activeRepairs =
-        await repairOrderMngtService.getActiveRepairOrders();
-
-      console.log(`✅ Loaded ${activeRepairs.length} active repair orders`);
-
-      setActiveRepairs(activeRepairs.slice(0, 5)); // Show max 5 active repairs
-    } catch (error: unknown) {
-      console.error("Error loading active repairs:", error);
-      setActiveRepairs([]); // Fall back to empty array
-    } finally {
-      setRepairsLoading(false);
-    }
-  };
 
   const formatAppointmentTime = (appointment: Appointment) => {
     try {
@@ -179,6 +201,11 @@ export const AutoRepairDashboard: React.FC = () => {
     } else {
       return 25; // Initial progress for new orders
     }
+  };
+
+  const handleRefreshData = async () => {
+    setBackendWarning(null); // Clear any warnings
+    await loadDashboardData();
   };
 
   const handleSuccess = (entityType: string) => {
@@ -392,6 +419,32 @@ export const AutoRepairDashboard: React.FC = () => {
           onClose={() => setSuccessMessage(null)}
         >
           {successMessage}
+        </Alert>
+      )}
+
+      {backendWarning && (
+        <Alert
+          variant="warning"
+          dismissible
+          onClose={() => setBackendWarning(null)}
+        >
+          <div className="d-flex justify-content-between align-items-center">
+            <div className="d-flex align-items-center">
+              <i className="fas fa-exclamation-triangle me-2"></i>
+              <div>
+                <strong>Backend Notice:</strong> {backendWarning}
+              </div>
+            </div>
+            <Button
+              variant="outline-warning"
+              size="sm"
+              onClick={handleRefreshData}
+              disabled={dashboardLoading}
+            >
+              <i className="fas fa-refresh me-1"></i>
+              Retry
+            </Button>
+          </div>
         </Alert>
       )}
 
