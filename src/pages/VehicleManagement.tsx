@@ -11,8 +11,9 @@ import {
   Spinner,
 } from "react-bootstrap";
 import { useAuth } from "../hooks/useAuth";
-import type { Vehicle, Customer } from "../types";
-import { apiGet } from "../utils/api";
+import { useAppDispatch, useAppSelector } from "../store";
+import { fetchVehicles, fetchCustomers, clearError } from "../store/slices/autoRepairsSlice";
+import type { Vehicle } from "../types";
 import {
   AddVehicleModal,
   AddCustomerModal,
@@ -22,12 +23,16 @@ import { formatVIN, formatPhoneNumber } from "../utils/validation";
 
 export const VehicleManagement: React.FC = () => {
   const { user } = useAuth();
-  const [vehicles, setVehicles] = useState<
-    (Vehicle & { customer_name: string })[]
-  >([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const dispatch = useAppDispatch();
+  
+  // Get data from Redux state
+  const {
+    vehicles,
+    customers,
+    loading: { vehicles: vehiclesLoading, customers: customersLoading },
+    error: { vehicles: vehiclesError, customers: customersError }
+  } = useAppSelector((state) => state.autoRepairs);
+  
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Modal states
@@ -39,38 +44,13 @@ export const VehicleManagement: React.FC = () => {
   >();
 
   useEffect(() => {
-    loadData();
-  }, []);
+    dispatch(fetchVehicles({}));
+    dispatch(fetchCustomers({}));
+  }, [dispatch]);
 
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const [vehiclesResponse, customersResponse] = await Promise.all([
-        apiGet<Vehicle[]>("/shop/vehicles/"),
-        apiGet<Customer[]>("/shop/customers/"),
-      ]);
-
-      setCustomers(customersResponse);
-
-      // Debug: Log data to see new structure
-      console.log("Loaded vehicles:", vehiclesResponse.length);
-      console.log("First vehicle data:", vehiclesResponse[0]);
-
-      // ✅ Backend now provides customer_name directly - no need for complex lookup!
-      const vehiclesWithCustomers = vehiclesResponse.map((vehicle) => {
-        return {
-          ...vehicle,
-          customer_name: vehicle.customer_name || "Unknown Customer", // Use backend-provided customer_name
-        };
-      });
-
-      setVehicles(vehiclesWithCustomers);
-    } catch (error) {
-      console.error("Failed to load data:", error);
-      setError("Failed to load data");
-    } finally {
-      setLoading(false);
-    }
+  const loadData = () => {
+    dispatch(fetchVehicles({}));
+    dispatch(fetchCustomers({}));
   };
 
   const handleSuccess = (entityType: string) => {
@@ -99,11 +79,13 @@ export const VehicleManagement: React.FC = () => {
     return undefined;
   };
 
-  const getVehicleDisplayName = (
-    vehicle: Vehicle & { customer_name: string }
-  ) => {
+  const getVehicleDisplayName = (vehicle: Vehicle) => {
     return `${vehicle.year} ${vehicle.make} ${vehicle.model}`;
   };
+
+  // Compute loading and error states
+  const loading = vehiclesLoading || customersLoading;
+  const error = vehiclesError || customersError;
 
   if (loading) {
     return (
@@ -129,7 +111,10 @@ export const VehicleManagement: React.FC = () => {
       )}
 
       {error && (
-        <Alert variant="danger" dismissible onClose={() => setError(null)}>
+        <Alert variant="danger" dismissible onClose={() => {
+          if (vehiclesError) dispatch(clearError('vehicles'));
+          if (customersError) dispatch(clearError('customers'));
+        }}>
           {error}
         </Alert>
       )}

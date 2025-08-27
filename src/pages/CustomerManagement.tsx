@@ -11,44 +11,39 @@ import {
   Form,
 } from "react-bootstrap";
 import { useAuth } from "../hooks/useAuth";
-import type { Customer, Vehicle } from "../types";
-import { apiGet } from "../utils/api";
+import { useAppDispatch, useAppSelector } from "../store";
+import { fetchCustomers, fetchVehicles, clearError } from "../store/slices/autoRepairsSlice";
 import { AddCustomerModal, AddVehicleModal } from "../components/modals";
 import { formatPhoneNumber } from "../utils/validation";
 
 export const CustomerManagement: React.FC = () => {
   const { user } = useAuth();
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const dispatch = useAppDispatch();
+  
+  // Get data from Redux state
+  const {
+    customers,
+    vehicles,
+    loading: { customers: customersLoading, vehicles: vehiclesLoading },
+    error: { customers: customersError, vehicles: vehiclesError }
+  } = useAppSelector((state) => state.autoRepairs);
+  
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
   // Modal states
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [showVehicleModal, setShowVehicleModal] = useState(false);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<number | undefined>();
 
   useEffect(() => {
-    loadData();
-  }, []);
+    dispatch(fetchCustomers({}));
+    dispatch(fetchVehicles({}));
+  }, [dispatch]);
 
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const [customersResponse, vehiclesResponse] = await Promise.all([
-        apiGet<Customer[]>("/shop/customers/"),
-        apiGet<Vehicle[]>("/shop/vehicles/"),
-      ]);
-
-      setCustomers(customersResponse);
-      setVehicles(vehiclesResponse);
-    } catch (error) {
-      console.error("Failed to load data:", error);
-      setError("Failed to load data");
-    } finally {
-      setLoading(false);
-    }
+  const loadData = () => {
+    dispatch(fetchCustomers({}));
+    dispatch(fetchVehicles({}));
   };
 
   const handleSuccess = (entityType: string) => {
@@ -83,9 +78,14 @@ export const CustomerManagement: React.FC = () => {
       (customer.phone_number && customer.phone_number.includes(searchTerm))
   );
 
-  const handleAddVehicleForCustomer = () => {
+  const handleAddVehicleForCustomer = (customerId: number) => {
+    setSelectedCustomerId(customerId);
     setShowVehicleModal(true);
   };
+
+  // Compute loading and error states
+  const loading = customersLoading || vehiclesLoading;
+  const error = customersError || vehiclesError;
 
   if (loading) {
     return (
@@ -111,7 +111,10 @@ export const CustomerManagement: React.FC = () => {
       )}
 
       {error && (
-        <Alert variant="danger" dismissible onClose={() => setError(null)}>
+        <Alert variant="danger" dismissible onClose={() => {
+          if (customersError) dispatch(clearError('customers'));
+          if (vehiclesError) dispatch(clearError('vehicles'));
+        }}>
           {error}
         </Alert>
       )}
@@ -303,7 +306,7 @@ export const CustomerManagement: React.FC = () => {
                             size="sm"
                             variant="primary"
                             onClick={() =>
-                              handleAddVehicleForCustomer()
+                              handleAddVehicleForCustomer(Number(customer.id))
                             }
                             className="flex-grow-1"
                           >
@@ -367,8 +370,12 @@ export const CustomerManagement: React.FC = () => {
 
       <AddVehicleModal
         show={showVehicleModal}
-        onHide={() => setShowVehicleModal(false)}
+        onHide={() => {
+          setShowVehicleModal(false);
+          setSelectedCustomerId(undefined);
+        }}
         onSuccess={() => handleSuccess("Vehicle")}
+        customerId={selectedCustomerId}
       />
     </Container>
   );

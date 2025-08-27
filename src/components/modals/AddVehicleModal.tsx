@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { Modal, Button, Form, Alert } from "react-bootstrap";
-import type { VehicleFormData, Customer } from "../../types/entities";
-import { apiPost, apiGet } from "../../utils/api";
+import type { VehicleFormData } from "../../types/entities";
+import type { CreateVehicleData, Vehicle } from "../../types";
+import { useAppDispatch, useAppSelector } from "../../store";
+import { fetchCustomers, createVehicle } from "../../store/slices/autoRepairsSlice";
 import { AutomotiveValidation, formatVIN } from "../../utils/validation";
 
 interface AddVehicleModalProps {
   show: boolean;
   onHide: () => void;
-  onSuccess: (vehicle: any) => void;
+  onSuccess: (vehicle: Vehicle) => void;
   customerId?: number; // Pre-select customer if provided
 }
 
@@ -17,6 +19,15 @@ export const AddVehicleModal: React.FC<AddVehicleModalProps> = ({
   onSuccess,
   customerId,
 }) => {
+  const dispatch = useAppDispatch();
+  
+  // Get data from Redux state
+  const { 
+    customers, 
+    loading: { customers: customersLoading, vehicles: vehiclesLoading },
+    error: { customers: customersError, vehicles: vehiclesError }
+  } = useAppSelector((state) => state.autoRepairs);
+  
   const [formData, setFormData] = useState<VehicleFormData>({
     customer: customerId || 0,
     make: "",
@@ -26,37 +37,35 @@ export const AddVehicleModal: React.FC<AddVehicleModalProps> = ({
     license_plate: "",
     color: "",
   });
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [loadingCustomers, setLoadingCustomers] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<
     Record<string, string>
   >({});
 
   useEffect(() => {
-    if (show) {
-      loadCustomers();
+    // Load customers if modal is shown and:
+    // 1. No customers loaded yet, OR
+    // 2. A specific customer is provided but we don't have their data
+    if (show && (
+      customers.length === 0 || 
+      (customerId && !customers.find(c => Number(c.id) === customerId))
+    )) {
+      console.log('Loading customers because:', {
+        show,
+        customersLength: customers.length,
+        customerId,
+        hasCustomerData: customerId ? !!customers.find(c => Number(c.id) === customerId) : 'N/A'
+      });
+      dispatch(fetchCustomers({}));
     }
-  }, [show]);
+  }, [show, customers, customerId, dispatch]);
 
   useEffect(() => {
     if (customerId) {
+      console.log('Setting customerId in formData:', customerId);
       setFormData((prev) => ({ ...prev, customer: customerId }));
     }
   }, [customerId]);
-
-  const loadCustomers = async () => {
-    setLoadingCustomers(true);
-    try {
-      const response = await apiGet<Customer[]>("/shop/customers/");
-      setCustomers(response);
-    } catch (err) {
-      setError("Failed to load customers");
-    } finally {
-      setLoadingCustomers(false);
-    }
-  };
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -102,25 +111,36 @@ export const AddVehicleModal: React.FC<AddVehicleModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
 
     // Validate form
     const errors = AutomotiveValidation.validateForm("vehicle", formData);
     if (Object.keys(errors).length > 0) {
       setValidationErrors(errors);
-      setLoading(false);
       return;
     }
 
     try {
-      const response = await apiPost("/shop/vehicles/", formData);
-      onSuccess(response);
-      handleClose();
+      // Transform VehicleFormData to CreateVehicleData
+      const createVehicleData: CreateVehicleData = {
+        customerId: formData.customer,
+        make: formData.make,
+        model: formData.model,
+        year: formData.year,
+        vin: formData.vin,
+        license_plate: formData.license_plate,
+        color: formData.color,
+      };
+      
+      const resultAction = await dispatch(createVehicle(createVehicleData));
+      if (createVehicle.fulfilled.match(resultAction)) {
+        onSuccess(resultAction.payload);
+        handleClose();
+      } else {
+        setError(resultAction.payload as string || "Failed to create vehicle");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create vehicle");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -145,32 +165,79 @@ export const AddVehicleModal: React.FC<AddVehicleModalProps> = ({
   return (
     <Modal show={show} onHide={handleClose} size="lg">
       <Modal.Header closeButton>
-        <Modal.Title>Add New Vehicle</Modal.Title>
+        <Modal.Title>
+          {customerId ? (
+            (() => {
+              const selectedCustomer = customers.find(c => Number(c.id) === customerId);
+              return selectedCustomer 
+                ? `Add Vehicle for ${selectedCustomer.name}`
+                : "Add New Vehicle";
+            })()
+          ) : (
+            "Add New Vehicle"
+          )}
+        </Modal.Title>
       </Modal.Header>
       <Form onSubmit={handleSubmit}>
         <Modal.Body>
-          {error && <Alert variant="danger">{error}</Alert>}
+          {(error || customersError || vehiclesError) && (
+            <Alert variant="danger">
+              {error || customersError || vehiclesError}
+            </Alert>
+          )}
 
           <Form.Group className="mb-3">
             <Form.Label>Customer *</Form.Label>
-            <Form.Select
-              name="customer"
-              value={formData.customer}
-              onChange={handleInputChange}
-              required
-              disabled={!!customerId || loadingCustomers}
-            >
-              <option value="">
-                {loadingCustomers
-                  ? "Loading customers..."
-                  : "Select a customer"}
-              </option>
-              {customers.map((customer) => (
-                <option key={customer.id} value={customer.id}>
-                  {customer.name} - {customer.phone_number}
+            {customerId ? (
+              // Show customer information when specific customer is provided
+              (() => {
+                console.log('Looking for customer with ID:', customerId, 'in customers:', customers.map(c => ({ id: c.id, name: c.name })));
+                const selectedCustomer = customers.find(c => Number(c.id) === customerId);
+                console.log('Found customer:', selectedCustomer);
+                return selectedCustomer ? (
+                  <div className="border rounded p-3 bg-light">
+                    <div className="d-flex align-items-center">
+                      <div className="me-2">
+                        <i className="fas fa-user text-primary"></i>
+                      </div>
+                      <div>
+                        <h6 className="mb-1">{selectedCustomer.name}</h6>
+                        <small className="text-muted">
+                          📞 {selectedCustomer.phone_number}
+                          {selectedCustomer.email && (
+                            <span className="ms-2">📧 {selectedCustomer.email}</span>
+                          )}
+                        </small>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <Alert variant="warning">
+                    Customer information not found. Please try again.
+                  </Alert>
+                );
+              })()
+            ) : (
+              // Show dropdown when no specific customer is provided
+              <Form.Select
+                name="customer"
+                value={formData.customer}
+                onChange={handleInputChange}
+                required
+                disabled={customersLoading}
+              >
+                <option value="">
+                  {customersLoading
+                    ? "Loading customers..."
+                    : "Select a customer"}
                 </option>
-              ))}
-            </Form.Select>
+                {customers.map((customer) => (
+                  <option key={customer.id} value={customer.id}>
+                    {customer.name} - {customer.phone_number}
+                  </option>
+                ))}
+              </Form.Select>
+            )}
           </Form.Group>
 
           <div className="row">
@@ -296,9 +363,9 @@ export const AddVehicleModal: React.FC<AddVehicleModalProps> = ({
           <Button
             variant="primary"
             type="submit"
-            disabled={loading || !formData.customer}
+            disabled={vehiclesLoading || !formData.customer}
           >
-            {loading ? "Creating..." : "Create Vehicle"}
+            {vehiclesLoading ? "Creating..." : "Create Vehicle"}
           </Button>
         </Modal.Footer>
       </Form>

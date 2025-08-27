@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { Modal, Button, Form, Alert, InputGroup } from "react-bootstrap";
-import type { PartFormData, Shop } from "../../types/entities";
-import { apiPost, apiGet } from "../../utils/api";
+import type { PartFormData } from "../../types/entities";
+import { useAppDispatch, useAppSelector } from "../../store";
+import { fetchShops } from "../../store/slices/autoRepairsSlice";
 
 interface AddPartModalProps {
   show: boolean;
   onHide: () => void;
-  onSuccess: (part: any) => void;
+  onSuccess: (part: PartFormData) => void;
   shopId?: number; // Pre-select shop if provided
 }
 
@@ -16,6 +17,14 @@ export const AddPartModal: React.FC<AddPartModalProps> = ({
   onSuccess,
   shopId,
 }) => {
+  const dispatch = useAppDispatch();
+  
+  // Get data from Redux state
+  const { 
+    shops,
+    loading: { shops: shopsLoading } 
+  } = useAppSelector((state) => state.autoRepairs);
+  
   const [formData, setFormData] = useState<PartFormData>({
     shop: shopId || 0,
     name: "",
@@ -28,34 +37,20 @@ export const AddPartModal: React.FC<AddPartModalProps> = ({
     warranty_months: 0,
     stock_quantity: 0,
   });
-  const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(false);
-  const [loadingShops, setLoadingShops] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (show) {
-      loadShops();
+    if (show && shops.length === 0) {
+      dispatch(fetchShops());
     }
-  }, [show]);
+  }, [show, shops.length, dispatch]);
 
   useEffect(() => {
     if (shopId) {
       setFormData((prev) => ({ ...prev, shop: shopId }));
     }
   }, [shopId]);
-
-  const loadShops = async () => {
-    setLoadingShops(true);
-    try {
-      const response = await apiGet<Shop[]>("/shops/");
-      setShops(response);
-    } catch (err) {
-      setError("Failed to load shops");
-    } finally {
-      setLoadingShops(false);
-    }
-  };
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -91,8 +86,10 @@ export const AddPartModal: React.FC<AddPartModalProps> = ({
     setError(null);
 
     try {
+      // TODO: Move to Redux when part management is implemented
+      const { apiPost } = await import("../../utils/api");
       const response = await apiPost("/parts/", formData);
-      onSuccess(response);
+      onSuccess(response as PartFormData);
       handleClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create part");
@@ -140,10 +137,10 @@ export const AddPartModal: React.FC<AddPartModalProps> = ({
               value={formData.shop}
               onChange={handleInputChange}
               required
-              disabled={!!shopId || loadingShops}
+              disabled={!!shopId || shopsLoading}
             >
               <option value="">
-                {loadingShops ? "Loading shops..." : "Select a shop"}
+                {shopsLoading ? "Loading shops..." : "Select a shop"}
               </option>
               {shops.map((shop) => (
                 <option key={shop.id} value={shop.id}>

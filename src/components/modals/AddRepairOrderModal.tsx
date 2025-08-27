@@ -12,14 +12,15 @@ import type {
   RepairOrderFormData,
   Service,
   Part,
-  Vehicle,
+  RepairOrder,
 } from "../../types";
-import { apiPost, apiGet } from "../../utils/api";
+import { useAppDispatch, useAppSelector } from "../../store";
+import { fetchVehicles, createRepairOrder } from "../../store/slices/autoRepairsSlice";
 
 interface AddRepairOrderModalProps {
   show: boolean;
   onHide: () => void;
-  onSuccess: (repairOrder: any) => void;
+  onSuccess: (repairOrder: RepairOrder) => void;
   vehicleId?: number; // Pre-select vehicle if provided
 }
 
@@ -35,6 +36,14 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
   onSuccess,
   vehicleId,
 }) => {
+  const dispatch = useAppDispatch();
+  
+  // Get data from Redux state
+  const { 
+    vehicles, 
+    loading: { vehicles: vehiclesLoading, repairOrders: repairOrdersLoading } 
+  } = useAppSelector((state) => state.autoRepairs);
+  
   const [formData, setFormData] = useState<RepairOrderFormData>({
     vehicle: vehicleId || 0,
     services: [],
@@ -45,23 +54,23 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
     notes: "",
   });
 
-  const [vehicles, setVehicles] = useState<
-    (Vehicle & { customer_name: string })[]
-  >([]);
+  // Note: Services and Parts are not yet in Redux, keeping direct API calls for now
   const [availableServices, setAvailableServices] = useState<Service[]>([]);
   const [availableParts, setAvailableParts] = useState<Part[]>([]);
   const [selectedServices, setSelectedServices] = useState<Service[]>([]);
   const [selectedParts, setSelectedParts] = useState<SelectedPart[]>([]);
 
-  const [loading, setLoading] = useState(false);
-  const [loadingData, setLoadingData] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (show) {
-      loadData();
+      // Load vehicles from Redux if not already loaded
+      if (vehicles.length === 0) {
+        dispatch(fetchVehicles({}));
+      }
+      loadServicesAndParts();
     }
-  }, [show]);
+  }, [show, vehicles.length, dispatch]);
 
   useEffect(() => {
     if (vehicleId) {
@@ -69,24 +78,23 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
     }
   }, [vehicleId]);
 
-  const loadData = async () => {
-    setLoadingData(true);
+  // Note: Keep this for services and parts until they're added to Redux
+  const loadServicesAndParts = async () => {
     try {
-      const [vehiclesResponse, servicesResponse, partsResponse] =
-        await Promise.all([
-          apiGet<Vehicle[]>("/shop/vehicles/"),
-          apiGet<Service[]>("/shop/services/"),
-          apiGet<Part[]>("/shop/parts/"),
-        ]);
+      // For now, keep direct API calls for services and parts since they're not in Redux yet
+      // TODO: Move to Redux when service and part management is implemented
+      const { apiGet } = await import("../../utils/api");
+      
+      const [servicesResponse, partsResponse] = await Promise.all([
+        apiGet<Service[]>("/shop/services/"),
+        apiGet<Part[]>("/shop/parts/"),
+      ]);
 
-      // ✅ Backend now provides customer_name directly - no need for manual combination!
-      setVehicles(vehiclesResponse as (Vehicle & { customer_name: string })[]);
       setAvailableServices(servicesResponse);
       setAvailableParts(partsResponse.filter((p) => p.stock_quantity > 0)); // Only show parts in stock
-    } catch (err) {
-      setError("Failed to load data");
-    } finally {
-      setLoadingData(false);
+    } catch (error) {
+      console.error("Failed to load services and parts:", error);
+      setError("Failed to load services and parts");
     }
   };
 
@@ -192,29 +200,53 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
 
     try {
+      // Find the selected vehicle and transform to VehicleSummary
+      const selectedVehicle = vehicles.find(v => String(v.id) === String(formData.vehicle));
+      if (!selectedVehicle) {
+        setError("Please select a vehicle");
+        return;
+      }
+
+      const vehicleSummary = {
+        id: selectedVehicle.id,
+        make: selectedVehicle.make,
+        model: selectedVehicle.model,
+        year: selectedVehicle.year,
+        license_plate: selectedVehicle.license_plate,
+        vin: selectedVehicle.vin,
+        color: selectedVehicle.color,
+        customer: selectedVehicle.customer
+      };
+
       // Update parts data before submitting
       const finalFormData = {
-        ...formData,
+        vehicle: vehicleSummary,
+        services: formData.services,
         parts: selectedParts.map((sp) => ({
-          part: sp.part.id!,
+          part: Number(sp.part.id!),  // Convert to number
           quantity: sp.quantity,
           warranty_override_months: sp.warranty_override_months,
         })),
+        discount_amount: formData.discount_amount,
+        discount_percent: formData.discount_percent,
+        tax_percent: formData.tax_percent,
+        notes: formData.notes,
       };
 
-      const response = await apiPost("/shop/repair-orders/", finalFormData);
-      onSuccess(response);
-      handleClose();
+      const resultAction = await dispatch(createRepairOrder(finalFormData));
+      if (createRepairOrder.fulfilled.match(resultAction)) {
+        onSuccess(resultAction.payload);
+        handleClose();
+      } else {
+        setError(resultAction.payload as string || "Failed to create repair order");
+      }
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to create repair order"
       );
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -251,10 +283,10 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
               value={formData.vehicle}
               onChange={handleInputChange}
               required
-              disabled={!!vehicleId || loadingData}
+              disabled={!!vehicleId || vehiclesLoading}
             >
               <option value="">
-                {loadingData ? "Loading vehicles..." : "Select a vehicle"}
+                {vehiclesLoading ? "Loading vehicles..." : "Select a vehicle"}
               </option>
               {vehicles.map((vehicle) => (
                 <option key={vehicle.id} value={vehicle.id}>
@@ -496,12 +528,12 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
             variant="primary"
             type="submit"
             disabled={
-              loading ||
+              repairOrdersLoading ||
               !formData.vehicle ||
               (selectedServices.length === 0 && selectedParts.length === 0)
             }
           >
-            {loading ? "Creating..." : "Create Repair Order"}
+            {repairOrdersLoading ? "Creating..." : "Create Repair Order"}
           </Button>
         </Modal.Footer>
       </Form>

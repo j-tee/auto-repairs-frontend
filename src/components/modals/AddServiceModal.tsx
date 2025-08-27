@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { Modal, Button, Form, Alert, InputGroup } from "react-bootstrap";
-import type { ServiceFormData, Shop } from "../../types/entities";
-import { apiPost, apiGet } from "../../utils/api";
+import type { ServiceFormData } from "../../types/entities";
+import { useAppDispatch, useAppSelector } from "../../store";
+import { fetchShops } from "../../store/slices/autoRepairsSlice";
 
 interface AddServiceModalProps {
   show: boolean;
   onHide: () => void;
-  onSuccess: (service: any) => void;
+  onSuccess: (service: ServiceFormData) => void;
   shopId?: number; // Pre-select shop if provided
 }
 
@@ -16,6 +17,14 @@ export const AddServiceModal: React.FC<AddServiceModalProps> = ({
   onSuccess,
   shopId,
 }) => {
+  const dispatch = useAppDispatch();
+  
+  // Get data from Redux state
+  const { 
+    shops,
+    loading: { shops: shopsLoading } 
+  } = useAppSelector((state) => state.autoRepairs);
+  
   const [formData, setFormData] = useState<ServiceFormData>({
     shop: shopId || 0,
     name: "",
@@ -24,34 +33,20 @@ export const AddServiceModal: React.FC<AddServiceModalProps> = ({
     taxable: true,
     warranty_months: 0,
   });
-  const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(false);
-  const [loadingShops, setLoadingShops] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (show) {
-      loadShops();
+    if (show && shops.length === 0) {
+      dispatch(fetchShops());
     }
-  }, [show]);
+  }, [show, shops.length, dispatch]);
 
   useEffect(() => {
     if (shopId) {
       setFormData((prev) => ({ ...prev, shop: shopId }));
     }
   }, [shopId]);
-
-  const loadShops = async () => {
-    setLoadingShops(true);
-    try {
-      const response = await apiGet<Shop[]>("/shops/");
-      setShops(response);
-    } catch (err) {
-      setError("Failed to load shops");
-    } finally {
-      setLoadingShops(false);
-    }
-  };
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -85,8 +80,10 @@ export const AddServiceModal: React.FC<AddServiceModalProps> = ({
     setError(null);
 
     try {
+      // TODO: Move to Redux when service management is implemented
+      const { apiPost } = await import("../../utils/api");
       const response = await apiPost("/shop/services/", formData);
-      onSuccess(response);
+      onSuccess(response as ServiceFormData);
       handleClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create service");
@@ -124,10 +121,10 @@ export const AddServiceModal: React.FC<AddServiceModalProps> = ({
               value={formData.shop}
               onChange={handleInputChange}
               required
-              disabled={!!shopId || loadingShops}
+              disabled={!!shopId || shopsLoading}
             >
               <option value="">
-                {loadingShops ? "Loading shops..." : "Select a shop"}
+                {shopsLoading ? "Loading shops..." : "Select a shop"}
               </option>
               {shops.map((shop) => (
                 <option key={shop.id} value={shop.id}>

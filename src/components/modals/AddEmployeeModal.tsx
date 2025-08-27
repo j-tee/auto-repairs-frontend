@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { Modal, Button, Form, Alert } from "react-bootstrap";
-import type { EmployeeFormData, Shop } from "../../types/entities";
-import { apiPost, apiGet } from "../../utils/api";
+import type { EmployeeFormData } from "../../types/entities";
+import { useAppDispatch, useAppSelector } from "../../store";
+import { fetchShops } from "../../store/slices/autoRepairsSlice";
 
 interface AddEmployeeModalProps {
   show: boolean;
   onHide: () => void;
-  onSuccess: (employee: any) => void;
+  onSuccess: (employee: EmployeeFormData) => void;
   shopId?: number; // Pre-select shop if provided
 }
 
@@ -16,6 +17,14 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
   onSuccess,
   shopId,
 }) => {
+  const dispatch = useAppDispatch();
+  
+  // Get data from Redux state
+  const { 
+    shops,
+    loading: { shops: shopsLoading } 
+  } = useAppSelector((state) => state.autoRepairs);
+  
   const [formData, setFormData] = useState<EmployeeFormData>({
     shop: shopId || 0,
     name: "",
@@ -23,34 +32,20 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
     phone_number: "",
     email: "",
   });
-  const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(false);
-  const [loadingShops, setLoadingShops] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (show) {
-      loadShops();
+    if (show && shops.length === 0) {
+      dispatch(fetchShops());
     }
-  }, [show]);
+  }, [show, shops.length, dispatch]);
 
   useEffect(() => {
     if (shopId) {
       setFormData((prev) => ({ ...prev, shop: shopId }));
     }
   }, [shopId]);
-
-  const loadShops = async () => {
-    setLoadingShops(true);
-    try {
-      const response = await apiGet<Shop[]>("/shops/");
-      setShops(response);
-    } catch (err) {
-      setError("Failed to load shops");
-    } finally {
-      setLoadingShops(false);
-    }
-  };
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -70,8 +65,10 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
     setError(null);
 
     try {
+      // TODO: Fix type mismatch between EmployeeFormData and CreateEmployeeData
+      const { apiPost } = await import("../../utils/api");
       const response = await apiPost("/employees/", formData);
-      onSuccess(response);
+      onSuccess(response as EmployeeFormData);
       handleClose();
     } catch (err) {
       setError(
@@ -121,10 +118,10 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
               value={formData.shop}
               onChange={handleInputChange}
               required
-              disabled={!!shopId || loadingShops}
+              disabled={!!shopId || shopsLoading}
             >
               <option value="">
-                {loadingShops ? "Loading shops..." : "Select a shop"}
+                {shopsLoading ? "Loading shops..." : "Select a shop"}
               </option>
               {shops.map((shop) => (
                 <option key={shop.id} value={shop.id}>

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Modal, Button, Form, Alert } from "react-bootstrap";
-import type { VehicleProblemFormData, Vehicle } from "../../types";
-import { apiPost, apiGet } from "../../utils/api";
+import type { VehicleProblemFormData } from "../../types";
+import { useAppDispatch, useAppSelector } from "../../store";
+import { fetchVehicles } from "../../store/slices/autoRepairsSlice";
 
 interface AddVehicleProblemModalProps {
   show: boolean;
@@ -16,44 +17,33 @@ export const AddVehicleProblemModal: React.FC<AddVehicleProblemModalProps> = ({
   onSuccess,
   vehicleId,
 }) => {
+  const dispatch = useAppDispatch();
+  
+  // Get data from Redux state
+  const { 
+    vehicles, 
+    loading: { vehicles: vehiclesLoading } 
+  } = useAppSelector((state) => state.autoRepairs);
+  
   const [formData, setFormData] = useState<VehicleProblemFormData>({
     vehicle: vehicleId || 0,
     description: "",
     resolved: false,
   });
-  const [vehicles, setVehicles] = useState<
-    (Vehicle & { customer_name: string })[]
-  >([]);
-  const [loading, setLoading] = useState(false);
-  const [loadingData, setLoadingData] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [submitLoading, setSubmitLoading] = useState(false);
 
   useEffect(() => {
-    if (show) {
-      loadVehicles();
+    if (show && vehicles.length === 0) {
+      dispatch(fetchVehicles({}));
     }
-  }, [show]);
+  }, [show, vehicles.length, dispatch]);
 
   useEffect(() => {
     if (vehicleId) {
       setFormData((prev) => ({ ...prev, vehicle: vehicleId }));
     }
   }, [vehicleId]);
-
-  const loadVehicles = async () => {
-    setLoadingData(true);
-    try {
-      // ✅ Backend now provides customer_name directly - no need for separate customer API call!
-      const vehiclesResponse = await apiGet<Vehicle[]>("/shop/vehicles/");
-
-      // Backend provides customer_name, customer_email, customer_phone directly
-      setVehicles(vehiclesResponse as (Vehicle & { customer_name: string })[]);
-    } catch {
-      setError("Failed to load vehicles");
-    } finally {
-      setLoadingData(false);
-    }
-  };
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -78,17 +68,19 @@ export const AddVehicleProblemModal: React.FC<AddVehicleProblemModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
+    setSubmitLoading(true);
 
     try {
+      // TODO: Move to Redux when vehicle problem management is implemented
+      const { apiPost } = await import("../../utils/api");
       const response = await apiPost("/vehicle-problems/", formData);
       onSuccess(response as VehicleProblemFormData);
       handleClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to report problem");
     } finally {
-      setLoading(false);
+      setSubmitLoading(false);
     }
   };
 
@@ -99,6 +91,7 @@ export const AddVehicleProblemModal: React.FC<AddVehicleProblemModalProps> = ({
       resolved: false,
     });
     setError(null);
+    setSubmitLoading(false);
     onHide();
   };
 
@@ -118,10 +111,10 @@ export const AddVehicleProblemModal: React.FC<AddVehicleProblemModalProps> = ({
               value={formData.vehicle}
               onChange={handleInputChange}
               required
-              disabled={!!vehicleId || loadingData}
+              disabled={!!vehicleId || vehiclesLoading}
             >
               <option value="">
-                {loadingData ? "Loading vehicles..." : "Select a vehicle"}
+                {vehiclesLoading ? "Loading vehicles..." : "Select a vehicle"}
               </option>
               {vehicles.map((vehicle) => (
                 <option key={vehicle.id} value={vehicle.id}>
@@ -162,9 +155,9 @@ export const AddVehicleProblemModal: React.FC<AddVehicleProblemModalProps> = ({
           <Button
             variant="primary"
             type="submit"
-            disabled={loading || !formData.vehicle}
+            disabled={submitLoading || !formData.vehicle}
           >
-            {loading ? "Reporting..." : "Report Problem"}
+            {submitLoading ? "Reporting..." : "Report Problem"}
           </Button>
         </Modal.Footer>
       </Form>
