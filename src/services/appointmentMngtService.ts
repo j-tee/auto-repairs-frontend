@@ -5,15 +5,44 @@ import type { Appointment, AppointmentAPIResponse, AppointmentListAPIResponse, A
 
 // Helper function to transform backend response to frontend format
 const transformAppointmentData = (appointment: AppointmentAPIResponse): Appointment => {
+  // Validate that appointment data exists
+  if (!appointment) {
+    throw new Error('Invalid appointment data: appointment is null or undefined');
+  }
+
   // Parse the single date field into separate date/time components
-  const appointmentDate = new Date(appointment.date);
-  const scheduledDate = appointmentDate.toISOString().split('T')[0];
-  const scheduledTime = appointmentDate.toTimeString().substring(0, 5);
+  let appointmentDate: Date;
+  let scheduledDate: string;
+  let scheduledTime: string;
+  
+  try {
+    appointmentDate = appointment.date ? new Date(appointment.date) : new Date();
+    scheduledDate = appointmentDate.toISOString().split('T')[0];
+    scheduledTime = appointmentDate.toTimeString().substring(0, 5);
+  } catch (dateError) {
+    console.warn('Error parsing appointment date:', appointment.date, dateError);
+    appointmentDate = new Date();
+    scheduledDate = appointmentDate.toISOString().split('T')[0];
+    scheduledTime = appointmentDate.toTimeString().substring(0, 5);
+  }
+
+  // Ensure required IDs are present
+  if (!appointment.id && appointment.id !== 0) {
+    console.warn('Appointment missing ID:', appointment);
+  }
+  
+  if (!appointment.customer_id && appointment.customer_id !== 0) {
+    console.warn('Appointment missing customer_id:', appointment);
+  }
+  
+  if (!appointment.vehicle_id && appointment.vehicle_id !== 0) {
+    console.warn('Appointment missing vehicle_id:', appointment);
+  }
 
   return {
-    id: appointment.id.toString(),
-    customerId: appointment.customer_id.toString(),
-    vehicleId: appointment.vehicle_id.toString(),
+    id: appointment.id?.toString() || '',
+    customerId: appointment.customer_id?.toString() || '',
+    vehicleId: appointment.vehicle_id?.toString() || '',
     employeeId: '', // Not in backend
     shopId: '', // Not in backend
     serviceType: 'General Service', // Not in backend
@@ -32,9 +61,9 @@ const transformAppointmentData = (appointment: AppointmentAPIResponse): Appointm
     estimatedCost: 0, // Not in backend
     assignedTechnician: '', // Not in backend
     reminderSent: false, // Not in backend
-    createdAt: appointment.date,
-    updatedAt: appointment.date,
-    date: appointment.date, // Add the required 'date' property
+    createdAt: appointment.date || new Date().toISOString(),
+    updatedAt: appointment.date || new Date().toISOString(),
+    date: appointment.date || new Date().toISOString(), // Add the required 'date' property
     reportedProblemId: appointment.reported_problem_id?.toString(),
     customer: appointment.customer,
     vehicle: appointment.vehicle,
@@ -50,14 +79,35 @@ export const appointmentMngtService = {
   getAppointments: async (query: AppointmentQuery = {}): Promise<AppointmentListResponse> => {
     try {
       const endpoint = '/shop/appointments/';
-      const response = await apiGet<AppointmentListAPIResponse>(endpoint, query as Record<string, string | number | boolean>);
+      console.log('🔍 Fetching appointments with query:', query);
+      
+      const response = await apiGet<AppointmentListAPIResponse | AppointmentAPIResponse[]>(endpoint, query as Record<string, string | number | boolean>);
+      
+      console.log('🔍 Backend response type:', Array.isArray(response) ? 'Array' : 'Object');
+      
+      // Handle both paginated response and direct array response
+      let appointments: AppointmentAPIResponse[];
+      let total: number;
+      
+      if (Array.isArray(response)) {
+        // Backend returns direct array
+        appointments = response;
+        total = response.length;
+        console.log('🔍 Using direct array format:', { total, appointments: appointments.length });
+      } else {
+        // Backend returns paginated response
+        const paginatedResponse = response as AppointmentListAPIResponse;
+        appointments = paginatedResponse.results || [];
+        total = paginatedResponse.count || 0;
+        console.log('🔍 Using paginated format:', { total, appointments: appointments.length });
+      }
       
       return {
-        appointments: (response.results || []).map(transformAppointmentData),
-        total: response.count || 0,
+        appointments: appointments.map(transformAppointmentData),
+        total,
         page: query.page || 1,
         limit: query.page_size || 25,
-        totalPages: Math.ceil((response.count || 0) / (query.page_size || 25))
+        totalPages: Math.ceil(total / (query.page_size || 25))
       };
     } catch (error: unknown) {
       console.error('Error fetching appointments:', error);
@@ -73,23 +123,64 @@ export const appointmentMngtService = {
 
   // Create new appointment
   createAppointment: async (appointmentData: CreateAppointmentData): Promise<Appointment> => {
-    // Combine date and time for the backend's single 'date' field
-    const combinedDateTime = `${appointmentData.scheduledDate}T${appointmentData.scheduledTime}:00`;
-    
-    const createData: CreateAppointmentData = {
-      vehicle_id: parseInt(String(appointmentData.vehicleId) || ''),
-      description: appointmentData.description || appointmentData.notes || '',
-      date: combinedDateTime,
-      status: 'pending'
-    };
-    
-    // Add reported problem ID if provided
-    if (appointmentData.reportedProblemId !== undefined && appointmentData.reportedProblemId !== null) {
-      createData.reported_problem_id = appointmentData.reportedProblemId //parseInt(String(), 10);
+    try {
+      console.log('🔄 Creating appointment with input data:', appointmentData);
+      
+      // Validate required fields
+      if (!appointmentData.vehicleId && !appointmentData.vehicle_id && !appointmentData.vehicle) {
+        throw new Error('Vehicle ID is required to create an appointment');
+      }
+      
+      if (!appointmentData.scheduledDate && !appointmentData.date) {
+        throw new Error('Scheduled date is required to create an appointment');
+      }
+      
+      if (!appointmentData.scheduledTime && !appointmentData.time) {
+        throw new Error('Scheduled time is required to create an appointment');
+      }
+      
+      // Extract vehicle ID from various possible fields
+      const vehicleId = appointmentData.vehicleId || appointmentData.vehicle_id || appointmentData.vehicle;
+      
+      // Extract date and time
+      const schedDate = appointmentData.scheduledDate || appointmentData.date?.split('T')[0] || '';
+      const schedTime = appointmentData.scheduledTime || appointmentData.time || appointmentData.date?.split('T')[1]?.substring(0, 5) || '';
+      
+      // Combine date and time for the backend's single 'date' field
+      const combinedDateTime = `${schedDate}T${schedTime}:00`;
+      
+      console.log('📅 Combined date/time:', combinedDateTime);
+      
+      const createData: CreateAppointmentAPIData = {
+        vehicle_id: parseInt(String(vehicleId), 10),
+        description: appointmentData.description || appointmentData.notes || '',
+        date: combinedDateTime,
+        status: 'pending'
+      };
+      
+      // Add reported problem ID if provided
+      const problemId = appointmentData.reportedProblemId || appointmentData.reported_problem_id || appointmentData.reported_problem;
+      if (problemId !== undefined && problemId !== null && problemId !== '') {
+        createData.reported_problem_id = parseInt(String(problemId), 10);
+      }
+      
+      console.log('🔄 Sending to backend:', createData);
+      
+      const response = await apiPost<AppointmentAPIResponse>('/shop/appointments/', createData);
+      
+      console.log('✅ Backend response:', response);
+      
+      // Ensure response has required fields before transforming
+      if (!response) {
+        throw new Error('No response received from server');
+      }
+      
+      return transformAppointmentData(response);
+      
+    } catch (error) {
+      console.error('❌ Error in createAppointment:', error);
+      throw error;
     }
-    
-    const response = await apiPost<AppointmentAPIResponse>('/shop/appointments/', createData);
-    return transformAppointmentData(response);
   },
 
   // Update appointment
@@ -328,22 +419,77 @@ export const appointmentMngtService = {
     }
   },
 
-  // Get today's appointments using backend filtering
+  // Get today's appointments (filtered by today's date)
   getTodaysAppointments: async (): Promise<Appointment[]> => {
     try {
       const today = new Date().toISOString().split('T')[0];
+      console.log('🗓️ Getting today\'s appointments for date:', today);
+      
+      // Try backend filtering with datetime range first
+      const startOfDay = `${today}T00:00:00`;
+      const endOfDay = `${today}T23:59:59`;
+      
       const query: AppointmentQuery = {
-        date_from: today,
-        date_to: today,
+        date_from: startOfDay,
+        date_to: endOfDay,
         ordering: 'date',
         page_size: 100
       };
       
-      const response = await appointmentMngtService.getAppointments(query);
+      console.log('🗓️ Query with datetime range:', query);
+      
+      let response = await appointmentMngtService.getAppointments(query);
+      
+      console.log('🗓️ Backend response with datetime:', {
+        total: response.total,
+        count: response.appointments.length
+      });
+      
+      // If datetime range doesn't work, try date-only format
+      if (response.appointments.length === 0) {
+        console.log('🗓️ Trying date-only format...');
+        const dateQuery: AppointmentQuery = {
+          date_from: today,
+          date_to: today,
+          ordering: 'date',
+          page_size: 100
+        };
+        
+        response = await appointmentMngtService.getAppointments(dateQuery);
+        console.log('🗓️ Backend response with date-only:', {
+          total: response.total,
+          count: response.appointments.length
+        });
+      }
+      
+      // If backend filtering still doesn't work, fall back to client-side filtering
+      if (response.appointments.length === 0) {
+        console.log('🗓️ Backend filtering failed, trying client-side filtering...');
+        const allResponse = await appointmentMngtService.getAppointments({ page_size: 1000 });
+        
+        const todaysAppointments = allResponse.appointments.filter(apt => {
+          if (!apt.date) return false;
+          const appointmentDate = new Date(apt.date).toISOString().split('T')[0];
+          return appointmentDate === today;
+        });
+        
+        console.log('🗓️ Client-side filtering result:', {
+          total_appointments: allResponse.total,
+          today_filtered: todaysAppointments.length,
+          appointments: todaysAppointments.map(apt => ({
+            id: apt.id,
+            date: apt.date,
+            parsed_date: new Date(apt.date).toISOString().split('T')[0]
+          }))
+        });
+        
+        return todaysAppointments;
+      }
+      
       return response.appointments;
     } catch (error: unknown) {
       console.error('Error fetching today\'s appointments:', error);
-      throw error;
+      return [];
     }
   }
 };

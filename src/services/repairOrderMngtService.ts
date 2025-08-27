@@ -267,10 +267,26 @@ export const repairOrderMngtService = {
     try {
       console.log('🔄 Loading active repair orders from backend...');
       
-      const response = await apiGet<RepairOrderListAPIResponse>('/shop/repair-orders/active/');
+      const response = await apiGet<RepairOrderListAPIResponse | RepairOrderAPIResponse[]>('/shop/repair-orders/active/');
       
-      console.log(`✅ Loaded ${(response.results?.length ?? 0)} active repair orders from backend`);
-      return (response.results ?? []).map(transformRepairOrderData);
+      console.log('🔍 Active repair orders response type:', Array.isArray(response) ? 'Array' : 'Object');
+      
+      // Handle both paginated response and direct array response
+      let activeRepairOrders: RepairOrderAPIResponse[];
+      
+      if (Array.isArray(response)) {
+        // Backend returns direct array
+        activeRepairOrders = response;
+        console.log('✅ Using direct array format:', { count: activeRepairOrders.length });
+      } else {
+        // Backend returns paginated response
+        const paginatedResponse = response as RepairOrderListAPIResponse;
+        activeRepairOrders = paginatedResponse.results ?? [];
+        console.log('✅ Using paginated format:', { count: activeRepairOrders.length });
+      }
+      
+      console.log(`✅ Loaded ${activeRepairOrders.length} active repair orders from backend`);
+      return activeRepairOrders.map(transformRepairOrderData);
       
     } catch (error: unknown) {
       console.error('❌ Error loading active repair orders from /active/ endpoint:', error);
@@ -278,13 +294,30 @@ export const repairOrderMngtService = {
       // Fallback: Try to get all repair orders and filter for active ones on frontend
       console.log('🔄 Attempting fallback: fetching all repair orders and filtering for active...');
       try {
-        const fallbackResponse = await apiGet<RepairOrderListAPIResponse>('/shop/repair-orders/', {
+        const fallbackResponse = await apiGet<RepairOrderListAPIResponse | RepairOrderAPIResponse[]>('/shop/repair-orders/', {
           status: 'pending,in_progress,scheduled' // Common active statuses
         });
         
-        console.log(`✅ Fallback: Loaded ${(fallbackResponse.results?.length ?? 0)} repair orders, filtering for active`);
-        const activeOrders = (fallbackResponse.results ?? [])
-          .filter(order => ['pending', 'in_progress', 'scheduled'].includes(order.status?.toLowerCase() || ''))
+        // Handle response format for fallback too
+        let allRepairOrders: RepairOrderAPIResponse[];
+        
+        if (Array.isArray(fallbackResponse)) {
+          allRepairOrders = fallbackResponse;
+        } else {
+          const paginatedFallback = fallbackResponse as RepairOrderListAPIResponse;
+          allRepairOrders = paginatedFallback.results ?? [];
+        }
+        
+        console.log(`✅ Fallback: Loaded ${allRepairOrders.length} repair orders, filtering for active`);
+        
+        // Since the backend doesn't have status field, consider all repair orders as "active"
+        // if they have services or parts (indicating work to be done)
+        const activeOrders = allRepairOrders
+          .filter(order => {
+            const hasServices = (order.services && order.services.length > 0);
+            const hasParts = (order.parts && order.parts.length > 0);
+            return hasServices || hasParts;
+          })
           .map(transformRepairOrderData);
           
         console.log(`✅ Fallback successful: Found ${activeOrders.length} active repair orders`);

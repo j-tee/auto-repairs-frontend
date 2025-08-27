@@ -83,10 +83,17 @@ export const apiClient = axios.create({
 // Request interceptor for authentication, logging, etc.
 apiClient.interceptors.request.use(
   (config) => {
-    // Add auth token if available
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    // Don't add auth token for login/registration endpoints
+    const isAuthEndpoint = config.url?.includes('/token/') || 
+                          config.url?.includes('/auth/register/') ||
+                          config.url?.includes('/auth/verify-email/');
+    
+    // Add auth token if available and not an auth endpoint
+    if (!isAuthEndpoint) {
+      const token = localStorage.getItem('auth_token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
 
     // Log requests in development
@@ -94,6 +101,7 @@ apiClient.interceptors.request.use(
       console.log(`🚀 ${config.method?.toUpperCase()} ${config.url}`, {
         params: config.params,
         data: config.data,
+        hasAuth: !!config.headers.Authorization
       });
     }
 

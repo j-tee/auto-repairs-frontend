@@ -68,11 +68,31 @@ export const dashboardService = {
           
           // Calculate today's appointments - use the 'date' field from backend
           const today = new Date().toISOString().split('T')[0];
-          stats.todaysAppointments = appointments.filter(apt => {
-            // Backend returns single 'date' field, frontend transforms to scheduledDate
-            const appointmentDate = apt.scheduledDate || apt.appointmentDate;
-            return appointmentDate === today;
-          }).length;
+          console.log('🔍 Dashboard Service - Today date:', today);
+          
+          const todaysAppointments = appointments.filter(apt => {
+            if (!apt.date) return false;
+            
+            // Parse the original date field from backend (full datetime)
+            const appointmentDate = new Date(apt.date).toISOString().split('T')[0];
+            const matches = appointmentDate === today;
+            
+            console.log('🔍 Dashboard filter check:', {
+              id: apt.id,
+              original_date: apt.date,
+              parsed_date: appointmentDate,
+              today,
+              matches
+            });
+            
+            return matches;
+          });
+          
+          stats.todaysAppointments = todaysAppointments.length;
+          
+          console.log('🔍 Dashboard Service - Today\'s appointments result:', {
+            filtered_count: todaysAppointments.length
+          });
           
           // Calculate monthly appointments (completed this month)
           const thisMonth = new Date().toISOString().substring(0, 7); // YYYY-MM
