@@ -109,7 +109,30 @@ export const dashboardService = {
 
         try {
           // Get repair order statistics using the new backend active endpoint
-          const activeRepairs = await repairOrderMngtService.getActiveRepairOrders();
+          console.log('🔄 Dashboard Service: Loading active repair orders...');
+          
+          let activeRepairs: any[] = [];
+          
+          try {
+            // Try dedicated active endpoint first
+            activeRepairs = await repairOrderMngtService.getActiveRepairOrders();
+            console.log(`✅ Dashboard Service: Got ${activeRepairs.length} active repairs from dedicated endpoint`);
+          } catch (activeEndpointError) {
+            console.warn('⚠️ Dashboard Service: Active endpoint failed, using fallback...', activeEndpointError);
+            
+            // Fallback: get all repair orders and filter client-side
+            const allRepairOrders = await repairOrderMngtService.getRepairOrders();
+            activeRepairs = allRepairOrders.filter(order => 
+              order.status === 'pending' || order.status === 'in_progress'
+            );
+            
+            console.log(`✅ Dashboard Service: Fallback found ${activeRepairs.length} active repairs from ${allRepairOrders.length} total`);
+          }
+          
+          console.log('📥 Dashboard Service: Active repairs response:', {
+            count: activeRepairs.length,
+            sample: activeRepairs[0]
+          });
           
           // Calculate active repairs count (backend already filters for us)
           stats.activeRepairs = activeRepairs.length;
@@ -128,8 +151,14 @@ export const dashboardService = {
           );
           stats.monthlyRevenue = monthlyActiveRepairs.reduce((sum, order) => sum + (order.total || 0), 0);
           
+          console.log('✅ Dashboard Service: Active repairs stats calculated:', {
+            activeRepairs: stats.activeRepairs,
+            todaysRevenue: stats.todaysRevenue,
+            monthlyRevenue: stats.monthlyRevenue
+          });
+          
         } catch (error) {
-          console.warn('Error fetching repair order stats:', error);
+          console.warn('❌ Dashboard Service: Error fetching repair order stats:', error);
           stats.activeRepairs = 0;
           stats.todaysRevenue = 0;
           stats.monthlyRevenue = 0;
@@ -208,11 +237,28 @@ export const dashboardService = {
   // Get active repairs count
   getActiveRepairsCount: async (): Promise<number> => {
     try {
-      // Use the smart method that filters by appointment status
-      const activeRepairs = await repairOrderMngtService.getActiveRepairOrders();
-      return activeRepairs.length;
+      console.log('🔄 Dashboard Service: Getting active repairs count...');
+      
+      // Try the dedicated active endpoint first
+      try {
+        const activeRepairs = await repairOrderMngtService.getActiveRepairOrders();
+        console.log(`✅ Dashboard Service: Found ${activeRepairs.length} active repairs via dedicated endpoint`);
+        return activeRepairs.length;
+      } catch (activeEndpointError) {
+        console.warn('⚠️ Dashboard Service: Active endpoint failed, trying fallback...', activeEndpointError);
+        
+        // Fallback: get all repair orders and filter
+        const allRepairOrders = await repairOrderMngtService.getRepairOrders();
+        const activeRepairs = allRepairOrders.filter(order => 
+          order.status === 'pending' || order.status === 'in_progress'
+        );
+        
+        console.log(`✅ Dashboard Service: Found ${activeRepairs.length} active repairs via fallback (from ${allRepairOrders.length} total)`);
+        return activeRepairs.length;
+      }
+      
     } catch (error) {
-      console.warn('Error fetching active repairs count:', error);
+      console.warn('❌ Dashboard Service: Error fetching active repairs count:', error);
       return 0;
     }
   },

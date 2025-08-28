@@ -649,8 +649,22 @@ export const AutoRepairDashboard: React.FC = () => {
                     <p className="mt-2 mb-0">Loading repairs...</p>
                   </div>
                 ) : activeRepairs.length === 0 ? (
-                  <div className="text-center py-3 text-muted">
-                    <p className="mb-0">No active repairs at this time</p>
+                  <div className="text-center py-4">
+                    <div className="text-muted mb-3">
+                      <i className="fas fa-tools fa-2x"></i>
+                    </div>
+                    <p className="mb-2 text-muted">No active repairs at this time</p>
+                    <small className="text-muted d-block mb-3">
+                      Repair orders will appear here when work is in progress
+                    </small>
+                    <Button
+                      variant="outline-primary"
+                      size="sm"
+                      onClick={() => setShowRepairOrderModal(true)}
+                    >
+                      <i className="fas fa-plus me-1"></i>
+                      Create First Repair Order
+                    </Button>
                   </div>
                 ) : (
                   <>

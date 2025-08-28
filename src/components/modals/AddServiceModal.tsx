@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Modal, Button, Form, Alert, InputGroup } from "react-bootstrap";
 import type { ServiceFormData } from "../../types/entities";
 import { useAppDispatch, useAppSelector } from "../../store";
-import { fetchShops } from "../../store/slices/autoRepairsSlice";
+import { fetchShops, createService } from "../../store/slices/autoRepairsSlice";
 
 interface AddServiceModalProps {
   show: boolean;
@@ -22,7 +22,8 @@ export const AddServiceModal: React.FC<AddServiceModalProps> = ({
   // Get data from Redux state
   const { 
     shops,
-    loading: { shops: shopsLoading } 
+    loading: { shops: shopsLoading, services: servicesLoading },
+    error: { services: servicesError }
   } = useAppSelector((state) => state.autoRepairs);
   
   const [formData, setFormData] = useState<ServiceFormData>({
@@ -33,8 +34,14 @@ export const AddServiceModal: React.FC<AddServiceModalProps> = ({
     taxable: true,
     warranty_months: 0,
   });
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Update error when Redux error changes
+  useEffect(() => {
+    if (servicesError) {
+      setError(servicesError);
+    }
+  }, [servicesError]);
 
   useEffect(() => {
     if (show && shops.length === 0) {
@@ -76,19 +83,18 @@ export const AddServiceModal: React.FC<AddServiceModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
 
     try {
-      // TODO: Move to Redux when service management is implemented
-      const { apiPost } = await import("../../utils/api");
-      const response = await apiPost("/shop/services/", formData);
-      onSuccess(response as ServiceFormData);
-      handleClose();
+      const result = await dispatch(createService(formData));
+      if (createService.fulfilled.match(result)) {
+        onSuccess(result.payload as unknown as ServiceFormData);
+        handleClose();
+      } else {
+        // Error handled by Redux error state and useEffect above
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create service");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -209,9 +215,9 @@ export const AddServiceModal: React.FC<AddServiceModalProps> = ({
           <Button
             variant="primary"
             type="submit"
-            disabled={loading || !formData.shop}
+            disabled={servicesLoading || !formData.shop}
           >
-            {loading ? "Creating..." : "Create Service"}
+            {servicesLoading ? "Creating..." : "Create Service"}
           </Button>
         </Modal.Footer>
       </Form>

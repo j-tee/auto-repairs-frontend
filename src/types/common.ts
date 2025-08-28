@@ -37,6 +37,12 @@ export interface BaseQuery {
   page?: number;
 }
 
+// Union type for all possible query parameters
+export type AnyQuery = 
+  | BaseQuery 
+  | Record<string, string | number | boolean | undefined>
+  | undefined;
+
 // Update data types
 export interface BaseUpdateData {
   [key: string]: unknown;

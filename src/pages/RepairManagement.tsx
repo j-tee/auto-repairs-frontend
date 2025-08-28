@@ -67,17 +67,22 @@ export const RepairManagement: React.FC = () => {
   useEffect(() => {
     const initializeData = async () => {
       try {
+        console.log('🔄 RepairManagement: Initializing data...');
         setLoading(true);
         setError(null);
 
         // Load data from Redux
-        await Promise.all([
+        console.log('🔄 RepairManagement: Loading Redux data...');
+        const results = await Promise.all([
           loadReduxRepairOrders(),
           loadAppointments(),
           loadVehicles(),
           loadCustomers(),
         ]);
+        
+        console.log('✅ RepairManagement: Redux data loaded:', results);
       } catch (err) {
+        console.error('❌ RepairManagement: Failed to load data:', err);
         setError(err instanceof Error ? err.message : "Failed to load data");
       } finally {
         setLoading(false);
@@ -89,6 +94,7 @@ export const RepairManagement: React.FC = () => {
 
   // Sync Redux state with local state
   useEffect(() => {
+    console.log('🔄 Syncing Redux repair orders to local state:', reduxRepairOrders);
     setRepairOrders(reduxRepairOrders);
     setTotal(reduxRepairOrders.length);
   }, [reduxRepairOrders]);
@@ -102,6 +108,7 @@ export const RepairManagement: React.FC = () => {
         limit: itemsPerPage,
         offset: (currentPage - 1) * itemsPerPage,
         search: searchTerm || undefined,
+        // ✅ Status filtering now supported through appointment relationships
         status: statusFilter as RepairOrder['status'] | undefined,
         priority: priorityFilter as RepairOrder['priority'] | undefined,
       };
@@ -344,6 +351,15 @@ export const RepairManagement: React.FC = () => {
               </Row>
             </Card.Header>
             <Card.Body className="p-0">
+              {/* Temporary debugging info */}
+              {import.meta.env.DEV && (
+                <div className="p-3 bg-light border-bottom">
+                  <small className="text-muted">
+                    Debug: Redux orders: {reduxRepairOrders.length} | Local orders: {repairOrders.length} | Loading: {loading ? 'true' : 'false'}
+                  </small>
+                </div>
+              )}
+              
               {repairOrders.length === 0 ? (
                 <div className="text-center py-5">
                   <p className="text-muted mb-0">No repair orders found</p>

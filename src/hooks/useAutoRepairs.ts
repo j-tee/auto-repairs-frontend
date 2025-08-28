@@ -47,6 +47,28 @@ import type {
 } from '../types';
 import type { Appointment } from '../types/appointments';
 
+// Import proper creation and query types
+import type { 
+  CreateVehicleData, 
+  VehicleQuery
+} from '../types/vehicles';
+import type { 
+  CreateCustomerData, 
+  CustomerQuery
+} from '../types/customers';
+import type { 
+  CreateAppointmentData, 
+  AppointmentQuery
+} from '../types/appointments';
+import type { 
+  CreateRepairOrderData,
+  RepairOrderQuery
+} from '../types/repairOrders';
+import type { 
+  CreateEmployeeData, 
+  EmployeeQuery
+} from '../types/employees';
+
 export const useAutoRepairs = () => {
   const dispatch = useAppDispatch();
   const state = useAppSelector(state => state.autoRepairs);
@@ -70,11 +92,11 @@ export const useAutoRepairs = () => {
   });
 
   // Vehicle operations
-  const loadVehicles = useCallback((filters?: unknown) => {
+  const loadVehicles = useCallback((filters: VehicleQuery = {}) => {
     return dispatch(fetchVehicles(filters));
   }, [dispatch]);
 
-  const addVehicle = useCallback((vehicleData: Omit<Vehicle, 'id'>) => {
+  const addVehicle = useCallback((vehicleData: CreateVehicleData) => {
     return dispatch(createVehicle(vehicleData));
   }, [dispatch]);
 
@@ -86,12 +108,12 @@ export const useAutoRepairs = () => {
     return dispatch(deleteVehicle(id));
   }, [dispatch]);
 
-  // Customer operations
-  const loadCustomers = useCallback((filters?: unknown) => {
+  // Customer operations  
+  const loadCustomers = useCallback((filters: CustomerQuery = {}) => {
     return dispatch(fetchCustomers(filters));
   }, [dispatch]);
 
-  const addCustomer = useCallback((customerData: Omit<Customer, 'id'>) => {
+  const addCustomer = useCallback((customerData: CreateCustomerData) => {
     return dispatch(createCustomer(customerData));
   }, [dispatch]);
 
@@ -104,11 +126,11 @@ export const useAutoRepairs = () => {
   }, [dispatch]);
 
   // Appointment operations
-  const loadAppointments = useCallback((filters?: unknown) => {
+  const loadAppointments = useCallback((filters: AppointmentQuery = {}) => {
     return dispatch(fetchAppointments(filters));
   }, [dispatch]);
 
-  const addAppointment = useCallback((appointmentData: Omit<Appointment, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const addAppointment = useCallback((appointmentData: CreateAppointmentData) => {
     return dispatch(createAppointment(appointmentData));
   }, [dispatch]);
 
@@ -121,11 +143,11 @@ export const useAutoRepairs = () => {
   }, [dispatch]);
 
   // Repair Order operations
-  const loadRepairOrders = useCallback((filters?: unknown) => {
+  const loadRepairOrders = useCallback((filters: RepairOrderQuery = {}) => {
     return dispatch(fetchRepairOrders(filters));
   }, [dispatch]);
 
-  const addRepairOrder = useCallback((repairOrderData: Omit<RepairOrder, 'id' | 'createdAt' | 'updatedAt' | 'workOrderNumber'>) => {
+  const addRepairOrder = useCallback((repairOrderData: CreateRepairOrderData) => {
     return dispatch(createRepairOrder(repairOrderData));
   }, [dispatch]);
 
@@ -138,11 +160,11 @@ export const useAutoRepairs = () => {
   }, [dispatch]);
 
   // Employee operations
-  const loadEmployees = useCallback((filters?: unknown) => {
+  const loadEmployees = useCallback((filters: EmployeeQuery = {}) => {
     return dispatch(fetchEmployees(filters));
   }, [dispatch]);
 
-  const addEmployee = useCallback((employeeData: Omit<Employee, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const addEmployee = useCallback((employeeData: CreateEmployeeData) => {
     return dispatch(createEmployee(employeeData));
   }, [dispatch]);
 
@@ -235,7 +257,7 @@ export const useAutoRepairs = () => {
   // Error handling
   const handleClearError = useCallback((errorType: keyof typeof state.error) => {
     dispatch(clearError(errorType));
-  }, [dispatch]);
+  }, [dispatch, state]);
 
   const handleClearAllErrors = useCallback(() => {
     dispatch(clearErrors());

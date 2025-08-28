@@ -4,7 +4,7 @@
  */
 
 import type { BaseAPIResponse } from "./api";
-import type { Vehicle, VehicleSummary } from "./vehicles";
+import type { Vehicle } from "./vehicles";
 
 // Frontend interfaces - transformed from backend data
 export interface RepairOrderItem {
@@ -49,8 +49,8 @@ export interface RepairOrderAPIResponse extends BaseAPIResponse {
   tax_percent: string;
   total_cost: string;
   date_created: string;
-  repair_order_parts: RepairOrderPart[];
-  repair_order_services: RepairOrderService[];
+  repair_order_parts?: RepairOrderPart[]; // Optional for new repair orders
+  repair_order_services?: RepairOrderService[]; // Optional for new repair orders
   calculated_total_cost: string;
   services: unknown[]; // Empty array from M2M relationship
   parts: unknown[];    // Empty array from M2M relationship
@@ -82,7 +82,7 @@ export interface RepairOrderStatsAPIResponse {
 }
 // Core Service interface
 export interface Service {
-  id: string;
+  id: number;
   shop: number;
   name: string;
   description?: string;
@@ -150,7 +150,8 @@ export interface RepairOrder {
   total_cost: string;
   createdAt: string;
   
-  vehicle: number | {
+  // Vehicle can be either just the ID or full object
+  vehicle: {
     id: string | number;
     make: string;
     model: string;
@@ -200,7 +201,8 @@ export interface RepairOrder {
 }
 
 export interface CreateRepairOrderData {
-  vehicle?: VehicleSummary;
+  vehicle_id: number; // ✅ NEW PREFERRED: Clear field name - obviously expects vehicle ID
+  vehicle?: number; // ⚠️ DEPRECATED: Legacy field for backward compatibility during transition
   service_ids?: string[] | number[];
   services?: number[];
   parts?: Array<{
@@ -216,23 +218,23 @@ export interface CreateRepairOrderData {
   notes?: string;
 }
 
+// API Update interface
 export interface UpdateRepairOrderData {
-  vehicleId?: number;
-  vehicele?: VehicleSummary;
-  service_ids?: string[] | number[];
-  services?: number[];
-  parts?: Array<{
-    part: number;
-    part_id?: string;
-    quantity: number;
-    warranty_override_months?: number;
-  }>;
+  customer_id?: string;
+  vehicle_id?: string;
+  description?: string;
+  // ✅ Backend supports status updates through appointment management
   status?: RepairOrder['status'];
-}
-
-// Repair Order query/filter parameters
+  priority?: RepairOrder['priority'];
+  estimated_cost?: string;
+  actual_cost?: string;
+  parts?: string; // JSON string
+  labor_hours?: string;
+  notes?: string;
+}// Repair Order query/filter parameters
 export interface RepairOrderQuery {
-  vehicle?: number;
+  vehicle_id?: number; // ✅ CONSISTENT: Query parameter uses vehicle_id (matches backend)
+  // ✅ Backend now supports status filtering via appointment relationship
   status?: RepairOrder['status'] | RepairOrder['status'][];
   date_from?: string;
   date_to?: string;
@@ -242,7 +244,6 @@ export interface RepairOrderQuery {
   limit?: number;
   offset?: number;
   customer_id?: number;
-  vehicle_id?: number;
   [key: string]: string | number | string[] | undefined;
 }
 
@@ -252,6 +253,7 @@ export interface RepairOrderFilters {
   date_to?: string;
   customer_id?: string;
   vehicle_id?: string;
+  // ✅ Backend now supports status filtering via appointment relationship
   status?: RepairOrder['status'][];
   min_total?: string;
   max_total?: string;

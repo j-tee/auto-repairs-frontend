@@ -193,7 +193,7 @@ export interface AppointmentFormData {
 }
 
 export interface RepairOrderFormData {
-  vehicle: number;
+  vehicle_id: number; // Backend expects 'vehicle_id', not 'vehicle'
   services: number[];
   parts: Array<{ part: number; quantity: number; warranty_override_months?: number }>;
   discount_amount?: number;

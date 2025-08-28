@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Modal, Button, Form, Alert } from "react-bootstrap";
 import type { EmployeeFormData } from "../../types/entities";
 import { useAppDispatch, useAppSelector } from "../../store";
-import { fetchShops } from "../../store/slices/autoRepairsSlice";
+import { fetchShops, createEmployee } from "../../store/slices/autoRepairsSlice";
 
 interface AddEmployeeModalProps {
   show: boolean;
@@ -22,7 +22,8 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
   // Get data from Redux state
   const { 
     shops,
-    loading: { shops: shopsLoading } 
+    loading: { shops: shopsLoading, employees: employeesLoading },
+    error: { employees: employeesError }
   } = useAppSelector((state) => state.autoRepairs);
   
   const [formData, setFormData] = useState<EmployeeFormData>({
@@ -32,8 +33,14 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
     phone_number: "",
     email: "",
   });
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Update error when Redux error changes
+  useEffect(() => {
+    if (employeesError) {
+      setError(employeesError);
+    }
+  }, [employeesError]);
 
   useEffect(() => {
     if (show && shops.length === 0) {
@@ -61,21 +68,27 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
 
     try {
-      // TODO: Fix type mismatch between EmployeeFormData and CreateEmployeeData
-      const { apiPost } = await import("../../utils/api");
-      const response = await apiPost("/employees/", formData);
-      onSuccess(response as EmployeeFormData);
-      handleClose();
+      // Transform EmployeeFormData to CreateEmployeeData format
+      const createData = {
+        shop: formData.shop,
+        name: formData.name,
+        role: formData.role,
+        phone_number: formData.phone_number,
+        email: formData.email || null
+      };
+      
+      const result = await dispatch(createEmployee(createData));
+      if (createEmployee.fulfilled.match(result)) {
+        onSuccess(result.payload as unknown as EmployeeFormData);
+        handleClose();
+      } else {
+        // Error handled by Redux error state and useEffect above
+      }
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to create employee"
-      );
-    } finally {
-      setLoading(false);
+      setError(err instanceof Error ? err.message : "Failed to create employee");
     }
   };
 
@@ -190,9 +203,9 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
           <Button
             variant="primary"
             type="submit"
-            disabled={loading || !formData.shop}
+            disabled={employeesLoading || !formData.shop}
           >
-            {loading ? "Creating..." : "Create Employee"}
+            {employeesLoading ? "Creating..." : "Create Employee"}
           </Button>
         </Modal.Footer>
       </Form>

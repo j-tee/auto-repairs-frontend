@@ -1,14 +1,17 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
-import { 
+import {
   customerMngtService,
   vehicleMngtService,
   appointmentMngtService,
   repairOrderMngtService,
-  authService
+  authService,
+  serviceMngtService,
+  partMngtService,
+  employeeMngtService
 } from '../../services';
 import { apiPost, apiGet, setAuthToken, removeAuthToken, getAuthToken } from '../../utils/api';
 import { getAPIErrorMessage } from '../../types/common';
-import type { 
+import type {
   GenericAPIResponse,
 } from '../../types/api';
 
@@ -48,9 +51,33 @@ import type {
   EmployeeQuery,
   
   Shop,
+  
+  Service,
+  
+  Part,
+  
   RefreshTokenResponse,
   UserProfileResponse
 } from '../../types';
+
+// Import form data types directly from entities
+import type {
+  ServiceFormData,
+  PartFormData
+} from '../../types/entities';
+
+// Import update data types
+import type {
+  UpdateServiceData,
+  CreateServiceData
+} from '../../types/services';
+import type {
+  UpdatePartData,
+  CreatePartData
+} from '../../types/parts';
+import type {
+  UpdateRepairOrderData
+} from '../../types/repairOrders';
 import type { Appointment } from '../../types/appointments';
 
 // ============================================================================
@@ -89,6 +116,8 @@ export interface EnhancedAutoRepairsState {
   repairOrders: RepairOrder[];
   employees: Employee[];
   shops: Shop[];
+  services: Service[];
+  parts: Part[];
   
   // Repair Order Completion System Data (advanced features - placeholders)
   costBreakdowns: Record<string, CostBreakdown>; // Placeholder for future implementation
@@ -108,6 +137,8 @@ export interface EnhancedAutoRepairsState {
     repairOrders: boolean;
     employees: boolean;
     shops: boolean;
+    services: boolean;
+    parts: boolean;
     // Completion system loading states
     costBreakdown: boolean;
     relatedAppointments: boolean;
@@ -134,6 +165,8 @@ export interface EnhancedAutoRepairsState {
     repairOrders: string | null;
     employees: string | null;
     shops: string | null;
+    services: string | null;
+    parts: string | null;
     // Completion system error states
     costBreakdown: string | null;
     relatedAppointments: string | null;
@@ -492,9 +525,12 @@ export const fetchRepairOrders = createAsyncThunk(
   'autoRepairs/fetchRepairOrders',
   async (filters: RepairOrderQuery = {}, { rejectWithValue }) => {
     try {
+      console.log('🔄 Redux: fetchRepairOrders called with filters:', filters);
       const response = await repairOrderMngtService.getRepairOrders(filters);
+      console.log('✅ Redux: fetchRepairOrders successful, got', response.length, 'orders');
       return response;
     } catch (error) {
+      console.error('❌ Redux: fetchRepairOrders failed:', error);
       return rejectWithValue(error instanceof Error ? error.message : 'Unknown error');
     }
   }
@@ -516,11 +552,17 @@ export const updateRepairOrder = createAsyncThunk(
   'autoRepairs/updateRepairOrder',
   async ({ id, data }: { id: string; data: Partial<RepairOrder> }, { rejectWithValue }) => {
     try {
-      // Transform vehicle property to vehicle ID if it's an object
-      const updateData: Record<string, unknown> = { ...data };
-      if (data.vehicle && typeof data.vehicle === 'object' && 'id' in data.vehicle) {
-        updateData.vehicle = data.vehicle.id;
+      // Transform data to match UpdateRepairOrderData interface
+      const updateData: Partial<UpdateRepairOrderData> = {};
+      if (data.vehicleId !== undefined) {
+        updateData.vehicle_id = String(data.vehicleId);
       }
+      // ✅ BACKEND IMPLEMENTED: Status updates through appointment relationship
+      // Backend now supports status updates via appointment management
+      if (data.status !== undefined) {
+        updateData.status = data.status;
+      }
+      // Other fields that are not in UpdateRepairOrderData are skipped
       const response = await repairOrderMngtService.updateRepairOrder(Number(id), updateData);
       return response;
     } catch (error) {
@@ -676,10 +718,10 @@ export const getWorkmanshipAnalytics = createAsyncThunk(
 // Placeholder operations for Employee and Shop (since these services may not be fully implemented)
 export const fetchEmployees = createAsyncThunk(
   'autoRepairs/fetchEmployees',
-  async (_: EmployeeQuery, { rejectWithValue }) => {
+  async (filters: EmployeeQuery = {}, { rejectWithValue }) => {
     try {
-      // For now, return empty array until employee service is implemented
-      return [];
+      const response = await employeeMngtService.getEmployees(filters);
+      return response.employees;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Unknown error');
     }
@@ -690,18 +732,8 @@ export const createEmployee = createAsyncThunk(
   'autoRepairs/createEmployee',
   async (employeeData: CreateEmployeeData, { rejectWithValue }) => {
     try {
-      // For now, return mock data until employee service is implemented
-      const mockEmployee: Employee = {
-        id: Date.now().toString(),
-        shop: employeeData.shop,
-        name: employeeData.name,
-        role: employeeData.role,
-        phone: employeeData.phone_number || '',
-        email: employeeData.email || null,
-        picture: employeeData.picture || null,
-        user: employeeData.user || null
-      };
-      return mockEmployee;
+      const response = await employeeMngtService.createEmployee(employeeData);
+      return response;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Unknown error');
     }
@@ -712,8 +744,8 @@ export const updateEmployee = createAsyncThunk(
   'autoRepairs/updateEmployee',
   async ({ id, data }: { id: string; data: UpdateEmployeeData }, { rejectWithValue }) => {
     try {
-      // For now, return mock data until employee service is implemented
-      return { ...data, id } as Employee;
+      const response = await employeeMngtService.updateEmployee(id, data);
+      return response;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Unknown error');
     }
@@ -728,6 +760,153 @@ export const fetchShops = createAsyncThunk(
       return [];
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Unknown error');
+    }
+  }
+);
+
+// ============================================================================
+// SERVICES ASYNC THUNKS
+// ============================================================================
+
+export const fetchServices = createAsyncThunk(
+  'autoRepairs/fetchServices',
+  async (query: { search?: string; category?: string; shop?: number } = {}, { rejectWithValue }) => {
+    try {
+      const services = await serviceMngtService.getServices(query);
+      return services;
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch services');
+    }
+  }
+);
+
+export const createService = createAsyncThunk(
+  'autoRepairs/createService',
+  async (serviceData: ServiceFormData, { rejectWithValue }) => {
+    try {
+      // Transform data to match CreateServiceData interface
+      const createData: Partial<CreateServiceData> = {
+        ...serviceData,
+        labor_cost: serviceData.labor_cost.toString()
+      };
+      const service = await serviceMngtService.createService(createData as CreateServiceData);
+      return service;
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to create service');
+    }
+  }
+);
+
+export const updateService = createAsyncThunk(
+  'autoRepairs/updateService',
+  async ({ serviceId, serviceData }: { serviceId: string; serviceData: Partial<ServiceFormData> }, { rejectWithValue }) => {
+    try {
+      // Transform data to match UpdateServiceData interface
+      const updateData: Partial<UpdateServiceData> = {};
+      if (serviceData.shop !== undefined) updateData.shop = serviceData.shop;
+      if (serviceData.name !== undefined) updateData.name = serviceData.name;
+      if (serviceData.description !== undefined) updateData.description = serviceData.description;
+      if (serviceData.labor_cost !== undefined) updateData.labor_cost = serviceData.labor_cost.toString();
+      if (serviceData.taxable !== undefined) updateData.taxable = serviceData.taxable;
+      if (serviceData.warranty_months !== undefined) updateData.warranty_months = serviceData.warranty_months;
+      
+      const service = await serviceMngtService.updateService(serviceId, updateData);
+      return service;
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to update service');
+    }
+  }
+);
+
+export const deleteService = createAsyncThunk(
+  'autoRepairs/deleteService',
+  async (serviceId: string, { rejectWithValue }) => {
+    try {
+      await serviceMngtService.deleteService(serviceId);
+      return serviceId;
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to delete service');
+    }
+  }
+);
+
+// ============================================================================
+// PARTS ASYNC THUNKS
+// ============================================================================
+
+export const fetchParts = createAsyncThunk(
+  'autoRepairs/fetchParts',
+  async (query: { search?: string; category?: string; shopId?: string } = {}, { rejectWithValue }) => {
+    try {
+      const parts = await partMngtService.getParts(query);
+      return parts;
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch parts');
+    }
+  }
+);
+
+export const createPart = createAsyncThunk(
+  'autoRepairs/createPart',
+  async (partData: PartFormData, { rejectWithValue }) => {
+    try {
+      // Transform data to match CreatePartData interface
+      const createData: Partial<CreatePartData> = {
+        name: partData.name,
+        partNumber: partData.part_number,
+        description: partData.description || '',
+        brand: partData.manufacturer || '',
+        category: partData.category,
+        price: partData.unit_price,
+        cost: partData.unit_price,
+        quantity: partData.stock_quantity,
+        minimumStock: 0,
+        location: '',
+        shopId: partData.shop.toString(),
+        isActive: true
+      };
+      const part = await partMngtService.createPart(createData as CreatePartData);
+      return part;
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to create part');
+    }
+  }
+);
+
+export const updatePart = createAsyncThunk(
+  'autoRepairs/updatePart',
+  async ({ partId, partData }: { partId: string; partData: Partial<PartFormData> }, { rejectWithValue }) => {
+    try {
+      // Transform data to match UpdatePartData interface
+      const updateData: Partial<UpdatePartData> = {};
+      if (partData.name !== undefined) updateData.name = partData.name;
+      if (partData.part_number !== undefined) updateData.partNumber = partData.part_number;
+      if (partData.description !== undefined) updateData.description = partData.description;
+      if (partData.manufacturer !== undefined) updateData.brand = partData.manufacturer;
+      if (partData.category !== undefined) updateData.category = partData.category;
+      if (partData.unit_price !== undefined) {
+        updateData.price = partData.unit_price;
+        updateData.cost = partData.unit_price;
+      }
+      if (partData.stock_quantity !== undefined) updateData.quantity = partData.stock_quantity;
+      if (partData.shop !== undefined) updateData.shopId = partData.shop.toString();
+      
+      const part = await partMngtService.updatePart(partId, updateData);
+      return part;
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to update part');
+    }
+  }
+);
+
+export const deletePart = createAsyncThunk(
+  'autoRepairs/deletePart',
+  async (partId: string, { rejectWithValue }) => {
+    try {
+      await partMngtService.deletePart(partId);
+      return partId;
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to delete part');
     }
   }
 );
@@ -783,6 +962,8 @@ const initialState: EnhancedAutoRepairsState = {
   repairOrders: [],
   employees: [],
   shops: [],
+  services: [],
+  parts: [],
   
   // Completion system data
   costBreakdowns: {},
@@ -804,6 +985,8 @@ const initialState: EnhancedAutoRepairsState = {
     repairOrders: false,
     employees: false,
     shops: false,
+    services: false,
+    parts: false,
     // Completion system loading states
     costBreakdown: false,
     relatedAppointments: false,
@@ -830,6 +1013,8 @@ const initialState: EnhancedAutoRepairsState = {
     repairOrders: null,
     employees: null,
     shops: null,
+    services: null,
+    parts: null,
     // Completion system error states
     costBreakdown: null,
     relatedAppointments: null,
@@ -900,10 +1085,13 @@ export const autoRepairsSlice = createSlice({
         // Convert UserPermissions object to string array if needed
         let permissions: string[] | undefined;
         if (authUser.permissions && typeof authUser.permissions === 'object') {
-          // Convert UserPermissions object to string array
-          permissions = Object.entries(authUser.permissions)
-            .filter(([, value]) => value === true)
-            .map(([key]) => key);
+          // Convert UserPermissions object to string array (ES5 compatible)
+          permissions = Object.keys(authUser.permissions)
+            .filter((key) => {
+              const permsObj = authUser.permissions as unknown as Record<string, unknown>;
+              return permsObj[key] === true;
+            })
+            .map((key) => key);
         } else if (Array.isArray(authUser.permissions)) {
           permissions = authUser.permissions;
         }
@@ -1165,9 +1353,11 @@ export const autoRepairsSlice = createSlice({
       })
       .addCase(startWork.fulfilled, (state, action) => {
         state.loading.startWork = false;
-        // Update the repair order status in the list
-        const index = state.repairOrders.findIndex(order => String(order.id) === String(action.meta.arg));
+        // ✅ BACKEND IMPLEMENTED: Update status to 'in_progress' via appointment relationship
+        // Backend now supports status updates through appointment management
+        const index = state.repairOrders.findIndex((order: RepairOrder) => String(order.id) === String(action.meta.arg));
         if (index !== -1) {
+          // Status is now properly supported by backend
           state.repairOrders[index] = { ...state.repairOrders[index], status: 'in_progress' };
         }
       })
@@ -1182,9 +1372,11 @@ export const autoRepairsSlice = createSlice({
       })
       .addCase(completeWork.fulfilled, (state, action) => {
         state.loading.completeWork = false;
-        // Update the repair order status in the list
-        const index = state.repairOrders.findIndex(order => String(order.id) === String(action.meta.arg.repairOrderId));
+        // ✅ BACKEND IMPLEMENTED: Update status to 'completed' via appointment relationship  
+        // Backend now supports status updates through appointment management
+        const index = state.repairOrders.findIndex((order: RepairOrder) => String(order.id) === String(action.meta.arg.repairOrderId));
         if (index !== -1) {
+          // Status is now properly supported by backend
           state.repairOrders[index] = { ...state.repairOrders[index], status: 'completed' };
         }
       })
@@ -1243,6 +1435,170 @@ export const autoRepairsSlice = createSlice({
       .addCase(getWorkmanshipAnalytics.rejected, (state, action) => {
         state.loading.workmanshipAnalytics = false;
         state.error.workmanshipAnalytics = action.payload as string;
+      })
+      
+      // ============================================================================
+      // SERVICES ASYNC THUNK CASES
+      // ============================================================================
+      
+      .addCase(fetchServices.pending, (state) => {
+        state.loading.services = true;
+        state.error.services = null;
+      })
+      .addCase(fetchServices.fulfilled, (state, action) => {
+        state.loading.services = false;
+        state.services = action.payload;
+      })
+      .addCase(fetchServices.rejected, (state, action) => {
+        state.loading.services = false;
+        state.error.services = action.payload as string;
+      })
+      
+      .addCase(createService.pending, (state) => {
+        state.loading.services = true;
+        state.error.services = null;
+      })
+      .addCase(createService.fulfilled, (state, action) => {
+        state.loading.services = false;
+        state.services.push(action.payload);
+      })
+      .addCase(createService.rejected, (state, action) => {
+        state.loading.services = false;
+        state.error.services = action.payload as string;
+      })
+      
+      .addCase(updateService.pending, (state) => {
+        state.loading.services = true;
+        state.error.services = null;
+      })
+      .addCase(updateService.fulfilled, (state, action) => {
+        state.loading.services = false;
+        const index = state.services.findIndex((s: Service) => s.id === action.payload.id);
+        if (index !== -1) {
+          state.services[index] = action.payload;
+        }
+      })
+      .addCase(updateService.rejected, (state, action) => {
+        state.loading.services = false;
+        state.error.services = action.payload as string;
+      })
+      
+      .addCase(deleteService.pending, (state) => {
+        state.loading.services = true;
+        state.error.services = null;
+      })
+      .addCase(deleteService.fulfilled, (state, action) => {
+        state.loading.services = false;
+        state.services = state.services.filter((s: Service) => s.id?.toString() !== action.payload);
+      })
+      .addCase(deleteService.rejected, (state, action) => {
+        state.loading.services = false;
+        state.error.services = action.payload as string;
+      })
+      
+      // ============================================================================
+      // PARTS ASYNC THUNK CASES
+      // ============================================================================
+      
+      .addCase(fetchParts.pending, (state) => {
+        state.loading.parts = true;
+        state.error.parts = null;
+      })
+      .addCase(fetchParts.fulfilled, (state, action) => {
+        state.loading.parts = false;
+        state.parts = action.payload;
+      })
+      .addCase(fetchParts.rejected, (state, action) => {
+        state.loading.parts = false;
+        state.error.parts = action.payload as string;
+      })
+      
+      .addCase(createPart.pending, (state) => {
+        state.loading.parts = true;
+        state.error.parts = null;
+      })
+      .addCase(createPart.fulfilled, (state, action) => {
+        state.loading.parts = false;
+        state.parts.push(action.payload);
+      })
+      .addCase(createPart.rejected, (state, action) => {
+        state.loading.parts = false;
+        state.error.parts = action.payload as string;
+      })
+      
+      .addCase(updatePart.pending, (state) => {
+        state.loading.parts = true;
+        state.error.parts = null;
+      })
+      .addCase(updatePart.fulfilled, (state, action) => {
+        state.loading.parts = false;
+        const index = state.parts.findIndex((p: Part) => p.id === action.payload.id);
+        if (index !== -1) {
+          state.parts[index] = action.payload;
+        }
+      })
+      .addCase(updatePart.rejected, (state, action) => {
+        state.loading.parts = false;
+        state.error.parts = action.payload as string;
+      })
+      
+      .addCase(deletePart.pending, (state) => {
+        state.loading.parts = true;
+        state.error.parts = null;
+      })
+      .addCase(deletePart.fulfilled, (state, action) => {
+        state.loading.parts = false;
+        state.parts = state.parts.filter((p: Part) => p.id !== action.payload);
+      })
+      .addCase(deletePart.rejected, (state, action) => {
+        state.loading.parts = false;
+        state.error.parts = action.payload as string;
+      })
+      
+      // ============================================================================
+      // EMPLOYEES ASYNC THUNK CASES
+      // ============================================================================
+      
+      .addCase(fetchEmployees.pending, (state) => {
+        state.loading.employees = true;
+        state.error.employees = null;
+      })
+      .addCase(fetchEmployees.fulfilled, (state, action) => {
+        state.loading.employees = false;
+        state.employees = action.payload;
+      })
+      .addCase(fetchEmployees.rejected, (state, action) => {
+        state.loading.employees = false;
+        state.error.employees = action.payload as string;
+      })
+      
+      .addCase(createEmployee.pending, (state) => {
+        state.loading.employees = true;
+        state.error.employees = null;
+      })
+      .addCase(createEmployee.fulfilled, (state, action) => {
+        state.loading.employees = false;
+        state.employees.push(action.payload);
+      })
+      .addCase(createEmployee.rejected, (state, action) => {
+        state.loading.employees = false;
+        state.error.employees = action.payload as string;
+      })
+      
+      .addCase(updateEmployee.pending, (state) => {
+        state.loading.employees = true;
+        state.error.employees = null;
+      })
+      .addCase(updateEmployee.fulfilled, (state, action) => {
+        state.loading.employees = false;
+        const index = state.employees.findIndex((e: Employee) => e.id === action.payload.id);
+        if (index !== -1) {
+          state.employees[index] = action.payload;
+        }
+      })
+      .addCase(updateEmployee.rejected, (state, action) => {
+        state.loading.employees = false;
+        state.error.employees = action.payload as string;
       });
   },
 });

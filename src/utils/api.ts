@@ -190,7 +190,21 @@ export const apiPost = async <T>(
   data?: unknown,
   config?: AxiosRequestConfig
 ): Promise<T> => {
+  if (import.meta.env.DEV) {
+    console.log(`📤 POST ${endpoint}:`, data);
+  }
+  
   const response = await apiClient.post<T>(endpoint, data, config);
+  
+  if (import.meta.env.DEV) {
+    console.log(`📥 POST ${endpoint} response:`, {
+      status: response.status,
+      statusText: response.statusText,
+      data: response.data,
+      headers: response.headers['content-type']
+    });
+  }
+  
   return response.data;
 };
 

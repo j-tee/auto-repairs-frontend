@@ -171,9 +171,21 @@ export function displayEnvironmentStatus(): void {
   console.groupEnd();
 }
 
+// Extend the Window interface to include envConfig
+declare global {
+  interface Window {
+    envConfig: {
+      get: typeof getEnvironmentConfig;
+      debug: typeof debugEnvironmentConfig;
+      validate: typeof validateEnvironmentConfig;
+      status: typeof displayEnvironmentStatus;
+    };
+  }
+}
+
 // Make environment tools available globally in development
 if (import.meta.env.DEV) {
-  (window as unknown).envConfig = {
+  window.envConfig = {
     get: getEnvironmentConfig,
     debug: debugEnvironmentConfig,
     validate: validateEnvironmentConfig,

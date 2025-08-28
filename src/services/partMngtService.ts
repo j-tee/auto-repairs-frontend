@@ -1,108 +1,21 @@
+import type { Part } from '../types';
+import type { PartAPIResponse, PartListResponse, PartQuery, CreatePartData, UpdatePartData } from '../types/parts';
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api';
+import { safeParseFloat, safeParseInt } from '../utils/safe-conversion';
 
-// API Response interfaces
-interface PartAPIResponse {
-  id: number | string;
-  name: string;
-  part_number?: string;
-  partNumber?: string;
-  description: string;
-  brand: string;
-  category: string;
-  price: string | number;
-  cost: string | number;
-  quantity: string | number;
-  minimum_stock?: number;
-  minimumStock?: number;
-  location: string;
-  is_active?: boolean;
-  shop_id?: number | string;
-  shop?: number | string;
-  created_at?: string;
-  createdAt?: string;
-  updated_at?: string;
-  updatedAt?: string;
-}
 
-interface PartListResponse {
-  results?: PartAPIResponse[];
-  count?: number;
-  next?: string;
-  previous?: string;
-}
+// // Utility functions for safe type conversion
+// const safeParseFloat = (value: string | number | undefined | null): number => {
+//   if (value === null || value === undefined) return 0;
+//   const parsed = parseFloat(String(value));
+//   return isNaN(parsed) ? 0 : parsed;
+// };
 
-// Part types
-export interface Part {
-  id: string;
-  name: string;
-  partNumber: string;
-  description: string;
-  brand: string;
-  category: string;
-  price: number;
-  cost: number;
-  quantity: number;
-  minimumStock: number;
-  location: string;
-  isActive: boolean;
-  shopId: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface CreatePartData {
-  name: string;
-  partNumber: string;
-  description: string;
-  brand: string;
-  category: string;
-  price: number;
-  cost: number;
-  quantity: number;
-  minimumStock: number;
-  location: string;
-  shopId: string;
-  isActive?: boolean;
-}
-
-export interface UpdatePartData {
-  name?: string;
-  partNumber?: string;
-  description?: string;
-  brand?: string;
-  category?: string;
-  price?: number;
-  cost?: number;
-  quantity?: number;
-  minimumStock?: number;
-  location?: string;
-  shopId?: string;
-  isActive?: boolean;
-}
-
-export interface PartQuery {
-  search?: string;
-  category?: string;
-  brand?: string;
-  shopId?: string;
-  isActive?: boolean;
-  lowStock?: boolean;
-  limit?: number;
-  offset?: number;
-}
-
-// Utility functions for safe type conversion
-const safeParseFloat = (value: string | number | undefined | null): number => {
-  if (value === null || value === undefined) return 0;
-  const parsed = parseFloat(String(value));
-  return isNaN(parsed) ? 0 : parsed;
-};
-
-const safeParseInt = (value: string | number | undefined | null): number => {
-  if (value === null || value === undefined) return 0;
-  const parsed = parseInt(String(value), 10);
-  return isNaN(parsed) ? 0 : parsed;
-};
+// const safeParseInt = (value: string | number | undefined | null): number => {
+//   if (value === null || value === undefined) return 0;
+//   const parsed = parseInt(String(value), 10);
+//   return isNaN(parsed) ? 0 : parsed;
+// };
 
 // Parts Management Service
 export const partMngtService = {
@@ -128,19 +41,21 @@ export const partMngtService = {
     return parts.map((part: PartAPIResponse): Part => ({
       id: part.id?.toString() || '',
       name: part.name || '',
-      partNumber: part.part_number || part.partNumber || '',
+      part_number: part.part_number || part.partNumber || '',
       description: part.description || '',
-      brand: part.brand || '',
+      manufacturer: part.brand || '',
       category: part.category || '',
-      price: safeParseFloat(part.price),
-      cost: safeParseFloat(part.cost),
-      quantity: safeParseInt(part.quantity),
-      minimumStock: safeParseInt(part.minimum_stock || part.minimumStock),
+      unit_price: safeParseFloat(part.price).toString(),
+      total_cost: safeParseFloat(part.cost).toString(),
+      stock_quantity: safeParseInt(part.quantity),
+      reorder_level: safeParseInt(part.minimum_stock || part.minimumStock),
       location: part.location || '',
-      isActive: part.is_active ?? true,
-      shopId: part.shop_id?.toString() || part.shop?.toString() || '',
-      createdAt: part.created_at || part.createdAt || new Date().toISOString(),
-      updatedAt: part.updated_at || part.updatedAt || new Date().toISOString()
+      is_active: part.is_active ?? true,
+      shop: parseInt((part.shop_id || part.shop || 0).toString(), 10),
+      created_at: part.created_at || part.createdAt || new Date().toISOString(),
+      updated_at: part.updated_at || part.updatedAt || new Date().toISOString(),
+      taxable: true, // Default value
+      warranty_months: 0 // Default value
     }));
   },
 
@@ -151,19 +66,21 @@ export const partMngtService = {
     return {
       id: response.id?.toString() || '',
       name: response.name || '',
-      partNumber: response.part_number || response.partNumber || '',
+      part_number: response.part_number || response.partNumber || '',
       description: response.description || '',
-      brand: response.brand || '',
+      manufacturer: response.brand || '',
       category: response.category || '',
-      price: safeParseFloat(response.price),
-      cost: safeParseFloat(response.cost),
-      quantity: safeParseInt(response.quantity),
-      minimumStock: safeParseInt(response.minimum_stock || response.minimumStock),
+      unit_price: safeParseFloat(response.price).toString(),
+      total_cost: safeParseFloat(response.cost).toString(),
+      stock_quantity: safeParseInt(response.quantity),
+      reorder_level: safeParseInt(response.minimum_stock || response.minimumStock),
       location: response.location || '',
-      isActive: response.is_active ?? true,
-      shopId: response.shop_id?.toString() || response.shop?.toString() || '',
-      createdAt: response.created_at || response.createdAt || new Date().toISOString(),
-      updatedAt: response.updated_at || response.updatedAt || new Date().toISOString()
+      is_active: response.is_active ?? true,
+      shop: parseInt((response.shop_id || response.shop || 0).toString(), 10),
+      created_at: response.created_at || response.createdAt || new Date().toISOString(),
+      updated_at: response.updated_at || response.updatedAt || new Date().toISOString(),
+      taxable: true, // Default value
+      warranty_months: 0 // Default value
     };
   },
 
@@ -189,19 +106,21 @@ export const partMngtService = {
     return {
       id: response.id?.toString() || '',
       name: response.name || '',
-      partNumber: response.part_number || response.partNumber || '',
+      part_number: response.part_number || response.partNumber || '',
       description: response.description || '',
-      brand: response.brand || '',
+      manufacturer: response.brand || '',
       category: response.category || '',
-      price: safeParseFloat(response.price),
-      cost: safeParseFloat(response.cost),
-      quantity: safeParseInt(response.quantity),
-      minimumStock: safeParseInt(response.minimum_stock || response.minimumStock),
+      unit_price: safeParseFloat(response.price).toString(),
+      total_cost: safeParseFloat(response.cost).toString(),
+      stock_quantity: safeParseInt(response.quantity),
+      reorder_level: safeParseInt(response.minimum_stock || response.minimumStock),
       location: response.location || '',
-      isActive: response.is_active ?? true,
-      shopId: response.shop_id?.toString() || response.shop?.toString() || '',
-      createdAt: response.created_at || response.createdAt || new Date().toISOString(),
-      updatedAt: response.updated_at || response.updatedAt || new Date().toISOString()
+      is_active: response.is_active ?? true,
+      shop: parseInt((response.shop_id || response.shop || 0).toString(), 10),
+      created_at: response.created_at || response.createdAt || new Date().toISOString(),
+      updated_at: response.updated_at || response.updatedAt || new Date().toISOString(),
+      taxable: true, // Default value
+      warranty_months: 0 // Default value
     };
   },
 
@@ -227,19 +146,21 @@ export const partMngtService = {
     return {
       id: response.id?.toString() || '',
       name: response.name || '',
-      partNumber: response.part_number || response.partNumber || '',
+      part_number: response.part_number || response.partNumber || '',
       description: response.description || '',
-      brand: response.brand || '',
+      manufacturer: response.brand || '',
       category: response.category || '',
-      price: safeParseFloat(response.price),
-      cost: safeParseFloat(response.cost),
-      quantity: safeParseInt(response.quantity),
-      minimumStock: safeParseInt(response.minimum_stock || response.minimumStock),
+      unit_price: safeParseFloat(response.price).toString(),
+      total_cost: safeParseFloat(response.cost).toString(),
+      stock_quantity: safeParseInt(response.quantity),
+      reorder_level: safeParseInt(response.minimum_stock || response.minimumStock),
       location: response.location || '',
-      isActive: response.is_active ?? true,
-      shopId: response.shop_id?.toString() || response.shop?.toString() || '',
-      createdAt: response.created_at || response.createdAt || new Date().toISOString(),
-      updatedAt: response.updated_at || response.updatedAt || new Date().toISOString()
+      is_active: response.is_active ?? true,
+      shop: parseInt((response.shop_id || response.shop || 0).toString(), 10),
+      created_at: response.created_at || response.createdAt || new Date().toISOString(),
+      updated_at: response.updated_at || response.updatedAt || new Date().toISOString(),
+      taxable: true, // Default value
+      warranty_months: 0 // Default value
     };
   },
 
@@ -258,19 +179,21 @@ export const partMngtService = {
     return parts.map((part: PartAPIResponse): Part => ({
       id: part.id?.toString() || '',
       name: part.name || '',
-      partNumber: part.part_number || part.partNumber || '',
+      part_number: part.part_number || part.partNumber || '',
       description: part.description || '',
-      brand: part.brand || '',
+      manufacturer: part.brand || '',
       category: part.category || '',
-      price: safeParseFloat(part.price),
-      cost: safeParseFloat(part.cost),
-      quantity: safeParseInt(part.quantity),
-      minimumStock: safeParseInt(part.minimum_stock || part.minimumStock),
+      unit_price: safeParseFloat(part.price).toString(),
+      total_cost: safeParseFloat(part.cost).toString(),
+      stock_quantity: safeParseInt(part.quantity),
+      reorder_level: safeParseInt(part.minimum_stock || part.minimumStock),
       location: part.location || '',
-      isActive: part.is_active ?? true,
-      shopId: part.shop_id?.toString() || part.shop?.toString() || '',
-      createdAt: part.created_at || part.createdAt || new Date().toISOString(),
-      updatedAt: part.updated_at || part.updatedAt || new Date().toISOString()
+      is_active: part.is_active ?? true,
+      shop: parseInt((part.shop_id || part.shop || 0).toString(), 10),
+      created_at: part.created_at || part.createdAt || new Date().toISOString(),
+      updated_at: part.updated_at || part.updatedAt || new Date().toISOString(),
+      taxable: true, // Default value
+      warranty_months: 0 // Default value
     }));
   },
 

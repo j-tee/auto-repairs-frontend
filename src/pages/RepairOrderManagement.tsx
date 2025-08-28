@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Container,
   Row,
@@ -14,6 +14,8 @@ import {
   Dropdown,
   ButtonGroup,
 } from "react-bootstrap";
+import { useAppDispatch } from "../store";
+import { updateRepairOrder } from "../store/slices/autoRepairsSlice";
 import { repairOrderMngtService } from "../services/repairOrderMngtService";
 import type {
   RepairOrder,
@@ -29,6 +31,7 @@ import { useAuth } from "../hooks/useAuth";
 
 export const RepairOrderManagement: React.FC = () => {
   const { user } = useAuth();
+  const dispatch = useAppDispatch();
   const [repairOrders, setRepairOrders] = useState<RepairOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -47,11 +50,7 @@ export const RepairOrderManagement: React.FC = () => {
   const [total, setTotal] = useState(0);
   const itemsPerPage = 10;
 
-  useEffect(() => {
-    loadRepairOrders();
-  }, [currentPage, statusFilter, priorityFilter]);
-
-  const loadRepairOrders = async () => {
+  const loadRepairOrders = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -60,49 +59,69 @@ export const RepairOrderManagement: React.FC = () => {
         page: currentPage,
         limit: itemsPerPage,
         search: searchTerm || undefined,
+        // ✅ Status filtering now supported through appointment relationships
         status: statusFilter as RepairOrder['status'] | undefined,
         priority: priorityFilter as RepairOrder['priority'] | undefined,
         sortBy: "updated_at",
         sortOrder: "desc",
       };
 
+      console.log('🔄 Loading repair orders with query:', query);
       const response = await repairOrderMngtService.getRepairOrders(query);
+      console.log('📥 RepairOrderManagement received response:', {
+        response,
+        type: typeof response,
+        isArray: Array.isArray(response),
+        length: response?.length
+      });
+      
       // The service returns an array of RepairOrder[]
       setRepairOrders(response);
       setTotal(response.length);
       setTotalPages(Math.ceil(response.length / itemsPerPage));
+      
+      console.log(`✅ Set ${response.length} repair orders in component state`);
     } catch (err) {
       console.error("Failed to load repair orders:", err);
       setError("Failed to load repair orders. Please try again.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, itemsPerPage, searchTerm, statusFilter, priorityFilter]);
+
+  useEffect(() => {
+    loadRepairOrders();
+  }, [loadRepairOrders]);
 
   const handleSearch = () => {
     setCurrentPage(1);
     loadRepairOrders();
   };
 
+  // ✅ BACKEND IMPLEMENTED: Status change functionality using Redux
+  // Backend now supports status updates through appointment relationships
   const handleStatusChange = async (
     orderId: string | number,
     newStatus: RepairOrder["status"]
   ) => {
     try {
-      await repairOrderMngtService.updateRepairOrder(Number(orderId), {
-        status: newStatus,
-      });
-      loadRepairOrders(); // Refresh the list
+      // Use Redux action for status updates - backend now supports this
+      await dispatch(updateRepairOrder({ 
+        id: String(orderId), 
+        data: { status: newStatus } 
+      })).unwrap();
+      
+      console.log(`✅ Status updated to ${newStatus} for repair order ${orderId}`);
     } catch (err) {
       console.error("Failed to update status:", err);
-      setError("Failed to update repair order status");
+      setError(`Failed to update repair order status: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
 
   const handleStartWork = async (orderId: string | number) => {
     try {
-      // Note: The service expects only orderId, not additional data
-      await repairOrderMngtService.startWork(String(orderId));
+      // Update status to in_progress to start work
+      await handleStatusChange(orderId, 'in_progress');
       loadRepairOrders();
     } catch (err) {
       console.error("Failed to start work:", err);
@@ -124,7 +143,7 @@ export const RepairOrderManagement: React.FC = () => {
     try {
       console.log("Processing repair order completion:", completionData);
       // Call the actual completion service
-      const result = await repairOrderMngtService.completeWork(
+      const result = await repairOrderMngtService.completeRepairWork(
         selectedOrderId,
         completionData
       );
@@ -224,11 +243,11 @@ export const RepairOrderManagement: React.FC = () => {
                 onChange={(e) => setStatusFilter(e.target.value)}
               >
                 <option value="">All Statuses</option>
-                <option value="draft">Draft</option>
-                <option value="approved">Approved</option>
+                <option value="pending">Pending</option>
                 <option value="in_progress">In Progress</option>
-                <option value="completed">Completed</option>
+                <option value="pending_parts">Pending Parts</option>
                 <option value="on_hold">On Hold</option>
+                <option value="completed">Completed</option>
                 <option value="cancelled">Cancelled</option>
               </Form.Select>
             </Col>
@@ -339,10 +358,15 @@ export const RepairOrderManagement: React.FC = () => {
                     </td>
                     <td>
                       <div style={{ maxWidth: "200px" }}>
-                        <strong>{order.description}</strong>
+                        <strong>{order.description || order.notes || 'No description'}</strong>
                         {order.diagnosis && (
                           <div className="text-muted small mt-1">
                             Diagnosis: {order.diagnosis}
+                          </div>
+                        )}
+                        {order.notes && order.notes !== order.description && (
+                          <div className="text-muted small mt-1">
+                            Notes: {order.notes}
                           </div>
                         )}
                       </div>
@@ -353,8 +377,8 @@ export const RepairOrderManagement: React.FC = () => {
                       </Badge>
                     </td>
                     <td>
-                      <Badge bg={getPriorityBadgeVariant(order.priority)}>
-                        {order.priority}
+                      <Badge bg={getPriorityBadgeVariant(order.priority || 'medium')}>
+                        {order.priority || 'medium'}
                       </Badge>
                     </td>
                     <td>

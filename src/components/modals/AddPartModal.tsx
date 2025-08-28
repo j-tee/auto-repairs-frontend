@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Modal, Button, Form, Alert, InputGroup } from "react-bootstrap";
 import type { PartFormData } from "../../types/entities";
 import { useAppDispatch, useAppSelector } from "../../store";
-import { fetchShops } from "../../store/slices/autoRepairsSlice";
+import { fetchShops, createPart } from "../../store/slices/autoRepairsSlice";
 
 interface AddPartModalProps {
   show: boolean;
@@ -22,7 +22,8 @@ export const AddPartModal: React.FC<AddPartModalProps> = ({
   // Get data from Redux state
   const { 
     shops,
-    loading: { shops: shopsLoading } 
+    loading: { shops: shopsLoading, parts: partsLoading },
+    error: { parts: partsError }
   } = useAppSelector((state) => state.autoRepairs);
   
   const [formData, setFormData] = useState<PartFormData>({
@@ -37,8 +38,14 @@ export const AddPartModal: React.FC<AddPartModalProps> = ({
     warranty_months: 0,
     stock_quantity: 0,
   });
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Update error when Redux error changes
+  useEffect(() => {
+    if (partsError) {
+      setError(partsError);
+    }
+  }, [partsError]);
 
   useEffect(() => {
     if (show && shops.length === 0) {
@@ -82,19 +89,18 @@ export const AddPartModal: React.FC<AddPartModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
 
     try {
-      // TODO: Move to Redux when part management is implemented
-      const { apiPost } = await import("../../utils/api");
-      const response = await apiPost("/parts/", formData);
-      onSuccess(response as PartFormData);
-      handleClose();
+      const result = await dispatch(createPart(formData));
+      if (createPart.fulfilled.match(result)) {
+        onSuccess(result.payload as unknown as PartFormData);
+        handleClose();
+      } else {
+        // Error handled by Redux error state and useEffect above
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create part");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -288,9 +294,9 @@ export const AddPartModal: React.FC<AddPartModalProps> = ({
           <Button
             variant="primary"
             type="submit"
-            disabled={loading || !formData.shop}
+            disabled={partsLoading || !formData.shop}
           >
-            {loading ? "Creating..." : "Create Part"}
+            {partsLoading ? "Creating..." : "Create Part"}
           </Button>
         </Modal.Footer>
       </Form>

@@ -14,31 +14,6 @@ import type {
 } from '../types';
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api';
 
-// Backend API response interfaces - exact match to backend structure
-
-// export interface Customer {
-//   id: number;
-//   name: string;
-//   phone_number: string;
-//   email: string;
-//   address: string;
-// }
-
-// export interface Vehicle {
-//   id: number;
-//   customer: Customer;
-//   make: string;
-//   model: string;
-//   year: number;
-//   vin: string;
-//   license_plate: string;
-//   color: string;
-//   customer_name: string;
-//   customer_email: string;
-//   customer_phone: string;
-// }
-
-
 // Transformation helper functions
 const transformCustomerName = (fullName: string): { firstName: string; lastName: string } => {
   const parts = fullName.trim().split(' ');
@@ -50,103 +25,144 @@ const transformCustomerName = (fullName: string): { firstName: string; lastName:
 
 const transformRepairOrderItems = (apiResponse: RepairOrderAPIResponse): RepairOrderItem[] => {
   const items: RepairOrderItem[] = [];
-  
-  // Add parts as items
-  apiResponse.repair_order_parts.forEach(partRel => {
-    items.push({
-      id: Number(partRel.id),
-      type: 'part',
-      description: partRel.part.name,
-      quantity: partRel.quantity,
-      unitPrice: parseFloat(partRel.part.unit_price),
-      totalPrice: parseFloat(partRel.total_price ?? '0'),
-      partNumber: partRel.part.part_number,
-      notes: partRel.part.description
-    });
-  });
 
-  // Add services as items
-  apiResponse.repair_order_services.forEach(serviceRel => {
-    items.push({
-      id: Number(serviceRel.id),
-      type: 'service',
-      description: serviceRel.service.name,
-      quantity: 1,
-      unitPrice: parseFloat(serviceRel.service.labor_cost),
-      totalPrice: parseFloat(serviceRel.service.labor_cost),
-      notes: serviceRel.service.description
+  // Add services
+  if (apiResponse.repair_order_services && Array.isArray(apiResponse.repair_order_services)) {
+    apiResponse.repair_order_services.forEach(serviceRel => {
+      if (serviceRel.service) {
+        items.push({
+          id: typeof serviceRel.id === 'string' ? parseInt(serviceRel.id) : serviceRel.id,
+          type: 'service',
+          description: serviceRel.service.name || 'Unknown Service',
+          quantity: 1,
+          unitPrice: parseFloat(serviceRel.service.price || serviceRel.service.labor_cost || '0'),
+          totalPrice: parseFloat(serviceRel.service.price || serviceRel.service.labor_cost || '0'),
+          notes: serviceRel.service.description || ''
+        });
+      }
     });
-  });
+  }
+
+  // Add parts
+  if (apiResponse.repair_order_parts && Array.isArray(apiResponse.repair_order_parts)) {
+    apiResponse.repair_order_parts.forEach(partRel => {
+      if (partRel.part) {
+        items.push({
+          id: typeof partRel.id === 'string' ? parseInt(partRel.id) : partRel.id,
+          type: 'part',
+          description: partRel.part.name || 'Unknown Part',
+          quantity: partRel.quantity || 1,
+          unitPrice: parseFloat(partRel.part.unit_price || '0'),
+          totalPrice: parseFloat(partRel.total_price || '0'),
+          partNumber: partRel.part.part_number,
+          notes: partRel.part.description || ''
+        });
+      }
+    });
+  }
 
   return items;
 };
 
 const determineStatus = (): RepairOrder['status'] => {
   // Status logic based on appointment relationships would go here
-  // For now, return 'draft' as default since status field doesn't exist in backend
+  // For now, return 'pending' as default since status field doesn't exist in backend
   return 'pending';
 };
 
 const calculateSubtotal = (apiResponse: RepairOrderAPIResponse): number => {
-  const partsTotal = apiResponse.repair_order_parts.reduce(
-    (sum, partRel) => sum + parseFloat(partRel.total_price ?? '0'), 
-    0
-  );
-  const servicesTotal = apiResponse.repair_order_services.reduce(
-    (sum, serviceRel) => sum + parseFloat(serviceRel.service.labor_cost), 
-    0
-  );
+  const partsTotal = (apiResponse.repair_order_parts && Array.isArray(apiResponse.repair_order_parts)) 
+    ? apiResponse.repair_order_parts.reduce(
+        (sum, partRel) => sum + parseFloat(partRel.total_price ?? '0'), 
+        0
+      )
+    : 0;
+
+  const servicesTotal = (apiResponse.repair_order_services && Array.isArray(apiResponse.repair_order_services)) 
+    ? apiResponse.repair_order_services.reduce(
+        (sum, serviceRel) => sum + parseFloat(serviceRel.service?.price || serviceRel.service?.labor_cost || '0'), 
+        0
+      )
+    : 0;
+
   return partsTotal + servicesTotal;
 };
 
 const calculateTax = (apiResponse: RepairOrderAPIResponse): number => {
   const subtotal = calculateSubtotal(apiResponse);
-  const taxRate = parseFloat(apiResponse.tax_percent) / 100;
+  const taxRate = 0.0825; // Default 8.25% tax rate
   return subtotal * taxRate;
 };
 
 const transformRepairOrderData = (apiResponse: RepairOrderAPIResponse): RepairOrder => {
-  const customerNames = apiResponse.vehicle?.customer?.name
-    ? transformCustomerName(apiResponse.vehicle.customer.name)
-    : { firstName: '', lastName: '' };
-  
-  return {
-    id: apiResponse.id,
-    customerId: apiResponse.vehicle?.customer?.id ?? 0,
-    vehicleId: apiResponse.vehicle?.id ?? 0,
-    orderNumber: `RO-${apiResponse.id}`,
-    status: determineStatus(),
-    items: transformRepairOrderItems(apiResponse),
-    subtotal: calculateSubtotal(apiResponse),
-    tax: calculateTax(apiResponse),
-    discount: parseFloat(apiResponse.discount_amount),
-    total: parseFloat(apiResponse.total_cost),
-    total_cost: apiResponse.total_cost,
-    priority: 'medium', // Default priority as backend does not provide this
-    notes: apiResponse.notes || '',
-    createdAt: apiResponse.date_created,
-    customer: {
-      id: apiResponse.vehicle?.customer?.id ?? 0,
-      firstName: customerNames.firstName,
-      lastName: customerNames.lastName,
-      email: apiResponse.vehicle?.customer?.email ?? '',
-      phone: apiResponse.vehicle?.customer?.phone_number ?? ''
-    },
-    vehicle: {
-      id: apiResponse.vehicle?.id ?? 0,
-      make: apiResponse.vehicle?.make ?? '',
-      model: apiResponse.vehicle?.model ?? '',
-      year: apiResponse.vehicle?.year ?? 0,
-      license_plate: apiResponse.vehicle?.license_plate ?? '',
-      vin: apiResponse.vehicle?.vin ?? '',
+  try {
+    console.log('🔀 Transforming repair order data:', apiResponse);
+    
+    // Add defensive checks for required data
+    if (!apiResponse) {
+      console.error('❌ API response is null or undefined');
+      throw new Error('API response is null or undefined');
+    }
+    
+    if (!apiResponse.id) {
+      console.error('❌ API response missing required id field:', apiResponse);
+      throw new Error(`API response missing required id field. Received: ${JSON.stringify(apiResponse)}`);
+    }
+    
+    const customerNames = apiResponse.vehicle?.customer?.name
+      ? transformCustomerName(apiResponse.vehicle.customer.name)
+      : { firstName: '', lastName: '' };
+    
+    const transformedOrder: RepairOrder = {
+      id: apiResponse.id,
+      customerId: apiResponse.vehicle?.customer?.id ?? 0,
+      vehicleId: apiResponse.vehicle?.id ?? 0,
+      orderNumber: `RO-${apiResponse.id}`,
+      status: determineStatus(),
+      items: transformRepairOrderItems(apiResponse),
+      subtotal: calculateSubtotal(apiResponse),
+      tax: calculateTax(apiResponse),
+      discount: parseFloat(apiResponse.discount_amount || '0'),
+      total: parseFloat(apiResponse.total_cost || '0'),
+      total_cost: apiResponse.total_cost || '0',
+      priority: 'medium', // Default priority as backend does not provide this
+      notes: apiResponse.notes || '',
+      createdAt: apiResponse.date_created || new Date().toISOString(),
       customer: {
         id: apiResponse.vehicle?.customer?.id ?? 0,
-        name: apiResponse.vehicle?.customer?.name ?? '',
+        firstName: customerNames.firstName,
+        lastName: customerNames.lastName,
         email: apiResponse.vehicle?.customer?.email ?? '',
-        phone_number: apiResponse.vehicle?.customer?.phone_number ?? ''
+        phone: apiResponse.vehicle?.customer?.phone_number ?? ''
+      },
+      vehicle: {
+        id: apiResponse.vehicle?.id ?? 0,
+        make: apiResponse.vehicle?.make ?? '',
+        model: apiResponse.vehicle?.model ?? '',
+        year: apiResponse.vehicle?.year ?? 0,
+        license_plate: apiResponse.vehicle?.license_plate ?? '',
+        vin: apiResponse.vehicle?.vin ?? '',
+        customer: apiResponse.vehicle?.customer ? {
+          id: apiResponse.vehicle.customer.id,
+          name: apiResponse.vehicle.customer.name || '',
+          phone_number: apiResponse.vehicle.customer.phone_number || '',
+          email: apiResponse.vehicle.customer.email
+        } : {
+          id: 0,
+          name: '',
+          phone_number: '',
+          email: ''
+        }
       }
-    }
-  };
+    };
+    
+    console.log('✅ Successfully transformed repair order:', transformedOrder);
+    return transformedOrder;
+    
+  } catch (error) {
+    console.error('❌ Error transforming repair order data:', error, 'Original data:', apiResponse);
+    throw error;
+  }
 };
 
 // Repair Order Management Service
@@ -154,12 +170,59 @@ export const repairOrderMngtService = {
   // Get all repair orders with optional filtering
   getRepairOrders: async (query: RepairOrderQuery = {}): Promise<RepairOrder[]> => {
     try {
-      console.log('🔄 Loading repair orders from backend...');
+      console.log('🔄 Loading repair orders from backend with query:', query);
       
       const response = await apiGet<RepairOrderListAPIResponse>('/shop/repair-orders/', query);
       
-      console.log(`✅ Loaded ${response.results?.length ?? 0} repair orders from backend`);
-      return (response.results ?? []).map(transformRepairOrderData);
+      console.log('📥 Raw API response:', {
+        response,
+        type: typeof response,
+        hasResults: !!response.results,
+        hasRepairOrders: !!response.repairOrders,
+        responseKeys: Object.keys(response || {}),
+        resultsLength: response.results?.length,
+        repairOrdersLength: response.repairOrders?.length
+      });
+      
+      // Handle different response formats the backend might return
+      let repairOrdersArray: RepairOrderAPIResponse[] = [];
+      
+      if (response.results && Array.isArray(response.results)) {
+        repairOrdersArray = response.results;
+      } else if (response.repairOrders && Array.isArray(response.repairOrders)) {
+        repairOrdersArray = response.repairOrders;
+      } else if (Array.isArray(response)) {
+        // Sometimes the response might be directly an array
+        repairOrdersArray = response as any;
+      } else {
+        console.warn('⚠️ Unexpected response format for repair orders:', response);
+        repairOrdersArray = [];
+      }
+      
+      if (repairOrdersArray.length === 0) {
+        console.log('⚠️ No repair orders found in API response');
+        return [];
+      }
+      
+      console.log(`✅ Found ${repairOrdersArray.length} repair orders from backend`);
+      
+      const transformedOrders: RepairOrder[] = [];
+      
+      for (let i = 0; i < repairOrdersArray.length; i++) {
+        try {
+          const transformedOrder = transformRepairOrderData(repairOrdersArray[i]);
+          transformedOrders.push(transformedOrder);
+        } catch (transformError) {
+          console.error(`❌ Failed to transform repair order ${i}:`, transformError, 'Raw data:', repairOrdersArray[i]);
+          // Continue processing other orders instead of failing entirely
+        }
+      }
+      
+      console.log('🔀 Successfully transformed orders:', {
+        total: transformedOrders.length,
+        statuses: transformedOrders.map(o => ({ id: o.id, status: o.status }))
+      });
+      return transformedOrders;
       
     } catch (error: unknown) {
       console.error('❌ Error loading repair orders:', error);
@@ -186,15 +249,52 @@ export const repairOrderMngtService = {
   // Create new repair order
   createRepairOrder: async (data: CreateRepairOrderData): Promise<RepairOrder> => {
     try {
-      console.log('🔄 Creating repair order...');
+      console.log('🔄 Creating repair order with data:', data);
       
       const response = await apiPost<RepairOrderAPIResponse>('/shop/repair-orders/', data);
       
-      console.log(`✅ Created repair order ${response.id}`);
+      console.log('🔍 Raw API response:', {
+        response,
+        type: typeof response,
+        hasId: response?.id,
+        keys: response ? Object.keys(response) : 'none'
+      });
+      
+      // If backend returns undefined/null but request succeeded
+      if (!response) {
+        console.warn('⚠️ Backend returned empty response. Attempting to fetch latest repair order...');
+        
+        try {
+          // Fetch the most recent repair orders to get the one we just created
+          const recentOrders = await repairOrderMngtService.getRepairOrders({ limit: 1, ordering: '-id' });
+          if (recentOrders.length > 0) {
+            console.log('✅ Found newly created repair order:', recentOrders[0]);
+            return recentOrders[0];
+          }
+        } catch (fetchError) {
+          console.error('❌ Failed to fetch newly created repair order:', fetchError);
+        }
+        
+        throw new Error('Backend returned no data and unable to fetch newly created repair order. Please refresh the page to see your repair order.');
+      }
+      
+      if (!response.id) {
+        console.error('❌ Backend response missing ID field:', response);
+        throw new Error(`Backend response missing required id field. Received: ${JSON.stringify(response)}`);
+      }
+      
+      console.log(`✅ Created repair order ${response.id}`, response);
+      
       return transformRepairOrderData(response);
       
     } catch (error: unknown) {
       console.error('❌ Error creating repair order:', error);
+      
+      // Provide user-friendly error message
+      if (error instanceof Error && error.message.includes('missing required id field')) {
+        throw new Error('Server error: Unable to create repair order. Please check server configuration.');
+      }
+      
       throw error;
     }
   },
@@ -230,108 +330,6 @@ export const repairOrderMngtService = {
     }
   },
 
-  // Get repair orders by customer
-  getRepairOrdersByCustomer: async (customerId: number): Promise<RepairOrder[]> => {
-    try {
-      console.log(`🔄 Loading repair orders for customer ${customerId}...`);
-      
-      const response = await apiGet<RepairOrderListAPIResponse>('/shop/repair-orders/by_customer/', { customer_id: customerId });
-      
-      console.log(`✅ Loaded ${(response.results?.length ?? 0)} repair orders for customer ${customerId}`);
-      return (response.results ?? []).map(transformRepairOrderData);
-      
-    } catch (error: unknown) {
-      console.error(`❌ Error loading repair orders for customer ${customerId}:`, error);
-      throw error;
-    }
-  },
-
-  // Get repair orders by vehicle
-  getRepairOrdersByVehicle: async (vehicleId: number): Promise<RepairOrder[]> => {
-    try {
-      console.log(`🔄 Loading repair orders for vehicle ${vehicleId}...`);
-      
-      const response = await apiGet<RepairOrderListAPIResponse>('/shop/repair-orders/by_vehicle/', { vehicle_id: vehicleId });
-      
-      console.log(`✅ Loaded ${(response.results?.length ?? 0)} repair orders for vehicle ${vehicleId}`);
-      return (response.results ?? []).map(transformRepairOrderData);
-      
-    } catch (error: unknown) {
-      console.error(`❌ Error loading repair orders for vehicle ${vehicleId}:`, error);
-      throw error;
-    }
-  },
-
-  // Get active repair orders
-  getActiveRepairOrders: async (): Promise<RepairOrder[]> => {
-    try {
-      console.log('🔄 Loading active repair orders from backend...');
-      
-      const response = await apiGet<RepairOrderListAPIResponse | RepairOrderAPIResponse[]>('/shop/repair-orders/active/');
-      
-      console.log('🔍 Active repair orders response type:', Array.isArray(response) ? 'Array' : 'Object');
-      
-      // Handle both paginated response and direct array response
-      let activeRepairOrders: RepairOrderAPIResponse[];
-      
-      if (Array.isArray(response)) {
-        // Backend returns direct array
-        activeRepairOrders = response;
-        console.log('✅ Using direct array format:', { count: activeRepairOrders.length });
-      } else {
-        // Backend returns paginated response
-        const paginatedResponse = response as RepairOrderListAPIResponse;
-        activeRepairOrders = paginatedResponse.results ?? [];
-        console.log('✅ Using paginated format:', { count: activeRepairOrders.length });
-      }
-      
-      console.log(`✅ Loaded ${activeRepairOrders.length} active repair orders from backend`);
-      return activeRepairOrders.map(transformRepairOrderData);
-      
-    } catch (error: unknown) {
-      console.error('❌ Error loading active repair orders from /active/ endpoint:', error);
-      
-      // Fallback: Try to get all repair orders and filter for active ones on frontend
-      console.log('🔄 Attempting fallback: fetching all repair orders and filtering for active...');
-      try {
-        const fallbackResponse = await apiGet<RepairOrderListAPIResponse | RepairOrderAPIResponse[]>('/shop/repair-orders/', {
-          status: 'pending,in_progress,scheduled' // Common active statuses
-        });
-        
-        // Handle response format for fallback too
-        let allRepairOrders: RepairOrderAPIResponse[];
-        
-        if (Array.isArray(fallbackResponse)) {
-          allRepairOrders = fallbackResponse;
-        } else {
-          const paginatedFallback = fallbackResponse as RepairOrderListAPIResponse;
-          allRepairOrders = paginatedFallback.results ?? [];
-        }
-        
-        console.log(`✅ Fallback: Loaded ${allRepairOrders.length} repair orders, filtering for active`);
-        
-        // Since the backend doesn't have status field, consider all repair orders as "active"
-        // if they have services or parts (indicating work to be done)
-        const activeOrders = allRepairOrders
-          .filter(order => {
-            const hasServices = (order.services && order.services.length > 0);
-            const hasParts = (order.parts && order.parts.length > 0);
-            return hasServices || hasParts;
-          })
-          .map(transformRepairOrderData);
-          
-        console.log(`✅ Fallback successful: Found ${activeOrders.length} active repair orders`);
-        return activeOrders;
-        
-      } catch (fallbackError: unknown) {
-        console.error('❌ Fallback also failed:', fallbackError);
-        // Return empty array to prevent UI crashes
-        console.log('⚠️ Returning empty array to prevent UI crashes');
-        return [];
-      }
-    }
-  },
-
   // Get repair order statistics
   getRepairOrderStats: async (): Promise<RepairOrderStatsAPIResponse> => {
     try {
@@ -348,50 +346,129 @@ export const repairOrderMngtService = {
     }
   },
 
-  // Start work on repair order
-  startWork: async (id: string): Promise<RepairOrder> => {
+  // Get active repair orders
+  getActiveRepairOrders: async (): Promise<RepairOrder[]> => {
     try {
-      console.log(`🔄 Starting work on repair order ${id}...`);
+      console.log('🔄 Loading active repair orders from /shop/repair-orders/active/...');
       
-      const response = await apiPost<RepairOrderAPIResponse>(`/shop/repair-orders/${id}/start-work/`, {});
+      const response = await apiGet<RepairOrderListAPIResponse>('/shop/repair-orders/active/');
       
-      console.log(`✅ Started work on repair order ${id}`);
-      return transformRepairOrderData(response);
+      console.log('📥 Active repair orders API response:', {
+        response,
+        hasResults: !!response.results,
+        resultsLength: response.results?.length,
+        responseKeys: Object.keys(response || {}),
+        sampleData: response.results?.[0]
+      });
+      
+      // Handle different response formats the backend might return
+      let repairOrdersArray: RepairOrderAPIResponse[] = [];
+      
+      if (response.results && Array.isArray(response.results)) {
+        repairOrdersArray = response.results;
+      } else if (response.repairOrders && Array.isArray(response.repairOrders)) {
+        repairOrdersArray = response.repairOrders;
+      } else if (Array.isArray(response)) {
+        // Sometimes the response might be directly an array
+        repairOrdersArray = response as any;
+      } else {
+        console.warn('⚠️ Unexpected response format for active repair orders:', response);
+        repairOrdersArray = [];
+      }
+      
+      if (repairOrdersArray.length === 0) {
+        console.log('⚠️ No active repair orders found via dedicated endpoint, trying fallback...');
+        
+        // Fallback: try to get all repair orders and filter client-side
+        try {
+          const allOrders = await this.getRepairOrders();
+          
+          // Client-side filtering for active orders (status 'pending' or 'in_progress')
+          const activeOrders = allOrders.filter(order => 
+            order.status === 'pending' || order.status === 'in_progress'
+          );
+          
+          console.log(`✅ Fallback found ${activeOrders.length} active orders from ${allOrders.length} total`);
+          return activeOrders;
+          
+        } catch (fallbackError) {
+          console.error('❌ Fallback also failed:', fallbackError);
+          return [];
+        }
+      }
+      
+      const transformedOrders = repairOrdersArray.map(transformRepairOrderData);
+      console.log(`✅ Loaded ${transformedOrders.length} active repair orders`);
+      
+      return transformedOrders;
       
     } catch (error: unknown) {
-      console.error(`❌ Error starting work on repair order ${id}:`, error);
+      console.error('❌ Error loading active repair orders:', error);
+      
+      // Fallback: try to get all repair orders and filter client-side
+      try {
+        console.log('🔄 Fallback: Trying to get all repair orders and filter for active ones...');
+        const allOrders = await this.getRepairOrders();
+        
+        // Client-side filtering for active orders (status 'pending' or 'in_progress')
+        const activeOrders = allOrders.filter(order => 
+          order.status === 'pending' || order.status === 'in_progress'
+        );
+        
+        console.log(`✅ Fallback successful: Found ${activeOrders.length} active orders from ${allOrders.length} total`);
+        return activeOrders;
+        
+      } catch (fallbackError) {
+        console.error('❌ Fallback also failed:', fallbackError);
+        throw error; // Throw original error
+      }
+    }
+  },
+
+  // Get completed repair orders
+  getCompletedRepairOrders: async (): Promise<RepairOrder[]> => {
+    try {
+      console.log('🔄 Loading completed repair orders...');
+      
+      const response = await apiGet<RepairOrderListAPIResponse>('/shop/repair-orders/completed/');
+      
+      console.log(`✅ Loaded ${response.results?.length ?? 0} completed repair orders`);
+      return (response.results ?? []).map(transformRepairOrderData);
+      
+    } catch (error: unknown) {
+      console.error('❌ Error loading completed repair orders:', error);
       throw error;
     }
   },
 
-  // Complete work on repair order
-  completeWork: async (id: string, data: CompleteWorkData): Promise<RepairOrder> => {
+  // Complete repair work
+  completeRepairWork: async (id: string, data: CompleteWorkData): Promise<RepairOrder> => {
     try {
-      console.log(`🔄 Completing work on repair order ${id}...`);
+      console.log(`🔄 Completing repair work for order ${id}...`);
       
-      const response = await apiPost<RepairOrderAPIResponse>(`/shop/repair-orders/${id}/complete-work/`, data);
+      const response = await apiPost<RepairOrderAPIResponse>(`/shop/repair-orders/${id}/complete/`, data);
       
-      console.log(`✅ Completed work on repair order ${id}`);
+      console.log(`✅ Completed repair work for order ${id}`);
       return transformRepairOrderData(response);
       
     } catch (error: unknown) {
-      console.error(`❌ Error completing work on repair order ${id}:`, error);
+      console.error(`❌ Error completing repair work for order ${id}:`, error);
       throw error;
     }
   },
 
   // Add service to repair order
-  addService: async (repairOrderId: string, serviceData: AddServiceData): Promise<RepairOrder> => {
+  addService: async (id: string, data: AddServiceData): Promise<RepairOrder> => {
     try {
-      console.log(`🔄 Adding service to repair order ${repairOrderId}...`);
+      console.log(`🔄 Adding service to repair order ${id}...`);
       
-      const response = await apiPost<RepairOrderAPIResponse>(`/shop/repair-orders/${repairOrderId}/add-service/`, serviceData);
+      const response = await apiPost<RepairOrderAPIResponse>(`/shop/repair-orders/${id}/add-service/`, data);
       
-      console.log(`✅ Added service to repair order ${repairOrderId}`);
+      console.log(`✅ Added service to repair order ${id}`);
       return transformRepairOrderData(response);
       
     } catch (error: unknown) {
-      console.error(`❌ Error adding service to repair order ${repairOrderId}:`, error);
+      console.error(`❌ Error adding service to repair order ${id}:`, error);
       throw error;
     }
   },
@@ -408,6 +485,22 @@ export const repairOrderMngtService = {
       
     } catch (error: unknown) {
       console.error(`❌ Error getting cost breakdown for repair order ${id}:`, error);
+      throw error;
+    }
+  },
+
+  // Get repair orders by customer ID
+  getRepairOrdersByCustomer: async (customerId: number): Promise<RepairOrder[]> => {
+    try {
+      console.log(`🔄 Loading repair orders for customer ${customerId}...`);
+      
+      const response = await this.getRepairOrders({ customer_id: customerId });
+      
+      console.log(`✅ Loaded ${response.length} repair orders for customer ${customerId}`);
+      return response;
+      
+    } catch (error: unknown) {
+      console.error(`❌ Error loading repair orders for customer ${customerId}:`, error);
       throw error;
     }
   },

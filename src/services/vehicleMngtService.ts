@@ -64,6 +64,7 @@ export const vehicleMngtService = {
               phone: vehicle.customer.phone_number || vehicle.customer.phone || ''
             }
           : undefined,
+        customer_name: vehicle.customer?.name || `${vehicle.customer?.first_name || ''} ${vehicle.customer?.last_name || ''}`.trim() || undefined,
         lastServiceDate: vehicle.last_service_date,
         nextServiceDue: vehicle.next_service_due,
         repairHistory: vehicle.repair_history || []

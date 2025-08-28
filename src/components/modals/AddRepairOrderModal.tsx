@@ -45,13 +45,13 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
   } = useAppSelector((state) => state.autoRepairs);
   
   const [formData, setFormData] = useState<RepairOrderFormData>({
-    vehicle: vehicleId || 0,
+    vehicle_id: 0,
     services: [],
     parts: [],
     discount_amount: 0,
     discount_percent: 0,
-    tax_percent: 8.25, // Default tax rate
-    notes: "",
+    tax_percent: 10,
+    notes: '',
   });
 
   // Note: Services and Parts are not yet in Redux, keeping direct API calls for now
@@ -74,7 +74,7 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
 
   useEffect(() => {
     if (vehicleId) {
-      setFormData((prev: RepairOrderFormData) => ({ ...prev, vehicle: vehicleId }));
+      setFormData((prev: RepairOrderFormData) => ({ ...prev, vehicle_id: vehicleId }));
     }
   }, [vehicleId]);
 
@@ -107,7 +107,7 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
     setFormData((prev: RepairOrderFormData) => ({
       ...prev,
       [name]:
-        name === "vehicle"
+        name === "vehicle_id"
           ? parseInt(value) || 0
           : ["discount_amount", "discount_percent", "tax_percent"].includes(
               name
@@ -118,21 +118,22 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
   };
 
   const addService = (serviceId: string) => {
-    const service = availableServices.find((s) => s.id === serviceId);
-    if (service && !selectedServices.find((s) => s.id === serviceId)) {
+    const serviceIdNum = parseInt(serviceId);
+    const service = availableServices.find((s) => s.id === serviceIdNum);
+    if (service && !selectedServices.find((s) => s.id === serviceIdNum)) {
       setSelectedServices((prev) => [...prev, service]);
       setFormData((prev: RepairOrderFormData) => ({
         ...prev,
-        services: [...prev.services, parseInt(serviceId)],
+        services: [...prev.services, serviceIdNum],
       }));
     }
   };
 
-  const removeService = (serviceId: string) => {
+  const removeService = (serviceId: number) => {
     setSelectedServices((prev) => prev.filter((s) => s.id !== serviceId));
     setFormData((prev: RepairOrderFormData) => ({
       ...prev,
-      services: prev.services.filter((id: number) => id !== parseInt(serviceId)),
+      services: prev.services.filter((id: number) => id !== serviceId),
     }));
   };
 
@@ -203,38 +204,29 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
     setError(null);
 
     try {
-      // Find the selected vehicle and transform to VehicleSummary
-      const selectedVehicle = vehicles.find(v => String(v.id) === String(formData.vehicle));
+      // Find the selected vehicle and validate
+      const selectedVehicle = vehicles.find(v => String(v.id) === String(formData.vehicle_id));
       if (!selectedVehicle) {
         setError("Please select a vehicle");
         return;
       }
 
-      const vehicleSummary = {
-        id: selectedVehicle.id,
-        make: selectedVehicle.make,
-        model: selectedVehicle.model,
-        year: selectedVehicle.year,
-        license_plate: selectedVehicle.license_plate,
-        vin: selectedVehicle.vin,
-        color: selectedVehicle.color,
-        customer: selectedVehicle.customer
-      };
-
-      // Update parts data before submitting
+      // Use only vehicle_id (backend no longer accepts both fields)
       const finalFormData = {
-        vehicle: vehicleSummary,
-        services: formData.services,
-        parts: selectedParts.map((sp) => ({
+        vehicle_id: Number(selectedVehicle.id), // ✅ REQUIRED: Backend expects only vehicle_id
+        services: formData.services || [], // Ensure services is always an array
+        parts: (selectedParts || []).map((sp) => ({
           part: Number(sp.part.id!),  // Convert to number
           quantity: sp.quantity,
           warranty_override_months: sp.warranty_override_months,
         })),
-        discount_amount: formData.discount_amount,
-        discount_percent: formData.discount_percent,
-        tax_percent: formData.tax_percent,
-        notes: formData.notes,
+        discount_amount: formData.discount_amount || 0,
+        discount_percent: formData.discount_percent || 0,
+        tax_percent: formData.tax_percent || 8.25,
+        notes: formData.notes || "",
       };
+
+      console.log('🔄 Submitting repair order with data:', finalFormData);
 
       const resultAction = await dispatch(createRepairOrder(finalFormData));
       if (createRepairOrder.fulfilled.match(resultAction)) {
@@ -279,8 +271,8 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
           <Form.Group className="mb-4">
             <Form.Label>Vehicle *</Form.Label>
             <Form.Select
-              name="vehicle"
-              value={formData.vehicle}
+              name="vehicle_id"
+              value={formData.vehicle_id}
               onChange={handleInputChange}
               required
               disabled={!!vehicleId || vehiclesLoading}
@@ -290,8 +282,7 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
               </option>
               {vehicles.map((vehicle) => (
                 <option key={vehicle.id} value={vehicle.id}>
-                  {vehicle.customer_name} - {vehicle.make} {vehicle.model} (
-                  {vehicle.license_plate || vehicle.vin})
+                  {(vehicle.customer_name || vehicle.customer?.name || 'Unknown Customer')} - {vehicle.make} {vehicle.model} ({vehicle.year}) ({vehicle.license_plate || vehicle.vin})
                 </option>
               ))}
             </Form.Select>
@@ -348,7 +339,7 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
                         <Button
                           variant="outline-danger"
                           size="sm"
-                          onClick={() => removeService(service.id!)}
+                          onClick={() => removeService(service.id)}
                         >
                           Remove
                         </Button>
@@ -529,7 +520,7 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
             type="submit"
             disabled={
               repairOrdersLoading ||
-              !formData.vehicle ||
+              !formData.vehicle_id ||
               (selectedServices.length === 0 && selectedParts.length === 0)
             }
           >

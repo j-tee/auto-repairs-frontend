@@ -97,16 +97,16 @@ export const UserManagement: React.FC = () => {
 
       setUsers(usersResponse.users);
       setTotalCount(usersResponse.total);
-      setPageCount(usersResponse.totalPages);
+      setPageCount(usersResponse.total_pages);
 
       // Transform UserStats to UserStatistics interface
       const transformedStats: UserStatistics = {
         totalUsers: statsResponse.totalUsers,
         activeUsers: statsResponse.activeUsers,
         inactiveUsers: statsResponse.inactiveUsers,
-        ownerUsers: statsResponse.usersByRole.owner,
-        employeeUsers: statsResponse.usersByRole.employee,
-        customerUsers: statsResponse.usersByRole.customer,
+        ownerUsers: statsResponse.usersByRole?.owner ?? 0,
+        employeeUsers: statsResponse.usersByRole?.employee ?? 0,
+        customerUsers: statsResponse.usersByRole?.customer ?? 0,
         recentRegistrations: 0, // Not available in current backend
         usersLoggedInToday: 0, // Not available in current backend
         passwordExpiringSoon: 0, // Not available in current backend
@@ -114,9 +114,10 @@ export const UserManagement: React.FC = () => {
       setStatistics(transformedStats);
 
       console.log("💾 UserManagement - Set statistics to:", statsResponse);
-    } catch (err) {
+    } catch {
       setError("Failed to load user data");
-      console.error("Load data error:", err);
+      // Optionally, you can log the error if needed
+      // console.error("Load data error:", err);
     } finally {
       setLoading(false);
     }
@@ -130,7 +131,10 @@ export const UserManagement: React.FC = () => {
     }));
   };
 
-  const handleFilterChange = (key: keyof UserSearchCriteria, value: any) => {
+  const handleFilterChange = (
+    key: keyof UserSearchCriteria,
+    value: string | number | boolean
+  ) => {
     setSearchCriteria((prev) => ({
       ...prev,
       [key]: value,
@@ -158,7 +162,7 @@ export const UserManagement: React.FC = () => {
           await userMngtService.deactivateUser(userId);
           setSuccessMessage("User deactivated successfully");
           break;
-        case "reset-password":
+        case "reset-password": {
           // Generate a temporary password
           const tempPassword = Math.random().toString(36).slice(-8) + "!A1";
           await userMngtService.resetUserPassword(userId, tempPassword);
@@ -166,6 +170,7 @@ export const UserManagement: React.FC = () => {
             `Password reset. Temporary password: ${tempPassword}`
           );
           break;
+        }
         case "unlock":
           // For now, this would require specific backend implementation
           setSuccessMessage("Account unlock feature not yet available");
@@ -182,7 +187,7 @@ export const UserManagement: React.FC = () => {
           break;
       }
       loadData();
-    } catch (err) {
+    } catch {
       setError(`Failed to ${action} user`);
     }
   };
@@ -205,17 +210,18 @@ export const UserManagement: React.FC = () => {
             case "deactivate":
               await userMngtService.deactivateUser(userId);
               break;
-            case "reset_password":
+            case "reset_password": {
               const tempPassword = Math.random().toString(36).slice(-8) + "!A1";
               await userMngtService.resetUserPassword(userId, tempPassword);
               break;
+            }
             default:
               throw new Error(
                 `Unsupported operation: ${bulkOperation.operation}`
               );
           }
           successCount++;
-        } catch (err) {
+        } catch {
           failedCount++;
         }
       }
@@ -234,7 +240,7 @@ export const UserManagement: React.FC = () => {
       setShowBulkConfirm(false);
       setBulkOperation(null);
       loadData();
-    } catch (err) {
+    } catch {
       setError("Bulk operation failed");
     }
   };
@@ -253,7 +259,7 @@ export const UserManagement: React.FC = () => {
     if (selectedUsers.size === users.length) {
       setSelectedUsers(new Set());
     } else {
-      setSelectedUsers(new Set(users.map((u) => u.id)));
+      setSelectedUsers(new Set(users.map((u) => String(u.id))));
     }
   };
 
@@ -293,7 +299,7 @@ export const UserManagement: React.FC = () => {
       a.download = `users.${format}`;
       a.click();
       window.URL.revokeObjectURL(url);
-    } catch (err) {
+    } catch {
       setError(`Failed to export users as ${format}`);
     }
   };
@@ -577,8 +583,8 @@ export const UserManagement: React.FC = () => {
                     <td>
                       <Form.Check
                         type="checkbox"
-                        checked={selectedUsers.has(user.id)}
-                        onChange={() => toggleUserSelection(user.id)}
+                        checked={selectedUsers.has(String(user.id))}
+                        onChange={() => toggleUserSelection(String(user.id))}
                       />
                     </td>
                     <td>
@@ -675,7 +681,7 @@ export const UserManagement: React.FC = () => {
                           <Dropdown.Divider />
                           <Dropdown.Item
                             onClick={() =>
-                              handleUserAction("reset-password", user.id)
+                              handleUserAction("reset-password", String(user.id))
                             }
                           >
                             🔑 Reset Password
@@ -683,7 +689,7 @@ export const UserManagement: React.FC = () => {
                           {user.isActive ? (
                             <Dropdown.Item
                               onClick={() =>
-                                handleUserAction("deactivate", user.id)
+                                handleUserAction("deactivate", String(user.id))
                               }
                             >
                               🚫 Deactivate
@@ -691,7 +697,7 @@ export const UserManagement: React.FC = () => {
                           ) : (
                             <Dropdown.Item
                               onClick={() =>
-                                handleUserAction("activate", user.id)
+                                handleUserAction("activate", String(user.id))
                               }
                             >
                               ✅ Activate
@@ -700,7 +706,7 @@ export const UserManagement: React.FC = () => {
                           {user.loginAttempts && user.loginAttempts > 3 && (
                             <Dropdown.Item
                               onClick={() =>
-                                handleUserAction("unlock", user.id)
+                                handleUserAction("unlock", String(user.id))
                               }
                             >
                               🔓 Unlock Account
@@ -709,7 +715,7 @@ export const UserManagement: React.FC = () => {
                           <Dropdown.Divider />
                           <Dropdown.Item
                             className="text-danger"
-                            onClick={() => handleUserAction("delete", user.id)}
+                            onClick={() => handleUserAction("delete", String(user.id))}
                           >
                             🗑️ Delete User
                           </Dropdown.Item>
