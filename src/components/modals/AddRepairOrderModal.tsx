@@ -36,7 +36,7 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
   vehicleId,
 }) => {
   const [formData, setFormData] = useState<RepairOrderFormData>({
-    vehicle: vehicleId || 0,
+    vehicle_id: vehicleId || 0,
     services: [],
     parts: [],
     discount_amount: 0,
@@ -65,7 +65,7 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
 
   useEffect(() => {
     if (vehicleId) {
-      setFormData((prev) => ({ ...prev, vehicle: vehicleId }));
+      setFormData((prev) => ({ ...prev, vehicle_id: vehicleId }));
     }
   }, [vehicleId]);
 
@@ -99,7 +99,7 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
     setFormData((prev) => ({
       ...prev,
       [name]:
-        name === "vehicle"
+        name === "vehicle_id"
           ? parseInt(value) || 0
           : ["discount_amount", "discount_percent", "tax_percent"].includes(
               name
@@ -220,7 +220,7 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
 
   const handleClose = () => {
     setFormData({
-      vehicle: vehicleId || 0,
+      vehicle_id: vehicleId || 0,
       services: [],
       parts: [],
       discount_amount: 0,
@@ -247,8 +247,8 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
           <Form.Group className="mb-4">
             <Form.Label>Vehicle *</Form.Label>
             <Form.Select
-              name="vehicle"
-              value={formData.vehicle}
+              name="vehicle_id"
+              value={formData.vehicle_id}
               onChange={handleInputChange}
               required
               disabled={!!vehicleId || loadingData}
@@ -497,7 +497,7 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
             type="submit"
             disabled={
               loading ||
-              !formData.vehicle ||
+              !formData.vehicle_id ||
               (selectedServices.length === 0 && selectedParts.length === 0)
             }
           >
