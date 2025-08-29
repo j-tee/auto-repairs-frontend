@@ -35,7 +35,6 @@ import type {
 import { CreateUserModal } from "../components/modals/CreateUserModal";
 import { EditUserModal } from "../components/modals/EditUserModal";
 import { UserDetailsModal } from "../components/modals/UserDetailsModal";
-import { AuthStatusDebug } from "../components/AuthStatusDebug";
 
 export const UserManagement: React.FC = () => {
   const { hasPermission } = useAuth();
@@ -319,9 +318,6 @@ export const UserManagement: React.FC = () => {
 
   return (
     <Container fluid className="py-4">
-      {/* Debug Component - Remove in production */}
-      <AuthStatusDebug />
-
       {successMessage && (
         <Alert
           variant="success"

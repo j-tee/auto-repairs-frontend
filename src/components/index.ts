@@ -3,4 +3,3 @@ export { default as AutoRepairsDashboard } from './AutoRepairsDashboard';
 export { DashboardStats } from './DashboardStats';
 export { PermissionGuard } from './PermissionGuard';
 export { ProtectedRoute } from './ProtectedRoute';
-export { AuthStatusDebug } from './AuthStatusDebug';

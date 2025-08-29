@@ -92,31 +92,17 @@ apiClient.interceptors.request.use(
     const token = localStorage.getItem('auth_token');
     if (token) {
       if (isTokenExpired(token)) {
-        console.log('🔄 Token expired, attempting refresh...');
         const newToken = await refreshAuthToken();
         if (newToken) {
           config.headers.Authorization = `Bearer ${newToken}`;
         } else {
           // Token refresh failed, remove invalid data
-          console.log('🚨 Token refresh failed, clearing auth data');
+          console.error('Token refresh failed, clearing auth data');
           return Promise.reject(new Error('Authentication required'));
         }
       } else {
         config.headers.Authorization = `Bearer ${token}`;
       }
-    }
-
-    // Add request timestamp for debugging (store in a WeakMap to avoid modifying axios types)
-    const requestMetadata = new WeakMap();
-    requestMetadata.set(config, { startTime: new Date() });
-    (config as any).__metadata = requestMetadata.get(config);
-
-    // Log requests in development
-    if (import.meta.env.DEV) {
-      console.log(`🚀 ${config.method?.toUpperCase()} ${config.url}`, {
-        params: config.params,
-        data: config.data,
-      });
     }
 
     return config;
@@ -130,16 +116,6 @@ apiClient.interceptors.request.use(
 // Response interceptor for error handling and token refresh
 apiClient.interceptors.response.use(
   (response) => {
-    // Calculate request duration
-    const metadata = (response.config as any).__metadata;
-    const duration = metadata?.startTime 
-      ? new Date().getTime() - metadata.startTime.getTime()
-      : 0;
-
-    // Log successful responses in development
-    if (import.meta.env.DEV) {
-      console.log(`✅ ${response.config.method?.toUpperCase()} ${response.config.url} (${duration}ms)`, response.data);
-    }
     return response;
   },
   async (error: AxiosError) => {
@@ -165,10 +141,10 @@ apiClient.interceptors.response.use(
             originalRequest.headers.Authorization = `Bearer ${newToken}`;
           }
           
-          console.log('🔄 Token refreshed successfully, retrying request');
+          console.log('Token refreshed successfully, retrying request');
           return apiClient(originalRequest);
         } catch (refreshError) {
-          console.error('🚨 Token refresh failed, redirecting to login');
+          console.error('Token refresh failed, redirecting to login');
           
           // Clear invalid tokens
           removeAuthToken();
@@ -181,7 +157,7 @@ apiClient.interceptors.response.use(
             const { store } = await import('../store');
             const { logoutUser } = await import('../store/slices/autoRepairsSlice');
             store.dispatch(logoutUser());
-          } catch (storeError) {
+          } catch {
             console.log('Store not available for logout dispatch');
           }
           
@@ -193,11 +169,6 @@ apiClient.interceptors.response.use(
     // Enhanced error handling
     const customError = handleAxiosError(error);
     
-    // Log errors in development
-    if (import.meta.env.DEV) {
-      console.error(`❌ ${error.config?.method?.toUpperCase()} ${error.config?.url}`, customError);
-    }
-
     return Promise.reject(customError);
   }
 );

@@ -22,7 +22,6 @@ import { useAuth } from "./hooks/useAuth";
 import { useAppDispatch } from "./store";
 import { initializeAuth } from "./store/slices/autoRepairsSlice";
 import { displayEnvironmentStatus } from "./utils/environmentConfig";
-import "./utils/debugAuth"; // Import auth debugging utility
 import "./App.scss";
 import "./styles/watermark.scss";
 
