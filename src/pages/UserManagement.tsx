@@ -4,8 +4,18 @@ import {
   Row,
   Col,
   Card,
-  Table,
-  Button,
+  T      // Calculate stats from users data instead of calling non-existent endpoint
+      const calculatedStats: UserStatistics = {
+        totalUsers: usersResponse.users.length,
+        activeUsers: usersResponse.users.filter(user => user.isActive).length,
+        inactiveUsers: usersResponse.users.filter(user => !user.isActive).length,
+        ownerUsers: usersResponse.users.filter(user => user.role === 'owner').length,
+        employeeUsers: usersResponse.users.filter(user => user.role === 'employee').length,
+        customerUsers: usersResponse.users.filter(user => user.role === 'customer').length,
+        recentRegistrations: 0, // Could calculate based on createdAt if needed
+        usersLoggedInToday: 0, // Not available in current backend
+        passwordExpiringSoon: 0, // Not available in current backend
+      };ton,
   Badge,
   Alert,
   Spinner,
@@ -87,33 +97,30 @@ export const UserManagement: React.FC = () => {
         sortOrder: searchCriteria.sortOrder,
       };
 
-      const [usersResponse, statsResponse] = await Promise.all([
+      const [usersResponse] = await Promise.all([
         userMngtService.getUsers(queryParams),
-        userMngtService.getUserStats(),
       ]);
 
       console.log("🎯 UserManagement - usersResponse:", usersResponse);
-      console.log("📊 UserManagement - statsResponse:", statsResponse);
 
       setUsers(usersResponse.users);
       setTotalCount(usersResponse.total);
       setPageCount(usersResponse.totalPages);
 
-      // Transform UserStats to UserStatistics interface
-      const transformedStats: UserStatistics = {
-        totalUsers: statsResponse.totalUsers,
-        activeUsers: statsResponse.activeUsers,
-        inactiveUsers: statsResponse.inactiveUsers,
-        ownerUsers: statsResponse.usersByRole.owner,
-        employeeUsers: statsResponse.usersByRole.employee,
-        customerUsers: statsResponse.usersByRole.customer,
-        recentRegistrations: 0, // Not available in current backend
-        usersLoggedInToday: 0, // Not available in current backend
-        passwordExpiringSoon: 0, // Not available in current backend
-      };
-      setStatistics(transformedStats);
+      // Calculate stats from users data instead of calling non-existent endpoint
+      const calculatedStats: UserStatistics = {
+        totalUsers: usersResponse.users.length,
+        activeUsers: usersResponse.users.filter(user => user.isActive).length,
+        owners: usersResponse.users.filter(user => user.role === 'owner').length,
+        employees: usersResponse.users.filter(user => user.role === 'employee').length,
+        customers: usersResponse.users.filter(user => user.role === 'customer').length,
+        pendingApproval: usersResponse.users.filter(user => !user.isActive).length,
+        recentSignups: 0, // Could calculate based on createdAt if needed
+        lastUpdated: new Date().toISOString(),
+      
+      setStatistics(calculatedStats);
 
-      console.log("💾 UserManagement - Set statistics to:", statsResponse);
+      console.log("💾 UserManagement - Set calculated statistics:", calculatedStats);
     } catch (err) {
       setError("Failed to load user data");
       console.error("Load data error:", err);
