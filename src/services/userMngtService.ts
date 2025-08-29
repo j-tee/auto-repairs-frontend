@@ -253,12 +253,12 @@ export const userMngtService = {
     
     return {
       totalUsers: response.total_users || 0,
-      activeUsers: response.active_users || 0,
-      inactiveUsers: response.inactive_users || 0,
+      activeUsers: response.activity?.active_users_30_days || 0,
+      inactiveUsers: (response.total_users || 0) - (response.activity?.active_users_30_days || 0),
       usersByRole: {
-        owner: response.users_by_role?.owner || 0,
-        employee: response.users_by_role?.employee || 0,
-        customer: response.users_by_role?.customer || 0
+        owner: response.role_distribution?.counts?.owners || 0,
+        employee: response.role_distribution?.counts?.employees || 0,
+        customer: response.role_distribution?.counts?.customers || 0
       },
       recentUsers: response.recent_users?.map((user: any) => ({
         id: user.id?.toString() || '',
