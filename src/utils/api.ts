@@ -1,6 +1,11 @@
 import axios, { AxiosError, type AxiosRequestConfig, type AxiosResponse } from 'axios';
 import qs from 'qs';
 
+// Extend AxiosRequestConfig to include retry flag
+interface ExtendedAxiosRequestConfig extends AxiosRequestConfig {
+  _retry?: boolean;
+}
+
 // API Configuration
 export const API_CONFIG = {
   BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api',
@@ -82,11 +87,23 @@ export const apiClient = axios.create({
 
 // Request interceptor for authentication, logging, etc.
 apiClient.interceptors.request.use(
-  (config) => {
-    // Add auth token if available
+  async (config) => {
+    // Check and refresh token if needed
     const token = localStorage.getItem('auth_token');
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      if (isTokenExpired(token)) {
+        console.log('🔄 Token expired, attempting refresh...');
+        const newToken = await refreshAuthToken();
+        if (newToken) {
+          config.headers.Authorization = `Bearer ${newToken}`;
+        } else {
+          // Token refresh failed, remove invalid data
+          console.log('🚨 Token refresh failed, clearing auth data');
+          return Promise.reject(new Error('Authentication required'));
+        }
+      } else {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
 
     // Add request timestamp for debugging (store in a WeakMap to avoid modifying axios types)
@@ -110,7 +127,7 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor for error handling
+// Response interceptor for error handling and token refresh
 apiClient.interceptors.response.use(
   (response) => {
     // Calculate request duration
@@ -125,7 +142,54 @@ apiClient.interceptors.response.use(
     }
     return response;
   },
-  (error: AxiosError) => {
+  async (error: AxiosError) => {
+    const originalRequest = error.config as ExtendedAxiosRequestConfig;
+    
+    // Handle 401 errors - attempt token refresh
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+      originalRequest._retry = true;
+      
+      const refreshToken = localStorage.getItem('refreshToken');
+      if (refreshToken) {
+        try {
+          // Attempt to refresh the token
+          const refreshResponse = await axios.post(`${API_CONFIG.BASE_URL}/token/refresh/`, {
+            refresh: refreshToken
+          });
+          
+          const newToken = refreshResponse.data.access;
+          setAuthToken(newToken);
+          
+          // Retry the original request with new token
+          if (originalRequest.headers) {
+            originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          }
+          
+          console.log('🔄 Token refreshed successfully, retrying request');
+          return apiClient(originalRequest);
+        } catch (refreshError) {
+          console.error('🚨 Token refresh failed, redirecting to login');
+          
+          // Clear invalid tokens
+          removeAuthToken();
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('user');
+          
+          // Dispatch logout action if Redux store is available
+          try {
+            // Try to dispatch logout action
+            const { store } = await import('../store');
+            const { logoutUser } = await import('../store/slices/autoRepairsSlice');
+            store.dispatch(logoutUser());
+          } catch (storeError) {
+            console.log('Store not available for logout dispatch');
+          }
+          
+          return Promise.reject(refreshError);
+        }
+      }
+    }
+
     // Enhanced error handling
     const customError = handleAxiosError(error);
     
@@ -339,6 +403,57 @@ export const removeAuthToken = (): void => {
 
 export const getAuthToken = (): string | null => {
   return localStorage.getItem('auth_token');
+};
+
+// Check if token is expired (basic JWT check)
+export const isTokenExpired = (token: string): boolean => {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const currentTime = Date.now() / 1000;
+    return payload.exp < currentTime;
+  } catch (error) {
+    return true; // Treat invalid tokens as expired
+  }
+};
+
+// Refresh token if needed
+export const refreshAuthToken = async (): Promise<string | null> => {
+  const refreshToken = localStorage.getItem('refreshToken');
+  if (!refreshToken) {
+    return null;
+  }
+
+  try {
+    const response = await axios.post(`${API_CONFIG.BASE_URL}/token/refresh/`, {
+      refresh: refreshToken
+    });
+    
+    const newToken = response.data.access;
+    setAuthToken(newToken);
+    return newToken;
+  } catch (error) {
+    console.error('Token refresh failed:', error);
+    removeAuthToken();
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
+    return null;
+  }
+};
+
+// Ensure valid token before API calls
+export const ensureValidToken = async (): Promise<boolean> => {
+  const token = getAuthToken();
+  
+  if (!token) {
+    return false;
+  }
+  
+  if (isTokenExpired(token)) {
+    const newToken = await refreshAuthToken();
+    return !!newToken;
+  }
+  
+  return true;
 };
 
 // Health check utility

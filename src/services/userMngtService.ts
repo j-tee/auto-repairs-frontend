@@ -146,9 +146,31 @@ export const userMngtService = {
     
     console.log('📊 UserMngtService - Processed data:', { users: users.length, total, actualPage, actualLimit, actualTotalPages });
     
-    // Debug: Check isActive values
-    const userStatusDebug = users.map(u => ({ id: u.id, email: u.email, is_active: u.is_active }));
+    // Debug: Check isActive values and count actual enabled/disabled
+    const userStatusDebug = users.map(u => ({ 
+      id: u.id, 
+      email: u.email, 
+      is_active: u.is_active,
+      last_login: u.last_login,
+      date_joined: u.date_joined 
+    }));
     console.log('👥 UserMngtService - User status debug:', userStatusDebug);
+    
+    const actualEnabledCount = users.filter(u => u.is_active === true).length;
+    const actualDisabledCount = users.filter(u => u.is_active === false).length;
+    
+    // Debug last login data
+    const usersWithLastLogin = users.filter(u => u.last_login && u.last_login !== null).length;
+    const usersWithoutLastLogin = users.filter(u => !u.last_login || u.last_login === null).length;
+    
+    console.log('🔢 UserMngtService - Actual counts:', { 
+      enabled: actualEnabledCount, 
+      disabled: actualDisabledCount,
+      total: users.length,
+      usersWithLastLogin,
+      usersWithoutLastLogin,
+      note: 'These are the actual enabled/disabled account counts and last login data from the user list'
+    });
     
     return {
       users: users.map((user: any) => ({
@@ -287,6 +309,17 @@ export const userMngtService = {
     
     console.log('🔍 UserStats - Raw API response:', response);
     
+    // Log detailed breakdown of what we're getting
+    console.log('📊 UserStats - Activity breakdown:', {
+      total_users: response.total_users,
+      activity_data: response.activity,
+      user_status_data: response.user_status,
+      active_users_30_days: response.activity?.active_users_30_days,
+      recent_logins: response.activity?.recent_logins,
+      activity_calculation_method: response.activity?.calculation_method || 'unknown',
+      login_tracking_issue: 'Check if backend is properly updating last_login field on authentication'
+    });
+    
     // Calculate active/inactive based on account status, not recent activity
     const totalUsers = response.total_users || 0;
     const activeUsers = response.user_status?.active_users || response.activity?.active_users_30_days || 0;
@@ -296,7 +329,8 @@ export const userMngtService = {
       totalUsers, 
       activeUsers, 
       inactiveUsers,
-      source: response.user_status ? 'user_status' : 'activity'
+      source: response.user_status ? 'user_status' : 'activity',
+      note: 'activeUsers = users with login activity in last 30 days (not account enabled/disabled)'
     });
     
     return {

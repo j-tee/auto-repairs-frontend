@@ -35,6 +35,7 @@ import type {
 import { CreateUserModal } from "../components/modals/CreateUserModal";
 import { EditUserModal } from "../components/modals/EditUserModal";
 import { UserDetailsModal } from "../components/modals/UserDetailsModal";
+import { AuthStatusDebug } from "../components/AuthStatusDebug";
 
 export const UserManagement: React.FC = () => {
   const { hasPermission } = useAuth();
@@ -318,6 +319,9 @@ export const UserManagement: React.FC = () => {
 
   return (
     <Container fluid className="py-4">
+      {/* Debug Component - Remove in production */}
+      <AuthStatusDebug />
+
       {successMessage && (
         <Alert
           variant="success"
@@ -365,7 +369,7 @@ export const UserManagement: React.FC = () => {
             <Card className="text-center">
               <Card.Body>
                 <h3 className="text-success">{statistics.activeUsers}</h3>
-                <p className="mb-0">Active Users</p>
+                <p className="mb-0">Activity Status (30 days)</p>
               </Card.Body>
             </Card>
           </Col>
@@ -373,7 +377,7 @@ export const UserManagement: React.FC = () => {
             <Card className="text-center">
               <Card.Body>
                 <h3 className="text-info">{statistics.inactiveUsers}</h3>
-                <p className="mb-0">Inactive Users</p>
+                <p className="mb-0">No Activity (30 days)</p>
               </Card.Body>
             </Card>
           </Col>
@@ -425,9 +429,9 @@ export const UserManagement: React.FC = () => {
                   )
                 }
               >
-                <option value="all">All Status</option>
-                <option value="true">Active</option>
-                <option value="false">Inactive</option>
+                <option value="all">All Acct Status</option>
+                <option value="true">Enabled</option>
+                <option value="false">Disabled</option>
               </Form.Select>
             </Col>
             <Col md={4}>
@@ -552,7 +556,7 @@ export const UserManagement: React.FC = () => {
                     {searchCriteria.sortBy === "role" &&
                       (searchCriteria.sortOrder === "asc" ? "↑" : "↓")}
                   </th>
-                  <th>Status</th>
+                  <th>Acct Status</th>
                   <th
                     style={{ cursor: "pointer" }}
                     onClick={() => handleSort("lastLogin")}
@@ -623,7 +627,7 @@ export const UserManagement: React.FC = () => {
                     </td>
                     <td>
                       <Badge bg={user.isActive ? "success" : "danger"}>
-                        {user.isActive ? "Active" : "Inactive"}
+                        {user.isActive ? "Enabled" : "Disabled"}
                       </Badge>
                       {user.loginAttempts && user.loginAttempts > 3 && (
                         <>
