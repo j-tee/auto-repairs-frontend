@@ -4,7 +4,8 @@ import {
   vehicleMngtService,
   appointmentMngtService,
   repairOrderMngtService,
-  authService
+  authService,
+  userMngtService
 } from '../../services';
 import { apiPost, apiGet, setAuthToken, removeAuthToken, getAuthToken } from '../../utils/api';
 
@@ -18,6 +19,12 @@ import type {
 import type {
   RepairOrder
 } from '../../services/repairOrderMngtService';
+import type {
+  AdminUser,
+  UserStats,
+  UserQuery,
+  UserListResponse
+} from '../../services/userMngtService';
 
 // Import backend-aligned types
 import type {
@@ -85,6 +92,16 @@ export interface EnhancedAutoRepairsState {
   employees: any[]; // TODO: Define proper Employee type
   shops: any[]; // TODO: Define proper Shop type
   
+  // User management
+  adminUsers: AdminUser[];
+  userStats: UserStats | null;
+  userPagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+  
   // Granular loading states
   loading: {
     login: boolean;
@@ -100,6 +117,15 @@ export interface EnhancedAutoRepairsState {
     repairOrders: boolean;
     employees: boolean;
     shops: boolean;
+    
+    // User management loading states
+    adminUsers: boolean;
+    userStats: boolean;
+    activateUser: boolean;
+    deactivateUser: boolean;
+    resetUserPassword: boolean;
+    deleteUser: boolean;
+    exportUsers: boolean;
   };
   
   // Granular error states
@@ -117,6 +143,15 @@ export interface EnhancedAutoRepairsState {
     repairOrders: string | null;
     employees: string | null;
     shops: string | null;
+    
+    // User management error states
+    adminUsers: string | null;
+    userStats: string | null;
+    activateUser: string | null;
+    deactivateUser: string | null;
+    resetUserPassword: string | null;
+    deleteUser: string | null;
+    exportUsers: string | null;
   };
 }
 
@@ -566,6 +601,105 @@ export const fetchShops = createAsyncThunk(
 // ============================================================================
 
 // Function to get initial auth state from localStorage
+// ============================================================================
+// USER MANAGEMENT ASYNC THUNKS
+// ============================================================================
+
+// Get users list with filtering and pagination
+export const fetchAdminUsers = createAsyncThunk(
+  'autoRepairs/fetchAdminUsers',
+  async (query: UserQuery = {}, { rejectWithValue }) => {
+    try {
+      const response = await userMngtService.getUsers(query);
+      return { users: response.users, pagination: { total: response.total, page: response.page, limit: response.limit, totalPages: response.totalPages } };
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch users');
+    }
+  }
+);
+
+// Get user statistics
+export const fetchUserStats = createAsyncThunk(
+  'autoRepairs/fetchUserStats',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await userMngtService.getUserStats();
+      return response;
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch user statistics');
+    }
+  }
+);
+
+// Activate user
+export const activateUser = createAsyncThunk(
+  'autoRepairs/activateUser',
+  async (userId: string, { rejectWithValue, dispatch }) => {
+    try {
+      await userMngtService.activateUser(userId);
+      return userId;
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to activate user');
+    }
+  }
+);
+
+// Deactivate user
+export const deactivateUser = createAsyncThunk(
+  'autoRepairs/deactivateUser',
+  async (userId: string, { rejectWithValue, dispatch }) => {
+    try {
+      await userMngtService.deactivateUser(userId);
+      return userId;
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to deactivate user');
+    }
+  }
+);
+
+// Reset user password
+export const resetUserPassword = createAsyncThunk(
+  'autoRepairs/resetUserPassword',
+  async ({ userId, newPassword }: { userId: string; newPassword: string }, { rejectWithValue }) => {
+    try {
+      await userMngtService.resetUserPassword(userId, newPassword);
+      return { userId, temporaryPassword: newPassword };
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to reset user password');
+    }
+  }
+);
+
+// Delete user
+export const deleteUser = createAsyncThunk(
+  'autoRepairs/deleteUser',
+  async (userId: string, { rejectWithValue }) => {
+    try {
+      await userMngtService.deleteUser(userId);
+      return userId;
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to delete user');
+    }
+  }
+);
+
+// Export users
+export const exportUsers = createAsyncThunk(
+  'autoRepairs/exportUsers',
+  async (query: UserQuery = {}, { rejectWithValue }) => {
+    try {
+      const blob = await userMngtService.exportUsers(query);
+      return blob;
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to export users');
+    }
+  }
+);
+
+// ============================================================================
+// INITIAL STATE HELPERS
+// ============================================================================
+
 const getInitialAuthState = () => {
   try {
     const token = localStorage.getItem('auth_token'); // Changed from 'token' to 'auth_token'
@@ -613,6 +747,16 @@ const initialState: EnhancedAutoRepairsState = {
   employees: [],
   shops: [],
   
+  // User management
+  adminUsers: [],
+  userStats: null,
+  userPagination: {
+    total: 0,
+    page: 1,
+    limit: 20,
+    totalPages: 0,
+  },
+  
   // Granular loading states
   loading: {
     login: false,
@@ -628,6 +772,15 @@ const initialState: EnhancedAutoRepairsState = {
     repairOrders: false,
     employees: false,
     shops: false,
+    
+    // User management loading states
+    adminUsers: false,
+    userStats: false,
+    activateUser: false,
+    deactivateUser: false,
+    resetUserPassword: false,
+    deleteUser: false,
+    exportUsers: false,
   },
   
   // Granular error states
@@ -645,6 +798,15 @@ const initialState: EnhancedAutoRepairsState = {
     repairOrders: null,
     employees: null,
     shops: null,
+    
+    // User management error states
+    adminUsers: null,
+    userStats: null,
+    activateUser: null,
+    deactivateUser: null,
+    resetUserPassword: null,
+    deleteUser: null,
+    exportUsers: null,
   },
 };
 
@@ -886,6 +1048,123 @@ export const autoRepairsSlice = createSlice({
       .addCase(fetchRepairOrders.rejected, (state, action) => {
         state.loading.repairOrders = false;
         state.error.repairOrders = action.payload as string;
+      })
+
+      // User Management reducers
+      // Fetch Admin Users
+      .addCase(fetchAdminUsers.pending, (state) => {
+        state.loading.adminUsers = true;
+        state.error.adminUsers = null;
+      })
+      .addCase(fetchAdminUsers.fulfilled, (state, action) => {
+        state.loading.adminUsers = false;
+        state.adminUsers = action.payload.users;
+        state.userPagination = action.payload.pagination;
+        state.error.adminUsers = null;
+      })
+      .addCase(fetchAdminUsers.rejected, (state, action) => {
+        state.loading.adminUsers = false;
+        state.error.adminUsers = action.payload as string;
+      })
+
+      // Fetch User Stats
+      .addCase(fetchUserStats.pending, (state) => {
+        state.loading.userStats = true;
+        state.error.userStats = null;
+      })
+      .addCase(fetchUserStats.fulfilled, (state, action) => {
+        state.loading.userStats = false;
+        state.userStats = action.payload;
+        state.error.userStats = null;
+      })
+      .addCase(fetchUserStats.rejected, (state, action) => {
+        state.loading.userStats = false;
+        state.error.userStats = action.payload as string;
+      })
+
+      // Activate User
+      .addCase(activateUser.pending, (state) => {
+        state.loading.activateUser = true;
+        state.error.activateUser = null;
+      })
+      .addCase(activateUser.fulfilled, (state, action) => {
+        state.loading.activateUser = false;
+        // Update the user in the local state
+        const userId = action.payload;
+        const userIndex = state.adminUsers.findIndex(user => user.id === userId);
+        if (userIndex !== -1) {
+          state.adminUsers[userIndex].isActive = true;
+        }
+        state.error.activateUser = null;
+      })
+      .addCase(activateUser.rejected, (state, action) => {
+        state.loading.activateUser = false;
+        state.error.activateUser = action.payload as string;
+      })
+
+      // Deactivate User
+      .addCase(deactivateUser.pending, (state) => {
+        state.loading.deactivateUser = true;
+        state.error.deactivateUser = null;
+      })
+      .addCase(deactivateUser.fulfilled, (state, action) => {
+        state.loading.deactivateUser = false;
+        // Update the user in the local state
+        const userId = action.payload;
+        const userIndex = state.adminUsers.findIndex(user => user.id === userId);
+        if (userIndex !== -1) {
+          state.adminUsers[userIndex].isActive = false;
+        }
+        state.error.deactivateUser = null;
+      })
+      .addCase(deactivateUser.rejected, (state, action) => {
+        state.loading.deactivateUser = false;
+        state.error.deactivateUser = action.payload as string;
+      })
+
+      // Reset User Password
+      .addCase(resetUserPassword.pending, (state) => {
+        state.loading.resetUserPassword = true;
+        state.error.resetUserPassword = null;
+      })
+      .addCase(resetUserPassword.fulfilled, (state) => {
+        state.loading.resetUserPassword = false;
+        state.error.resetUserPassword = null;
+      })
+      .addCase(resetUserPassword.rejected, (state, action) => {
+        state.loading.resetUserPassword = false;
+        state.error.resetUserPassword = action.payload as string;
+      })
+
+      // Delete User
+      .addCase(deleteUser.pending, (state) => {
+        state.loading.deleteUser = true;
+        state.error.deleteUser = null;
+      })
+      .addCase(deleteUser.fulfilled, (state, action) => {
+        state.loading.deleteUser = false;
+        // Remove the user from the local state
+        const userId = action.payload;
+        state.adminUsers = state.adminUsers.filter(user => user.id !== userId);
+        state.error.deleteUser = null;
+      })
+      .addCase(deleteUser.rejected, (state, action) => {
+        state.loading.deleteUser = false;
+        state.error.deleteUser = action.payload as string;
+      })
+
+      // Export Users
+      .addCase(exportUsers.pending, (state) => {
+        state.loading.exportUsers = true;
+        state.error.exportUsers = null;
+      })
+      .addCase(exportUsers.fulfilled, (state) => {
+        state.loading.exportUsers = false;
+        state.error.exportUsers = null;
+      })
+      .addCase(exportUsers.rejected, (state, action) => {
+        state.loading.exportUsers = false;
+        state.error.exportUsers = action.payload as string;
       });
   },
 });

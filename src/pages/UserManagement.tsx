@@ -16,10 +16,20 @@ import {
   Modal,
 } from "react-bootstrap";
 import { useAuth } from "../hooks/useAuth";
-import { userMngtService, type AdminUser, type UserStats } from "../services/userMngtService";
+import { useDispatch, useSelector } from 'react-redux';
+import type { RootState, AppDispatch } from '../store';
+import { 
+  fetchAdminUsers, 
+  fetchUserStats, 
+  activateUser as activateUserAction, 
+  deactivateUser as deactivateUserAction, 
+  resetUserPassword as resetUserPasswordAction, 
+  deleteUser as deleteUserAction, 
+  exportUsers as exportUsersAction 
+} from '../store/slices/autoRepairsSlice';
+import type { AdminUser } from "../services/userMngtService";
 import type {
   UserSearchCriteria,
-  UserStatistics,
   BulkUserOperation,
 } from "../types/userManagement";
 import { CreateUserModal } from "../components/modals/CreateUserModal";
@@ -28,10 +38,18 @@ import { UserDetailsModal } from "../components/modals/UserDetailsModal";
 
 export const UserManagement: React.FC = () => {
   const { hasPermission } = useAuth();
-  const [users, setUsers] = useState<AdminUser[]>([]);
-  const [statistics, setStatistics] = useState<UserStatistics | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const dispatch = useDispatch<AppDispatch>();
+  
+  // Redux state
+  const { 
+    adminUsers: users, 
+    userStats: statistics, 
+    userPagination,
+    loading, 
+    error 
+  } = useSelector((state: RootState) => state.autoRepairs);
+  
+  // Local state for UI only
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Search and filter state
@@ -56,14 +74,8 @@ export const UserManagement: React.FC = () => {
     null
   );
 
-  // Pagination state
-  const [totalCount, setTotalCount] = useState(0);
-  const [pageCount, setPageCount] = useState(0);
-
   useEffect(() => {
     if (!hasPermission("owner")) {
-      setError("Access denied. Owner privileges required for user management.");
-      setLoading(false);
       return;
     }
 
@@ -71,7 +83,6 @@ export const UserManagement: React.FC = () => {
   }, [searchCriteria, hasPermission]);
 
   const loadData = async () => {
-    setLoading(true);
     try {
       // Transform search criteria to match UserQuery interface
       const queryParams = {
@@ -87,39 +98,13 @@ export const UserManagement: React.FC = () => {
         sortOrder: searchCriteria.sortOrder,
       };
 
-      const [usersResponse, statsResponse] = await Promise.all([
-        userMngtService.getUsers(queryParams),
-        userMngtService.getUserStats(),
+      // Dispatch Redux actions
+      await Promise.all([
+        dispatch(fetchAdminUsers(queryParams)),
+        dispatch(fetchUserStats()),
       ]);
-
-      console.log("🎯 UserManagement - usersResponse:", usersResponse);
-      console.log("📊 UserManagement - statsResponse:", statsResponse);
-
-      setUsers(usersResponse.users);
-      setTotalCount(usersResponse.total);
-      setPageCount(usersResponse.totalPages);
-
-      // Use stats from backend endpoint
-      const calculatedStats: UserStatistics = {
-        totalUsers: statsResponse.totalUsers,
-        activeUsers: statsResponse.activeUsers,
-        inactiveUsers: statsResponse.inactiveUsers,
-        ownerUsers: statsResponse.usersByRole?.owner || 0,
-        employeeUsers: statsResponse.usersByRole?.employee || 0,
-        customerUsers: statsResponse.usersByRole?.customer || 0,
-        recentRegistrations: statsResponse.recentUsers?.length || 0,
-        usersLoggedInToday: 0, // Not available in current backend
-        passwordExpiringSoon: 0, // Not available in current backend
-      };
-
-      setStatistics(calculatedStats);
-
-      console.log("💾 UserManagement - Set statistics from backend:", calculatedStats);
     } catch (err) {
-      setError("Failed to load user data");
       console.error("Load data error:", err);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -155,17 +140,17 @@ export const UserManagement: React.FC = () => {
     try {
       switch (action) {
         case "activate":
-          await userMngtService.activateUser(userId);
+          await dispatch(activateUserAction(userId)).unwrap();
           setSuccessMessage("User activated successfully");
           break;
         case "deactivate":
-          await userMngtService.deactivateUser(userId);
+          await dispatch(deactivateUserAction(userId)).unwrap();
           setSuccessMessage("User deactivated successfully");
           break;
         case "reset-password": {
           // Generate a temporary password
           const tempPassword = Math.random().toString(36).slice(-8) + "!A1";
-          await userMngtService.resetUserPassword(userId, tempPassword);
+          await dispatch(resetUserPasswordAction({ userId, newPassword: tempPassword })).unwrap();
           setSuccessMessage(
             `Password reset. Temporary password: ${tempPassword}`
           );
@@ -181,14 +166,15 @@ export const UserManagement: React.FC = () => {
               "Are you sure you want to delete this user? This action cannot be undone."
             )
           ) {
-            await userMngtService.deleteUser(userId);
+            await dispatch(deleteUserAction(userId)).unwrap();
             setSuccessMessage("User deleted successfully");
           }
           break;
       }
-      loadData();
+      // Refresh user stats after any action
+      dispatch(fetchUserStats());
     } catch (err) {
-      setError(`Failed to ${action} user:${err instanceof Error ? err.message : String(err)}`);
+      console.error(`Failed to ${action} user:`, err);
     }
   };
 
@@ -205,14 +191,14 @@ export const UserManagement: React.FC = () => {
         try {
           switch (bulkOperation.operation) {
             case "activate":
-              await userMngtService.activateUser(userId);
+              await dispatch(activateUserAction(userId)).unwrap();
               break;
             case "deactivate":
-              await userMngtService.deactivateUser(userId);
+              await dispatch(deactivateUserAction(userId)).unwrap();
               break;
             case "reset_password": {
               const tempPassword = Math.random().toString(36).slice(-8) + "!A1";
-              await userMngtService.resetUserPassword(userId, tempPassword);
+              await dispatch(resetUserPasswordAction({ userId, newPassword: tempPassword })).unwrap();
               break;
             }
             default:
@@ -227,7 +213,7 @@ export const UserManagement: React.FC = () => {
       }
 
       if (failedCount > 0) {
-        setError(
+        console.error(
           `Operation completed with errors: ${failedCount} users failed`
         );
       } else {
@@ -239,9 +225,10 @@ export const UserManagement: React.FC = () => {
       setSelectedUsers(new Set());
       setShowBulkConfirm(false);
       setBulkOperation(null);
-      loadData();
+      // Refresh user stats after bulk operation
+      dispatch(fetchUserStats());
     } catch (err) {
-      setError(`Bulk operation failed: ${err instanceof Error ? err.message : String(err)}`);
+      console.error("Bulk operation failed:", err);
     }
   };
 
@@ -292,7 +279,7 @@ export const UserManagement: React.FC = () => {
         sortOrder: searchCriteria.sortOrder,
       };
 
-      const blob = await userMngtService.exportUsers(queryParams);
+      const blob = await dispatch(exportUsersAction(queryParams)).unwrap();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -300,13 +287,7 @@ export const UserManagement: React.FC = () => {
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      let errorMsg = "Unknown error";
-      if (err instanceof Error) {
-        errorMsg = err.message;
-      } else if (typeof err === "string") {
-        errorMsg = err;
-      }
-      setError(`Failed to export users as ${format} ${errorMsg}`);
+      console.error(`Failed to export users as ${format}:`, err);
     }
   };
 
@@ -324,7 +305,7 @@ export const UserManagement: React.FC = () => {
     );
   }
 
-  if (loading && !statistics) {
+  if ((loading.adminUsers || loading.userStats) && !statistics) {
     return (
       <Container className="py-5 text-center">
         <Spinner animation="border" role="status">
@@ -347,9 +328,9 @@ export const UserManagement: React.FC = () => {
         </Alert>
       )}
 
-      {error && (
-        <Alert variant="danger" dismissible onClose={() => setError(null)}>
-          {error}
+      {(error.adminUsers || error.userStats || error.activateUser || error.deactivateUser || error.resetUserPassword || error.deleteUser || error.exportUsers) && (
+        <Alert variant="danger" dismissible>
+          {error.adminUsers || error.userStats || error.activateUser || error.deactivateUser || error.resetUserPassword || error.deleteUser || error.exportUsers}
         </Alert>
       )}
 
@@ -400,7 +381,7 @@ export const UserManagement: React.FC = () => {
             <Card className="text-center">
               <Card.Body>
                 <h3 className="text-warning">
-                  {statistics.recentRegistrations}
+                  {statistics.recentUsers?.length || 0}
                 </h3>
                 <p className="mb-0">Recent Registrations</p>
               </Card.Body>
@@ -737,7 +718,7 @@ export const UserManagement: React.FC = () => {
       </Card>
 
       {/* Pagination */}
-      {pageCount > 1 && (
+      {userPagination.totalPages > 1 && (
         <Row className="mt-3">
           <Col className="d-flex justify-content-between align-items-center">
             <span className="text-muted">
@@ -747,9 +728,9 @@ export const UserManagement: React.FC = () => {
               to{" "}
               {Math.min(
                 (searchCriteria.page || 1) * (searchCriteria.limit || 20),
-                totalCount
+                userPagination.total
               )}{" "}
-              of {totalCount} users
+              of {userPagination.total} users
             </span>
             <div>
               <Button
@@ -763,12 +744,12 @@ export const UserManagement: React.FC = () => {
                 Previous
               </Button>
               <span className="mx-3">
-                Page {searchCriteria.page || 1} of {pageCount}
+                Page {searchCriteria.page || 1} of {userPagination.totalPages}
               </span>
               <Button
                 variant="outline-primary"
                 size="sm"
-                disabled={(searchCriteria.page || 1) >= pageCount}
+                disabled={(searchCriteria.page || 1) >= userPagination.totalPages}
                 onClick={() =>
                   handleFilterChange("page", (searchCriteria.page || 1) + 1)
                 }
