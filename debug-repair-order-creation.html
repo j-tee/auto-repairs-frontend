@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Repair Order Creation</title>
+</head>
+<body>
+    <h1>Debug Repair Order Creation</h1>
+    <div id="results"></div>
+    
+    <script>
+        const API_BASE = 'http://127.0.0.1:8000/api';
+        
+        async function testCreateRepairOrder() {
+            const resultsDiv = document.getElementById('results');
+            
+            // First, get a vehicle to use
+            console.log('📋 1. Fetching vehicles...');
+            resultsDiv.innerHTML += '<p>1. Fetching vehicles...</p>';
+            
+            try {
+                const vehiclesResponse = await fetch(`${API_BASE}/shop/vehicles/`);
+                const vehicles = await vehiclesResponse.json();
+                console.log('🚗 Available vehicles:', vehicles);
+                resultsDiv.innerHTML += `<p>✅ Found ${vehicles.results?.length || vehicles.length || 0} vehicles</p>`;
+                
+                if (!vehicles.results?.length && !vehicles.length) {
+                    resultsDiv.innerHTML += '<p>❌ No vehicles available. Create a vehicle first.</p>';
+                    return;
+                }
+                
+                const vehicle = vehicles.results?.[0] || vehicles[0];
+                console.log('🎯 Using vehicle:', vehicle);
+                resultsDiv.innerHTML += `<p>🎯 Using vehicle ID: ${vehicle.id} (${vehicle.make} ${vehicle.model})</p>`;
+                
+                // Test repair order creation with minimal data
+                console.log('📋 2. Creating repair order...');
+                resultsDiv.innerHTML += '<p>2. Creating repair order...</p>';
+                
+                const repairOrderData = {
+                    vehicle_id: vehicle.id,
+                    notes: "Test repair order created via debug script"
+                };
+                
+                console.log('📤 Sending data:', repairOrderData);
+                resultsDiv.innerHTML += `<p>📤 Sending: <pre>${JSON.stringify(repairOrderData, null, 2)}</pre></p>`;
+                
+                const createResponse = await fetch(`${API_BASE}/shop/repair-orders/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(repairOrderData)
+                });
+                
+                console.log('📥 Response status:', createResponse.status);
+                resultsDiv.innerHTML += `<p>📥 Response status: ${createResponse.status}</p>`;
+                
+                const responseText = await createResponse.text();
+                console.log('📥 Response text:', responseText);
+                
+                if (createResponse.ok) {
+                    const repairOrder = JSON.parse(responseText);
+                    console.log('✅ Created repair order:', repairOrder);
+                    resultsDiv.innerHTML += `<p>✅ Success! Created repair order ID: ${repairOrder.id}</p>`;
+                    resultsDiv.innerHTML += `<p>📋 Response: <pre>${JSON.stringify(repairOrder, null, 2)}</pre></p>`;
+                } else {
+                    console.error('❌ Failed to create repair order:', responseText);
+                    resultsDiv.innerHTML += `<p>❌ Failed! Error: ${responseText}</p>`;
+                    
+                    // Try to parse error details
+                    try {
+                        const errorData = JSON.parse(responseText);
+                        console.error('🔍 Error details:', errorData);
+                        resultsDiv.innerHTML += `<p>🔍 Error details: <pre>${JSON.stringify(errorData, null, 2)}</pre></p>`;
+                    } catch (e) {
+                        console.error('🔍 Raw error response:', responseText);
+                    }
+                }
+                
+            } catch (error) {
+                console.error('💥 Error:', error);
+                resultsDiv.innerHTML += `<p>💥 Error: ${error.message}</p>`;
+            }
+        }
+        
+        // Run the test immediately
+        testCreateRepairOrder();
+    </script>
+</body>
+</html>

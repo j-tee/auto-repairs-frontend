@@ -13,13 +13,14 @@ import type {
   Vehicle,
   Service,
   Part,
+  RepairOrder,
 } from "../../types/entities";
 import { apiPost, apiGet } from "../../utils/api";
 
 interface AddRepairOrderModalProps {
   show: boolean;
   onHide: () => void;
-  onSuccess: (repairOrder: any) => void;
+  onSuccess: (repairOrder: RepairOrder) => void;
   vehicleId?: number; // Pre-select vehicle if provided
 }
 
@@ -74,9 +75,9 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
     try {
       const [vehiclesResponse, servicesResponse, partsResponse] =
         await Promise.all([
-          apiGet<Vehicle[]>("/shop/vehicles/"),
+          apiGet<Vehicle[]>("/shop/vehicles/"),  // This endpoint exists and works
           apiGet<Service[]>("/shop/services/"),
-          apiGet<Part[]>("/parts/"),
+          apiGet<Part[]>("/shop/parts/"),  // Fixed: should be /shop/parts/ not /parts/
         ]);
 
       // ✅ Backend now provides customer_name directly - no need for manual combination!
@@ -84,7 +85,7 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
       setAvailableServices(servicesResponse);
       setAvailableParts(partsResponse.filter((p) => p.stock_quantity > 0)); // Only show parts in stock
     } catch (err) {
-      setError("Failed to load data");
+      setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setLoadingData(false);
     }
@@ -207,7 +208,7 @@ export const AddRepairOrderModal: React.FC<AddRepairOrderModalProps> = ({
       };
 
       const response = await apiPost("/shop/repair-orders/", finalFormData);
-      onSuccess(response);
+      onSuccess(response as RepairOrder);
       handleClose();
     } catch (err) {
       setError(
