@@ -4,18 +4,8 @@ import {
   Row,
   Col,
   Card,
-  T      // Calculate stats from users data instead of calling non-existent endpoint
-      const calculatedStats: UserStatistics = {
-        totalUsers: usersResponse.users.length,
-        activeUsers: usersResponse.users.filter(user => user.isActive).length,
-        inactiveUsers: usersResponse.users.filter(user => !user.isActive).length,
-        ownerUsers: usersResponse.users.filter(user => user.role === 'owner').length,
-        employeeUsers: usersResponse.users.filter(user => user.role === 'employee').length,
-        customerUsers: usersResponse.users.filter(user => user.role === 'customer').length,
-        recentRegistrations: 0, // Could calculate based on createdAt if needed
-        usersLoggedInToday: 0, // Not available in current backend
-        passwordExpiringSoon: 0, // Not available in current backend
-      };ton,
+  Table,
+  Button,
   Badge,
   Alert,
   Spinner,
@@ -26,7 +16,7 @@ import {
   Modal,
 } from "react-bootstrap";
 import { useAuth } from "../hooks/useAuth";
-import { userMngtService, type AdminUser } from "../services/userMngtService";
+import { userMngtService, type AdminUser, type UserStats } from "../services/userMngtService";
 import type {
   UserSearchCriteria,
   UserStatistics,
@@ -97,30 +87,34 @@ export const UserManagement: React.FC = () => {
         sortOrder: searchCriteria.sortOrder,
       };
 
-      const [usersResponse] = await Promise.all([
+      const [usersResponse, statsResponse] = await Promise.all([
         userMngtService.getUsers(queryParams),
+        userMngtService.getUserStats(),
       ]);
 
       console.log("🎯 UserManagement - usersResponse:", usersResponse);
+      console.log("📊 UserManagement - statsResponse:", statsResponse);
 
       setUsers(usersResponse.users);
       setTotalCount(usersResponse.total);
       setPageCount(usersResponse.totalPages);
 
-      // Calculate stats from users data instead of calling non-existent endpoint
+      // Use stats from backend endpoint
       const calculatedStats: UserStatistics = {
-        totalUsers: usersResponse.users.length,
-        activeUsers: usersResponse.users.filter(user => user.isActive).length,
-        owners: usersResponse.users.filter(user => user.role === 'owner').length,
-        employees: usersResponse.users.filter(user => user.role === 'employee').length,
-        customers: usersResponse.users.filter(user => user.role === 'customer').length,
-        pendingApproval: usersResponse.users.filter(user => !user.isActive).length,
-        recentSignups: 0, // Could calculate based on createdAt if needed
-        lastUpdated: new Date().toISOString(),
-      
+        totalUsers: statsResponse.totalUsers,
+        activeUsers: statsResponse.activeUsers,
+        inactiveUsers: statsResponse.inactiveUsers,
+        ownerUsers: statsResponse.usersByRole?.owner || 0,
+        employeeUsers: statsResponse.usersByRole?.employee || 0,
+        customerUsers: statsResponse.usersByRole?.customer || 0,
+        recentRegistrations: statsResponse.recentUsers?.length || 0,
+        usersLoggedInToday: 0, // Not available in current backend
+        passwordExpiringSoon: 0, // Not available in current backend
+      };
+
       setStatistics(calculatedStats);
 
-      console.log("💾 UserManagement - Set calculated statistics:", calculatedStats);
+      console.log("💾 UserManagement - Set statistics from backend:", calculatedStats);
     } catch (err) {
       setError("Failed to load user data");
       console.error("Load data error:", err);
@@ -137,7 +131,10 @@ export const UserManagement: React.FC = () => {
     }));
   };
 
-  const handleFilterChange = (key: keyof UserSearchCriteria, value: any) => {
+  const handleFilterChange = (
+    key: keyof UserSearchCriteria,
+    value: string | number | boolean
+  ) => {
     setSearchCriteria((prev) => ({
       ...prev,
       [key]: value,
@@ -165,7 +162,7 @@ export const UserManagement: React.FC = () => {
           await userMngtService.deactivateUser(userId);
           setSuccessMessage("User deactivated successfully");
           break;
-        case "reset-password":
+        case "reset-password": {
           // Generate a temporary password
           const tempPassword = Math.random().toString(36).slice(-8) + "!A1";
           await userMngtService.resetUserPassword(userId, tempPassword);
@@ -173,6 +170,7 @@ export const UserManagement: React.FC = () => {
             `Password reset. Temporary password: ${tempPassword}`
           );
           break;
+        }
         case "unlock":
           // For now, this would require specific backend implementation
           setSuccessMessage("Account unlock feature not yet available");
@@ -190,7 +188,7 @@ export const UserManagement: React.FC = () => {
       }
       loadData();
     } catch (err) {
-      setError(`Failed to ${action} user`);
+      setError(`Failed to ${action} user:${err instanceof Error ? err.message : String(err)}`);
     }
   };
 
@@ -212,10 +210,11 @@ export const UserManagement: React.FC = () => {
             case "deactivate":
               await userMngtService.deactivateUser(userId);
               break;
-            case "reset_password":
+            case "reset_password": {
               const tempPassword = Math.random().toString(36).slice(-8) + "!A1";
               await userMngtService.resetUserPassword(userId, tempPassword);
               break;
+            }
             default:
               throw new Error(
                 `Unsupported operation: ${bulkOperation.operation}`
@@ -223,7 +222,7 @@ export const UserManagement: React.FC = () => {
           }
           successCount++;
         } catch (err) {
-          failedCount++;
+         console.log((err instanceof Error ? err.message : String(err)) + failedCount++);
         }
       }
 
@@ -242,7 +241,7 @@ export const UserManagement: React.FC = () => {
       setBulkOperation(null);
       loadData();
     } catch (err) {
-      setError("Bulk operation failed");
+      setError(`Bulk operation failed: ${err instanceof Error ? err.message : String(err)}`);
     }
   };
 
@@ -301,7 +300,13 @@ export const UserManagement: React.FC = () => {
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      setError(`Failed to export users as ${format}`);
+      let errorMsg = "Unknown error";
+      if (err instanceof Error) {
+        errorMsg = err.message;
+      } else if (typeof err === "string") {
+        errorMsg = err;
+      }
+      setError(`Failed to export users as ${format} ${errorMsg}`);
     }
   };
 
@@ -386,8 +391,8 @@ export const UserManagement: React.FC = () => {
           <Col md={3}>
             <Card className="text-center">
               <Card.Body>
-                <h3 className="text-info">{statistics.usersLoggedInToday}</h3>
-                <p className="mb-0">Logged In Today</p>
+                <h3 className="text-info">{statistics.inactiveUsers}</h3>
+                <p className="mb-0">Inactive Users</p>
               </Card.Body>
             </Card>
           </Col>
@@ -395,9 +400,9 @@ export const UserManagement: React.FC = () => {
             <Card className="text-center">
               <Card.Body>
                 <h3 className="text-warning">
-                  {statistics.passwordExpiringSoon}
+                  {statistics.recentRegistrations}
                 </h3>
-                <p className="mb-0">Passwords Expiring</p>
+                <p className="mb-0">Recent Registrations</p>
               </Card.Body>
             </Card>
           </Col>
