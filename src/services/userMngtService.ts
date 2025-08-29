@@ -146,6 +146,10 @@ export const userMngtService = {
     
     console.log('📊 UserMngtService - Processed data:', { users: users.length, total, actualPage, actualLimit, actualTotalPages });
     
+    // Debug: Check isActive values
+    const userStatusDebug = users.map(u => ({ id: u.id, email: u.email, is_active: u.is_active }));
+    console.log('👥 UserMngtService - User status debug:', userStatusDebug);
+    
     return {
       users: users.map((user: any) => ({
         id: user.id?.toString() || '',
@@ -281,10 +285,24 @@ export const userMngtService = {
   getUserStats: async (): Promise<UserStats> => {
     const response = await apiGet<any>('/admin/users/stats/');
     
+    console.log('🔍 UserStats - Raw API response:', response);
+    
+    // Calculate active/inactive based on account status, not recent activity
+    const totalUsers = response.total_users || 0;
+    const activeUsers = response.user_status?.active_users || response.activity?.active_users_30_days || 0;
+    const inactiveUsers = response.user_status?.inactive_users || (totalUsers - activeUsers);
+    
+    console.log('📊 UserStats - Processed stats:', { 
+      totalUsers, 
+      activeUsers, 
+      inactiveUsers,
+      source: response.user_status ? 'user_status' : 'activity'
+    });
+    
     return {
-      totalUsers: response.total_users || 0,
-      activeUsers: response.activity?.active_users_30_days || 0,
-      inactiveUsers: (response.total_users || 0) - (response.activity?.active_users_30_days || 0),
+      totalUsers: totalUsers,
+      activeUsers: activeUsers,
+      inactiveUsers: inactiveUsers,
       usersByRole: {
         owner: response.role_distribution?.counts?.owners || 0,
         employee: response.role_distribution?.counts?.employees || 0,
