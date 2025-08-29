@@ -249,77 +249,32 @@ export const userMngtService = {
 
   // Get user statistics
   getUserStats: async (): Promise<UserStats> => {
-    try {
-      const response = await apiGet<any>('/admin/users/stats/');
-      
-      return {
-        totalUsers: response.total_users || 0,
-        activeUsers: response.active_users || 0,
-        inactiveUsers: response.inactive_users || 0,
-        usersByRole: {
-          owner: response.users_by_role?.owner || 0,
-          employee: response.users_by_role?.employee || 0,
-          customer: response.users_by_role?.customer || 0
-        },
-        recentUsers: response.recent_users?.map((user: any) => ({
-          id: user.id?.toString() || '',
-          email: user.email || '',
-          firstName: user.first_name || '',
-          lastName: user.last_name || '',
-          role: user.role || 'customer',
-          avatar: user.avatar,
-          phone: user.phone,
-          address: user.address,
-          isActive: user.is_active ?? true,
-          createdAt: user.date_joined || new Date().toISOString(),
-          lastLogin: user.last_login,
-          permissions: user.permissions || []
-        })) || []
-      };
-    } catch (error) {
-      // Temporary fallback: If stats endpoint doesn't exist (404), calculate from users list
-      console.warn('⚠️ Stats endpoint not available, calculating from users list (Temporary solution)');
-      console.warn('📋 Backend team: Please implement /api/admin/users/stats/ endpoint');
-      
-      try {
-        const users = await userMngtService.getUsers();
-        
-        // Calculate stats from users data
-        const totalUsers = users.length;
-        const activeUsers = users.filter(u => u.isActive).length;
-        const inactiveUsers = totalUsers - activeUsers;
-        
-        // Role distribution
-        const usersByRole = {
-          owner: users.filter(u => u.role === 'owner').length,
-          employee: users.filter(u => u.role === 'employee').length,
-          customer: users.filter(u => u.role === 'customer').length
-        };
-        
-        // Recent users (last 5 for display)
-        const recentUsers = users
-          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-          .slice(0, 5);
-        
-        return {
-          totalUsers,
-          activeUsers,
-          inactiveUsers,
-          usersByRole,
-          recentUsers
-        };
-      } catch (fallbackError) {
-        console.error('❌ Failed to calculate stats from users list:', fallbackError);
-        // Return empty stats if everything fails
-        return {
-          totalUsers: 0,
-          activeUsers: 0,
-          inactiveUsers: 0,
-          usersByRole: { owner: 0, employee: 0, customer: 0 },
-          recentUsers: []
-        };
-      }
-    }
+    const response = await apiGet<any>('/admin/users/stats/');
+    
+    return {
+      totalUsers: response.total_users || 0,
+      activeUsers: response.active_users || 0,
+      inactiveUsers: response.inactive_users || 0,
+      usersByRole: {
+        owner: response.users_by_role?.owner || 0,
+        employee: response.users_by_role?.employee || 0,
+        customer: response.users_by_role?.customer || 0
+      },
+      recentUsers: response.recent_users?.map((user: any) => ({
+        id: user.id?.toString() || '',
+        email: user.email || '',
+        firstName: user.first_name || '',
+        lastName: user.last_name || '',
+        role: user.role || 'customer',
+        avatar: user.avatar,
+        phone: user.phone,
+        address: user.address,
+        isActive: user.is_active ?? true,
+        createdAt: user.date_joined || new Date().toISOString(),
+        lastLogin: user.last_login,
+        permissions: user.permissions || []
+      })) || []
+    };
   },
 
   // Search users
