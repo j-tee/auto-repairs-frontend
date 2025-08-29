@@ -116,8 +116,38 @@ export const userMngtService = {
     
     const response = await apiGet<any>(endpoint);
     
+    console.log('🔍 UserMngtService - Raw API response:', response);
+    
+    // Handle different response formats
+    let users, total, actualPage, actualLimit, actualTotalPages;
+    
+    if (Array.isArray(response)) {
+      // Direct array response
+      users = response;
+      total = response.length;
+      actualPage = query.page || 1;
+      actualLimit = query.limit || 20;
+      actualTotalPages = 1;
+    } else if (response.results) {
+      // Django REST Framework pagination format
+      users = response.results;
+      total = response.count || 0;
+      actualPage = query.page || 1;
+      actualLimit = query.limit || 20;
+      actualTotalPages = Math.ceil(total / actualLimit);
+    } else {
+      // Other possible formats
+      users = response.users || response.data || [];
+      total = response.total || response.count || users.length;
+      actualPage = response.page || query.page || 1;
+      actualLimit = response.limit || query.limit || 20;
+      actualTotalPages = response.totalPages || response.total_pages || Math.ceil(total / actualLimit);
+    }
+    
+    console.log('📊 UserMngtService - Processed data:', { users: users.length, total, actualPage, actualLimit, actualTotalPages });
+    
     return {
-      users: response.results?.map((user: any) => ({
+      users: users.map((user: any) => ({
         id: user.id?.toString() || '',
         email: user.email || '',
         firstName: user.first_name || '',
@@ -130,11 +160,11 @@ export const userMngtService = {
         createdAt: user.date_joined || new Date().toISOString(),
         lastLogin: user.last_login,
         permissions: user.permissions || []
-      })) || [],
-      total: response.count || 0,
-      page: query.page || 1,
-      limit: query.limit || 10,
-      totalPages: Math.ceil((response.count || 0) / (query.limit || 10))
+      })),
+      total: total,
+      page: actualPage,
+      limit: actualLimit,
+      totalPages: actualTotalPages
     };
   },
 
