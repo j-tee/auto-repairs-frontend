@@ -85,6 +85,25 @@ export const apiClient = axios.create({
   },
 });
 
+// Token refresh management to prevent race conditions
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (token: string) => void;
+  reject: (error: Error) => void;
+}> = [];
+
+const processQueue = (error: Error | null, token: string | null = null) => {
+  failedQueue.forEach(({ resolve, reject }) => {
+    if (error) {
+      reject(error);
+    } else {
+      resolve(token!);
+    }
+  });
+  
+  failedQueue = [];
+};
+
 // Request interceptor for authentication, logging, etc.
 apiClient.interceptors.request.use(
   async (config) => {
@@ -92,13 +111,39 @@ apiClient.interceptors.request.use(
     const token = localStorage.getItem('auth_token');
     if (token) {
       if (isTokenExpired(token)) {
-        const newToken = await refreshAuthToken();
-        if (newToken) {
-          config.headers.Authorization = `Bearer ${newToken}`;
-        } else {
-          // Token refresh failed, remove invalid data
+        // If already refreshing, queue this request
+        if (isRefreshing) {
+          return new Promise((resolve, reject) => {
+            failedQueue.push({ 
+              resolve: (newToken: string) => {
+                config.headers.Authorization = `Bearer ${newToken}`;
+                resolve(config);
+              }, 
+              reject 
+            });
+          });
+        }
+
+        isRefreshing = true;
+        
+        try {
+          const newToken = await refreshAuthToken();
+          if (newToken) {
+            config.headers.Authorization = `Bearer ${newToken}`;
+            processQueue(null, newToken);
+          } else {
+            // Token refresh failed, remove invalid data
+            const error = new Error('Authentication required');
+            processQueue(error);
+            console.error('Token refresh failed, clearing auth data');
+            return Promise.reject(error);
+          }
+        } catch (error) {
+          processQueue(error);
           console.error('Token refresh failed, clearing auth data');
-          return Promise.reject(new Error('Authentication required'));
+          return Promise.reject(error);
+        } finally {
+          isRefreshing = false;
         }
       } else {
         config.headers.Authorization = `Bearer ${token}`;
@@ -127,6 +172,25 @@ apiClient.interceptors.response.use(
       
       const refreshToken = localStorage.getItem('refreshToken');
       if (refreshToken) {
+        // If already refreshing, queue this request
+        if (isRefreshing) {
+          return new Promise((resolve, reject) => {
+            failedQueue.push({
+              resolve: (newToken: string) => {
+                if (originalRequest.headers) {
+                  originalRequest.headers.Authorization = `Bearer ${newToken}`;
+                }
+                resolve(apiClient(originalRequest));
+              },
+              reject: (err: Error) => {
+                reject(err);
+              }
+            });
+          });
+        }
+
+        isRefreshing = true;
+
         try {
           // Attempt to refresh the token
           const refreshResponse = await axios.post(`${API_CONFIG.BASE_URL}/token/refresh/`, {
@@ -135,6 +199,9 @@ apiClient.interceptors.response.use(
           
           const newToken = refreshResponse.data.access;
           setAuthToken(newToken);
+          
+          // Process queued requests
+          processQueue(null, newToken);
           
           // Retry the original request with new token
           if (originalRequest.headers) {
@@ -145,6 +212,9 @@ apiClient.interceptors.response.use(
           return apiClient(originalRequest);
         } catch (refreshError) {
           console.error('Token refresh failed, redirecting to login');
+          
+          // Process failed queue
+          processQueue(refreshError);
           
           // Clear invalid tokens
           removeAuthToken();
@@ -162,6 +232,8 @@ apiClient.interceptors.response.use(
           }
           
           return Promise.reject(refreshError);
+        } finally {
+          isRefreshing = false;
         }
       }
     }
@@ -204,7 +276,7 @@ const handleAxiosError = (error: AxiosError): ApiError => {
 // Utility function to build query string
 export const buildQueryString = (params: ApiQueryParams): string => {
   const filteredParams = Object.fromEntries(
-    Object.entries(params).filter(([_, value]) => value !== undefined && value !== null && value !== '')
+    Object.entries(params).filter(([, value]) => value !== undefined && value !== null && value !== '')
   );
   
   return qs.stringify(filteredParams, QS_CONFIG);
@@ -382,12 +454,12 @@ export const isTokenExpired = (token: string): boolean => {
     const payload = JSON.parse(atob(token.split('.')[1]));
     const currentTime = Date.now() / 1000;
     return payload.exp < currentTime;
-  } catch (error) {
+  } catch {
     return true; // Treat invalid tokens as expired
   }
 };
 
-// Refresh token if needed
+// Refresh token if needed (used internally by interceptors)
 export const refreshAuthToken = async (): Promise<string | null> => {
   const refreshToken = localStorage.getItem('refreshToken');
   if (!refreshToken) {
@@ -395,7 +467,8 @@ export const refreshAuthToken = async (): Promise<string | null> => {
   }
 
   try {
-    const response = await axios.post(`${API_CONFIG.BASE_URL}/token/refresh/`, {
+    // Use a fresh axios instance to avoid interceptor loops
+    const response = await axios.create().post(`${API_CONFIG.BASE_URL}/token/refresh/`, {
       refresh: refreshToken
     });
     
