@@ -1,17 +1,23 @@
-// export interface User {
-//   id: string;
-//   email: string;
-//   firstName: string;
-//   lastName: string;
-//   role: 'owner' | 'employee' | 'customer';
-//   avatar?: string;
-//   phone?: string;
-//   address?: string;
-//   isActive: boolean;
-//   createdAt: string;
-//   lastLogin?: string;
-// }
+import type { User } from "./userManagement";
 
+export interface PasswordPolicyResponse{
+  min_length: number;
+  require_uppercase: boolean;
+  require_lowercase: boolean;
+  require_numbers: boolean;
+  require_special_chars: boolean;
+  password_expiry: number; // days
+  prevent_reuse: number; // number of previous passwords to check
+}
+export interface PasswordPolicy {
+  minLength: number;
+  requireUppercase: boolean;
+  requireLowercase: boolean;
+  requireNumbers: boolean;
+  requireSpecialChars: boolean;
+  passwordExpiry: number; // days
+  preventReuse: number; // number of previous passwords to check
+}
 export interface LoginCredentials {
   email: string;
   password: string;

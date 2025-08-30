@@ -27,7 +27,7 @@ export const RBACDashboard: React.FC = () => {
           <div className="d-flex justify-content-between align-items-center">
             <div>
               <h1 className="mb-1">
-                Welcome back, {user.first_name || user.email}! 👋
+                Welcome back, {user.firstName || user.email}! 👋
               </h1>
               <p className="text-muted mb-0">
                 Role:{" "}

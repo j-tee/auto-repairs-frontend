@@ -24,6 +24,7 @@ import { initializeAuth } from "./store/slices/autoRepairsSlice";
 import { displayEnvironmentStatus } from "./utils/environmentConfig";
 import "./App.scss";
 import "./styles/watermark.scss";
+import { ToastContainer } from "react-toastify";
 
 // App Content Component (needs to be inside Router)
 const AppContent: React.FC = () => {
@@ -246,12 +247,14 @@ const AppContent: React.FC = () => {
 function App() {
   return (
     <>
+    <ToastContainer position="top-right" autoClose={5000} />
       {/* Automotive Watermark Background */}
       <div className="app-background">
         <div className="watermark-pattern"></div>
       </div>
 
       <Router>
+    
         <AppContent />
       </Router>
     </>

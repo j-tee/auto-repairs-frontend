@@ -109,7 +109,7 @@ export interface RepairOrderQuery {
   customerId?: string;
   vehicleId?: string;
   technicianId?: string;
-  // Note: This might filter by related appointment status, not repair order status
+  // Filters repair orders by their own status (e.g., 'draft', 'approved', etc.)
   status?: string; 
   priority?: RepairOrder['priority'];
   dateFrom?: string;

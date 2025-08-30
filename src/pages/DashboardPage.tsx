@@ -113,7 +113,7 @@ export const DashboardPage: React.FC = () => {
         <Col>
           <div className="dashboard-header">
             <h1 className="mb-2">
-              🔧 Welcome back, {user?.first_name || user?.email}!
+              🔧 Welcome back, {user?.firstName || user?.email}!
             </h1>
             <p className="text-muted">
               Role: <span className="badge bg-primary">{user?.role}</span>

@@ -85,7 +85,7 @@ export const AuthStatusDebug: React.FC = () => {
           <div className="col-md-6">
             <h6>Redux Auth State:</h6>
             <p><strong>Authenticated:</strong> {isAuthenticated ? '✅ Yes' : '❌ No'}</p>
-            <p><strong>User:</strong> {user ? `${user.first_name} ${user.last_name} (${user.role})` : 'None'}</p>
+            <p><strong>User:</strong> {user ? `${user.firstName} ${user.lastName} (${user.role})` : 'None'}</p>
             <p><strong>Email:</strong> {user?.email || 'None'}</p>
           </div>
           <div className="col-md-6">

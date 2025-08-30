@@ -1,16 +1,16 @@
 export interface User {
-   id: string;
+  id: string;
   email: string;
-  first_name: string;
-  last_name: string;
+  firstName: string;
+  lastName: string;
   role: 'owner' | 'employee' | 'customer';
   avatar?: string;
   phone?: string;
   address?: string;
-  is_active: boolean;
+  isActive: boolean;
   createdAt: string;
-  last_login?: string;
-  date_joined?: string;
+  lastLogin?: string;
+  dateJoined?: string;
   permissions?: Permissions;
 }
 // Extended user interface for admin management
@@ -36,10 +36,25 @@ export interface AdminUser extends User {
   twoFactorEnabled?: boolean;
   shopId?: string; // For employees - which shop they work at
   shopName?: string; // For display purposes
-  ///
  
 }
 
+export interface UserResponse {
+  updated_users?: User[];
+  id?: string | number;
+  email?: string;
+  first_name?: string;
+  last_name?: string;
+  role?: 'owner' | 'employee' | 'customer';
+  avatar?: string;
+  phone?: string;
+  address?: string;
+  is_active?: boolean;
+  createdAt?: string;
+  last_login?: string;
+  date_joined?: string;
+  permissions?: Permissions;
+}
 // User creation form data for admins
 export interface CreateUserData {
   email: string;
@@ -70,7 +85,7 @@ export interface CreateUserData {
 
 // User update data
 export interface UpdateUserData {
-  id: string;
+  id?: string;
   email?: string;
   firstName?: string;
   lastName?: string;
@@ -121,6 +136,34 @@ export interface UserStatistics {
   usersLoggedInToday: number;
   passwordExpiringSoon: number;
 }
+
+export interface UserStatsResponse {
+  recent_users: AdminUser[];
+  total_users: number;
+  active_users: number;
+  user_status: {
+    active_users: number;
+    inactive_users: number;
+  };
+  role_distribution: {
+    counts: {
+      owners: number;
+      employees: number;
+      customers: number;
+    }
+  }
+  activity:{
+    active_users_30_days: number;
+  }
+  users_by_role: {
+    owner: number;
+    employee: number;
+    customer: number;
+  };
+  recent_registrations: number;
+  users_logged_in_today: number;
+  password_expiring_soon: number;
+  }
 
 export interface UserStats {
   totalUsers: number;

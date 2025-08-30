@@ -208,7 +208,8 @@ export const UserManagement: React.FC = () => {
           }
           successCount++;
         } catch (err) {
-         console.log((err instanceof Error ? err.message : String(err)) + failedCount++);
+         console.log(err instanceof Error ? err.message : String(err));
+         failedCount++;
         }
       }
 

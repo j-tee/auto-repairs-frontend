@@ -1,16 +1,21 @@
+import { toast } from "react-toastify";
 import type {
   AdminUser,
   CreateUserData,
+  PasswordPolicy,
   UpdateUserData,
-  User,
   UserExportFileData,
   UserExportMetadata,
   UserExportResponse,
   UserListResponse,
   UserQuery,
+  UserResponse,
   UserStats,
+  UserStatsResponse,
 } from "../types/userManagement";
 import { apiGet, apiPost, apiPut, apiDelete } from "../utils/api";
+import type { PasswordPolicyResponse } from "../types/auth";
+import type { BackupSettings, ManualBackUpTrigger, SystemNotification } from "../types/autoRepairs";
 // import type { User } from "./authService";
 
 // User types
@@ -116,7 +121,7 @@ export const userMngtService = {
         {
           method: "GET",
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
             "Content-Type": "application/json",
           },
         }
@@ -188,11 +193,16 @@ export const userMngtService = {
         } as UserExportMetadata;
       }
     } catch (error) {
-      throw new Error(
-        `Export failed: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
-      );
+      toast('Error exporting users: ' + (error instanceof Error ? error.message : 'Unknown error'), { type: 'error' });
+      // Always return a fallback UserExportMetadata object on error
+      return {
+        success: false,
+        filename: "users_export.csv",
+        format: "csv",
+        recordCount: 0,
+        createdAt: new Date().toISOString(),
+        message: error instanceof Error ? error.message : "Unknown error"
+      } as UserExportMetadata;
     }
   },
   getUsers: async (query: UserQuery = {}): Promise<UserListResponse> => {
@@ -242,7 +252,7 @@ export const userMngtService = {
     }
 
     return {
-      users: users.map((user: User) => ({
+      users: users.map((user: UserResponse) => ({
         id: user.id?.toString() || "",
         email: user.email || "",
         firstName: user.first_name || "",
@@ -254,7 +264,7 @@ export const userMngtService = {
         isActive: user.is_active ?? true,
         createdAt: user.date_joined || new Date().toISOString(),
         lastLogin: user.last_login,
-        permissions: user.permissions || [],
+        permissions: user.permissions,
       })),
       total: total,
       page: actualPage,
@@ -265,20 +275,20 @@ export const userMngtService = {
 
   // Get user by ID
   getUserById: async (userId: string): Promise<AdminUser> => {
-    const response = await apiGet<AdminUser>(`/admin/users/${userId}/`);
+    const response = await apiGet<UserResponse>(`/admin/users/${userId}/`);
 
     return {
       id: response.id?.toString() || "",
       email: response.email || "",
-      first_name: response.first_name || "",
-      last_name: response.last_name || "",
+      firstName: response.first_name || "",
+      lastName: response.last_name || "",
       role: response.role || "customer",
       avatar: response.avatar,
       phone: response.phone,
       address: response.address,
-      is_active: response.is_active ?? true,
+      isActive: response.is_active ?? true,
       createdAt: response.date_joined || new Date().toISOString(),
-      last_login: response.last_login,
+      lastLogin: response.last_login,
       permissions: response.permissions,
     };
   },
@@ -296,21 +306,21 @@ export const userMngtService = {
       permissions: userData.permissions || [],
     };
 
-    const response = await apiPost<any>("/admin/users/", createData);
+    const response = await apiPost<UserResponse>("/admin/users/", createData);
 
     return {
       id: response.id?.toString() || "",
       email: response.email || "",
-      first_name: response.first_name || "",
-      last_name: response.last_name || "",
+      firstName: response.first_name || "",
+      lastName: response.last_name || "",
       role: response.role || "customer",
       avatar: response.avatar,
       phone: response.phone,
       address: response.address,
-      is_active: response.is_active ?? true,
+      isActive: response.is_active ?? true,
       createdAt: response.date_joined || new Date().toISOString(),
-      last_login: response.last_login,
-      permissions: response.permissions || [],
+      lastLogin: response.last_login,
+      permissions: response.permissions ,
     };
   },
 
@@ -337,21 +347,21 @@ export const userMngtService = {
       }
     });
 
-    const response = await apiPut<any>(`/admin/users/${userId}/`, updateData);
+    const response = await apiPut<UserResponse>(`/admin/users/${userId}/`, updateData);
 
     return {
       id: response.id?.toString() || "",
       email: response.email || "",
-      first_name: response.first_name || "",
-      last_name: response.last_name || "",
+      firstName: response.first_name || "",
+      lastName: response.last_name || "",
       role: response.role || "customer",
       avatar: response.avatar,
       phone: response.phone,
       address: response.address,
-      is_active: response.is_active ?? true,
+      isActive: response.is_active ?? true,
       createdAt: response.date_joined || new Date().toISOString(),
-      last_login: response.last_login,
-      permissions: response.permissions || [],
+      lastLogin: response.last_login,
+      permissions: response.permissions,
     };
   },
 
@@ -382,7 +392,7 @@ export const userMngtService = {
 
   // Get user statistics
   getUserStats: async (): Promise<UserStats> => {
-    const response = await apiGet<any>("/admin/users/stats/");
+    const response = await apiGet<UserStatsResponse>("/admin/users/stats/");
 
     // Calculate active/inactive based on account status, not recent activity
     const totalUsers = response.total_users || 0;
@@ -403,7 +413,7 @@ export const userMngtService = {
         customer: response.role_distribution?.counts?.customers || 0,
       },
       recentUsers:
-        response.recent_users?.map((user: any) => ({
+        response.recent_users?.map((user: UserResponse) => ({
           id: user.id?.toString() || "",
           email: user.email || "",
           firstName: user.first_name || "",
@@ -415,7 +425,7 @@ export const userMngtService = {
           isActive: user.is_active ?? true,
           createdAt: user.date_joined || new Date().toISOString(),
           lastLogin: user.last_login,
-          permissions: user.permissions || [],
+          permissions: user.permissions,
         })) || [],
     };
   },
@@ -443,7 +453,7 @@ export const userMngtService = {
     userIds: string[],
     updateData: UpdateUserData
   ): Promise<AdminUser[]> => {
-    const response = await apiPost<any>("/admin/users/bulk-update/", {
+    const response = await apiPost<UserResponse>("/admin/users/bulk-update/", {
       user_ids: userIds,
       update_data: {
         first_name: updateData.firstName,
@@ -457,7 +467,7 @@ export const userMngtService = {
     });
 
     return (
-      response.updated_users?.map((user: any) => ({
+      response.updated_users?.map((user: UserResponse) => ({
         id: user.id?.toString() || "",
         email: user.email || "",
         firstName: user.first_name || "",
@@ -469,7 +479,7 @@ export const userMngtService = {
         isActive: user.is_active ?? true,
         createdAt: user.date_joined || new Date().toISOString(),
         lastLogin: user.last_login,
-        permissions: user.permissions || [],
+        permissions: user.permissions,
       })) || []
     );
   },
@@ -478,7 +488,7 @@ export const userMngtService = {
   getUserActivityLog: async (
     userId: string,
     options: { page?: number; limit?: number } = {}
-  ): Promise<any[]> => {
+  ): Promise<unknown[]> => {
     const params = new URLSearchParams();
     if (options.page) params.append("page", options.page.toString());
     if (options.limit) params.append("limit", options.limit.toString());
@@ -488,15 +498,18 @@ export const userMngtService = {
       queryString ? `?${queryString}` : ""
     }`;
 
-    const response = await apiGet<any>(endpoint);
-    return response.results || [];
+    const response = await apiGet<unknown>(endpoint);
+    if (response && typeof response === "object" && "results" in response) {
+      return (response as { results: unknown[] }).results || [];
+    }
+    return [];
   },
 
   // Password Policy and System Settings Functions
   // Get password policy settings
-  getPasswordPolicy: async (): Promise<any> => {
+  getPasswordPolicy: async (): Promise<PasswordPolicy> => {
     try {
-      const response = await apiGet<any>("/admin/settings/password-policy/");
+      const response = await apiGet<PasswordPolicyResponse>("/admin/settings/password-policy/");
       return {
         minLength: response.min_length || 8,
         requireUppercase: response.require_uppercase ?? true,
@@ -507,6 +520,7 @@ export const userMngtService = {
         preventReuse: response.prevent_reuse || 5,
       };
     } catch (error) {
+      toast('Error fetching password policy: ' + (error instanceof Error ? error.message : 'Unknown error'), { type: 'error' });
       // Return default policy if API call fails
       return {
         minLength: 8,
@@ -521,7 +535,7 @@ export const userMngtService = {
   },
 
   // Update password policy settings
-  updatePasswordPolicy: async (policy: any): Promise<void> => {
+  updatePasswordPolicy: async (policy: PasswordPolicy): Promise<void> => {
     const updateData = {
       min_length: policy.minLength,
       require_uppercase: policy.requireUppercase,
@@ -536,26 +550,28 @@ export const userMngtService = {
   },
 
   // Get system settings
-  getSystemSettings: async (): Promise<any> => {
+  getSystemSettings: async (): Promise<unknown> => {
     try {
-      const response = await apiGet<any>("/admin/settings/system/");
+      const response = await apiGet<unknown>("/admin/settings/system/");
       return response;
     } catch (error) {
+      toast('Error fetching system settings: ' + (error instanceof Error ? error.message : 'Unknown error'), { type: 'error' });
       return {};
     }
   },
 
   // Update system settings
-  updateSystemSettings: async (settings: any): Promise<void> => {
+  updateSystemSettings: async (settings: unknown): Promise<void> => {
     await apiPut("/admin/settings/system/", settings);
   },
 
   // Get notification settings
-  getNotificationSettings: async (): Promise<any> => {
+  getNotificationSettings: async (): Promise<SystemNotification> => {
     try {
-      const response = await apiGet<any>("/admin/settings/notifications/");
+      const response = await apiGet<SystemNotification>("/admin/settings/notifications/");
       return response;
     } catch (error) {
+      toast('Error fetching notification settings: ' + (error instanceof Error ? error.message : 'Unknown error'), { type: 'error' });
       return {
         emailNotifications: true,
         smsNotifications: false,
@@ -567,16 +583,17 @@ export const userMngtService = {
   },
 
   // Update notification settings
-  updateNotificationSettings: async (settings: any): Promise<void> => {
+  updateNotificationSettings: async (settings: SystemNotification): Promise<void> => {
     await apiPut("/admin/settings/notifications/", settings);
   },
 
   // Get backup settings
-  getBackupSettings: async (): Promise<any> => {
+  getBackupSettings: async (): Promise<BackupSettings> => {
     try {
-      const response = await apiGet<any>("/admin/settings/backup/");
+      const response = await apiGet<BackupSettings>("/admin/settings/backup/");
       return response;
     } catch (error) {
+      toast('Error fetching backup settings: ' + (error instanceof Error ? error.message : 'Unknown error'), { type: 'error' });
       return {
         autoBackup: true,
         backupFrequency: "daily",
@@ -587,14 +604,14 @@ export const userMngtService = {
   },
 
   // Update backup settings
-  updateBackupSettings: async (settings: any): Promise<void> => {
+  updateBackupSettings: async (settings: BackupSettings): Promise<void> => {
     await apiPut("/admin/settings/backup/", settings);
   },
 
   // Trigger manual backup
-  triggerBackup: async (): Promise<{ success: boolean; message: string }> => {
+  triggerBackup: async (): Promise<ManualBackUpTrigger> => {
     try {
-      const response = await apiPost<any>("/admin/backup/trigger/", {});
+      const response = await apiPost<ManualBackUpTrigger>("/admin/backup/trigger/", {});
       return {
         success: true,
         message: response.message || "Backup initiated successfully",
