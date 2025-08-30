@@ -32,21 +32,21 @@ export interface Customer {
   updatedAt: string;
 }
 
-export interface Employee {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  role: 'manager' | 'technician' | 'service_advisor' | 'admin';
-  employeeId: string;
-  department?: string;
-  hourlyRate?: number;
-  hireDate: string;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
+// export interface Employee {
+//   id: string;
+//   firstName: string;
+//   lastName: string;
+//   email: string;
+//   phone: string;
+//   role: 'manager' | 'technician' | 'service_advisor' | 'admin';
+//   employeeId: string;
+//   department?: string;
+//   hourlyRate?: number;
+//   hireDate: string;
+//   isActive: boolean;
+//   createdAt: string;
+//   updatedAt: string;
+// }
 
 export interface Shop {
   id: string;

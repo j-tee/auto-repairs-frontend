@@ -6,7 +6,7 @@ import {
   logoutUser,
   refreshToken,
   getCurrentUser,
-  initializeAuth,
+  // initializeAuth,
   requestPasswordReset,
   resetPassword,
   updateProfile,
@@ -87,7 +87,8 @@ export const useAuth = () => {
     const roleHierarchy = {
       'customer': 0,
       'employee': 1,
-      'owner': 2
+      'manager': 2,
+      'owner': 3
     };
     
     return roleHierarchy[auth.user.role] >= roleHierarchy[requiredRole];

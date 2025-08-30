@@ -27,7 +27,7 @@ export const RBACDashboard: React.FC = () => {
           <div className="d-flex justify-content-between align-items-center">
             <div>
               <h1 className="mb-1">
-                Welcome back, {user.firstName || user.email}! 👋
+                Welcome back, {user.first_name || user.email}! 👋
               </h1>
               <p className="text-muted mb-0">
                 Role:{" "}
@@ -39,8 +39,8 @@ export const RBACDashboard: React.FC = () => {
             <div className="text-end">
               <small className="text-muted">
                 Last login:{" "}
-                {user.lastLogin
-                  ? new Date(user.lastLogin).toLocaleString()
+                {user.last_login
+                  ? new Date(user.last_login).toLocaleString()
                   : "First time"}
               </small>
             </div>

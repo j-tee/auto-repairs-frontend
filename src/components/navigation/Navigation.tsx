@@ -459,24 +459,24 @@ export const Navigation: React.FC = () => {
                   <img
                     src={user.avatar}
                     alt={
-                      user.firstName || user.lastName
-                        ? `${user.firstName || ""} ${
-                            user.lastName || ""
+                      user.first_name || user.last_name
+                        ? `${user.first_name || ""} ${
+                            user.last_name || ""
                           }`.trim()
                         : user.email
                     }
                   />
                 ) : (
                   <span>
-                    {user.firstName?.charAt(0) || user.email?.charAt(0) || "?"}
-                    {user.lastName?.charAt(0) || ""}
+                    {user.first_name?.charAt(0) || user.email?.charAt(0) || "?"}
+                    {user.last_name?.charAt(0) || ""}
                   </span>
                 )}
               </div>
               <div className="user-details">
                 <span className="user-name">
-                  {user.firstName || user.lastName
-                    ? `${user.firstName || ""} ${user.lastName || ""}`.trim()
+                  {user.first_name || user.last_name
+                    ? `${user.first_name || ""} ${user.last_name || ""}`.trim()
                     : user.email}
                 </span>
                 <span className="user-role">{user.role}</span>
@@ -488,8 +488,8 @@ export const Navigation: React.FC = () => {
               <div className="user-menu-header">
                 <div className="user-menu-info">
                   <strong>
-                    {user.firstName || user.lastName
-                      ? `${user.firstName || ""} ${user.lastName || ""}`.trim()
+                    {user.first_name || user.last_name
+                      ? `${user.first_name || ""} ${user.last_name || ""}`.trim()
                       : user.email}
                   </strong>
                   <small>{user.email}</small>

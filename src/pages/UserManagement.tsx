@@ -635,9 +635,9 @@ export const UserManagement: React.FC = () => {
                       )}
                     </td>
                     <td>
-                      {user.lastLogin ? (
+                      {user.last_login ? (
                         <small>
-                          {new Date(user.lastLogin).toLocaleDateString()}
+                          {new Date(user.last_login).toLocaleDateString()}
                         </small>
                       ) : (
                         <span className="text-muted">Never</span>

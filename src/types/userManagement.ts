@@ -1,16 +1,29 @@
-import type { User } from '../store/slices/autoRepairsSlice';
-
+export interface User {
+   id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role: 'owner' | 'employee' | 'customer';
+  avatar?: string;
+  phone?: string;
+  address?: string;
+  is_active: boolean;
+  createdAt: string;
+  last_login?: string;
+  date_joined?: string;
+  permissions?: Permissions;
+}
 // Extended user interface for admin management
-export interface AdminUser extends User {
-  permissions?: {
-    can_manage_shops: boolean;
+export interface Permissions{
+ can_manage_shops: boolean;
     can_view_financial_data: boolean;
     can_manage_inventory: boolean;
     can_manage_employees: boolean;
     is_owner: boolean;
     is_employee: boolean;
     is_customer: boolean;
-  };
+}
+export interface AdminUser extends User {
   department?: string;
   employeeId?: string;
   hireDate?: string;
@@ -23,6 +36,8 @@ export interface AdminUser extends User {
   twoFactorEnabled?: boolean;
   shopId?: string; // For employees - which shop they work at
   shopName?: string; // For display purposes
+  ///
+ 
 }
 
 // User creation form data for admins
@@ -41,6 +56,16 @@ export interface CreateUserData {
   isActive: boolean;
   sendWelcomeEmail: boolean;
   temporaryPassword?: string;
+    password: string;
+    permissions?: {
+    can_manage_shops: boolean;
+    can_view_financial_data: boolean;
+    can_manage_inventory: boolean;
+    can_manage_employees: boolean;
+    is_owner: boolean;
+    is_employee: boolean;
+    is_customer: boolean;
+  };
 }
 
 // User update data
@@ -58,6 +83,7 @@ export interface UpdateUserData {
   manager?: string;
   notes?: string;
   isActive?: boolean;
+  permissions?: string[];
 }
 
 // User search and filter criteria
@@ -74,6 +100,15 @@ export interface UserSearchCriteria {
   limit?: number;
 }
 
+export interface UserQuery {
+  page?: number;
+  limit?: number;
+  search?: string;
+  role?: AdminUser['role'];
+  isActive?: boolean;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
 // User statistics for dashboard
 export interface UserStatistics {
   totalUsers: number;
@@ -87,6 +122,28 @@ export interface UserStatistics {
   passwordExpiringSoon: number;
 }
 
+export interface UserStats {
+  totalUsers: number;
+  activeUsers: number;
+  inactiveUsers: number;
+  usersByRole: {
+    owner: number;
+    employee: number;
+    customer: number;
+  };
+  recentUsers: AdminUser[];
+}
+export interface UserListResponse {
+  results?: AdminUser[];
+  count?: number;
+  data?: AdminUser[];
+  users: AdminUser[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  total_pages?: number;
+}
 // User activity log
 export interface UserActivityLog {
   id: string;
@@ -130,3 +187,37 @@ export interface UserSession {
   device?: string;
   isActive: boolean;
 }
+// Add these interfaces at the top of your userMngtService.ts file
+
+export interface UserExportMetadata {
+  success: boolean;
+  filename: string;
+  format: 'csv' | 'excel' | 'pdf';
+  downloadUrl?: string;
+  recordCount: number;
+  exportId?: string;
+  createdAt: string;
+  expiresAt?: string;
+  fileSize?: number;
+  message?: string;
+}
+
+export interface UserExportFileData {
+  data: Blob;
+  filename: string;
+  contentType: string;
+  size: number;
+  recordCount: number;
+}
+
+// Union type for the service method
+export type UserExportResponse = UserExportMetadata | UserExportFileData;
+
+// Type guard functions
+export const isExportMetadata = (response: UserExportResponse): response is UserExportMetadata => {
+  return 'success' in response && 'downloadUrl' in response;
+};
+
+export const isExportFileData = (response: UserExportResponse): response is UserExportFileData => {
+  return 'data' in response && response.data instanceof Blob;
+};

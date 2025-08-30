@@ -434,7 +434,7 @@ export const AutoRepairDashboard: React.FC = () => {
                   : "Auto Repair Shop Management"}
               </h1>
               <p className="text-muted">
-                Welcome back, <strong>{user?.firstName || user?.email}</strong>{" "}
+                Welcome back, <strong>{user?.first_name || user?.email}</strong>{" "}
                 | Role:{" "}
                 <span className="badge bg-primary ms-1">{user?.role}</span>
                 {dashboardData && (

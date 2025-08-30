@@ -23,55 +23,43 @@ import type {
   AdminUser,
   UserStats,
   UserQuery,
-  UserListResponse
-} from '../../services/userMngtService';
+  User,
+} from '../../types/userManagement';
 
 // Import backend-aligned types
 import type {
   Customer
 } from '../../types/autoRepairs';
+import type { LoginCredentials, PasswordReset, PasswordResetRequest, RegisterData } from '../../types/auth';
+import type { Employee } from '../../types/employees';
 
 // ============================================================================
 // AUTH TYPES (merged from authSlice)
 // ============================================================================
 
-export interface User {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  role: 'owner' | 'employee' | 'customer';
-  avatar?: string;
-  phone?: string;
-  address?: string;
-  isActive: boolean;
-  createdAt: string;
-  lastLogin?: string;
-}
+// export interface LoginCredentials {
+//   email: string;
+//   password: string;
+//   rememberMe?: boolean;
+// }
 
-export interface LoginCredentials {
-  email: string;
-  password: string;
-  rememberMe?: boolean;
-}
+// export interface RegisterData {
+//   email: string;
+//   password: string;
+//   firstName: string;
+//   lastName: string;
+//   phone?: string;
+//   address?: string;
+// }
 
-export interface RegisterData {
-  email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
-  phone?: string;
-  address?: string;
-}
+// export interface PasswordResetRequest {
+//   email: string;
+// }
 
-export interface PasswordResetRequest {
-  email: string;
-}
-
-export interface PasswordReset {
-  token: string;
-  newPassword: string;
-}
+// export interface PasswordReset {
+//   token: string;
+//   newPassword: string;
+// }
 
 // ============================================================================
 // ENHANCED STATE INTERFACE
@@ -89,7 +77,7 @@ export interface EnhancedAutoRepairsState {
   customers: Customer[];
   appointments: Appointment[];
   repairOrders: RepairOrder[];
-  employees: any[]; // TODO: Define proper Employee type
+  employees: Employee[]; // TODO: Define proper Employee type
   shops: any[]; // TODO: Define proper Shop type
   
   // User management
@@ -595,15 +583,6 @@ export const fetchShops = createAsyncThunk(
     }
   }
 );
-
-// ============================================================================
-// INITIAL STATE
-// ============================================================================
-
-// Function to get initial auth state from localStorage
-// ============================================================================
-// USER MANAGEMENT ASYNC THUNKS
-// ============================================================================
 
 // Get users list with filtering and pagination
 export const fetchAdminUsers = createAsyncThunk(
