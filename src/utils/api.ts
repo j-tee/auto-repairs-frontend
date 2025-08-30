@@ -139,9 +139,10 @@ apiClient.interceptors.request.use(
             return Promise.reject(error);
           }
         } catch (error) {
-          processQueue(error);
+          const errorObj = error instanceof Error ? error : new Error('Token refresh failed');
+          processQueue(errorObj);
           console.error('Token refresh failed, clearing auth data');
-          return Promise.reject(error);
+          return Promise.reject(errorObj);
         } finally {
           isRefreshing = false;
         }
@@ -214,7 +215,8 @@ apiClient.interceptors.response.use(
           console.error('Token refresh failed, redirecting to login');
           
           // Process failed queue
-          processQueue(refreshError);
+          const errorObj = refreshError instanceof Error ? refreshError : new Error('Token refresh failed');
+          processQueue(errorObj);
           
           // Clear invalid tokens
           removeAuthToken();
