@@ -1,82 +1,10 @@
+import type { CreateCustomerData, Customer, CustomerHistory, CustomerHistoryResponse, CustomerListResponse, CustomerListView, CustomerQuery, CustomerResponse, CustomerStats, CustomerStatsResponse, UpdateCustomerData } from '../types/customers';
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api';
-
-// Import backend-aligned Customer type
-import type { Customer } from '../types/autoRepairs';
-
-// Export Customer type for external use
-export type { Customer } from '../types/autoRepairs';
-
-export interface CreateCustomerData {
-  name: string;
-  email: string;
-  phone: string;
-  address: string;
-  city?: string;
-  state?: string;
-  zipCode?: string;
-  emergencyContact?: string;
-  emergencyPhone?: string;
-  preferredContact?: 'email' | 'phone' | 'text';
-}
-
-export interface UpdateCustomerData {
-  name?: string;
-  email?: string;
-  phone?: string;
-  address?: string;
-  city?: string;
-  state?: string;
-  zipCode?: string;
-  emergencyContact?: string;
-  emergencyPhone?: string;
-  preferredContact?: 'email' | 'phone' | 'text';
-  isActive?: boolean; // Can be updated through User relationship
-}
-
-export interface CustomerQuery {
-  page?: number;
-  limit?: number;
-  search?: string;
-  email?: string;
-  phone?: string;
-  city?: string;
-  state?: string;
-  isActive?: boolean;
-  sortBy?: 'name' | 'email' | 'createdAt' | 'updatedAt';
-  sortOrder?: 'asc' | 'desc';
-}
-
-export interface CustomerListResponse {
-  customers: Customer[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
-export interface CustomerStats {
-  totalCustomers: number;
-  activeCustomers: number;
-  inactiveCustomers: number;
-  newCustomersThisMonth: number;
-  averageVisitsPerCustomer: number;
-  totalRevenue: number;
-}
-
-export interface CustomerHistory {
-  customerId: string;
-  appointments: any[];
-  repairOrders: any[];
-  vehicles: any[];
-  totalSpent: number;
-  lastVisit: string | null;
-  visitCount: number;
-}
 
 // Service implementation
 export const customerMngtService = {
   // Get all customers with pagination and filtering
-  getCustomers: async (query: CustomerQuery = {}): Promise<CustomerListResponse> => {
+  getCustomers: async (query: CustomerQuery = {}): Promise<CustomerListView> => {
     const params = new URLSearchParams();
     
     if (query.page) params.append('page', query.page.toString());
@@ -90,17 +18,24 @@ export const customerMngtService = {
     if (query.sortBy) params.append('sort_by', query.sortBy);
     if (query.sortOrder) params.append('sort_order', query.sortOrder);
 
-    const response = await apiGet<any>(`/shop/customers/?${params.toString()}`);
+    const response = await apiGet<CustomerListResponse>(`/shop/customers/?${params.toString()}`);
     
     // Handle different response structures - API might return array directly or wrapped
-    const customerArray = Array.isArray(response) ? response : (response.results || response.customers || response || []);
-    
+    let customerArray: CustomerResponse[] = [];
+    if (Array.isArray(response)) {
+      customerArray = response;
+    } else if (Array.isArray(response.results)) {
+      customerArray = response.results;
+    } else if (Array.isArray(response.customers)) {
+      customerArray = response.customers;
+    }
+
     return {
-      customers: customerArray.map((customer: any) => ({
+      customers: customerArray.map((customer: CustomerResponse) => ({
         id: customer.id?.toString() || '',
-        name: customer.name || `${customer.first_name || ''} ${customer.last_name || ''}`.trim() || '',
+        name: customer.name ,
         email: customer.email || '',
-        phone: customer.phone_number || customer.phone || '', // Handle both field names
+        phone: customer.phone_number || '', // Handle both field names
         address: customer.address || '',
         city: customer.city,
         state: customer.state,
@@ -111,7 +46,7 @@ export const customerMngtService = {
         isActive: customer.user?.is_active ?? true, // Get from User relationship
         createdAt: customer.created_at || new Date().toISOString(),
         updatedAt: customer.updated_at || new Date().toISOString()
-      })) || [],
+      })),
       total: response.count || 0,
       page: query.page || 1,
       limit: query.limit || 10,
@@ -121,13 +56,13 @@ export const customerMngtService = {
 
   // Get customer by ID
   getCustomerById: async (customerId: string): Promise<Customer> => {
-    const response = await apiGet<any>(`/shop/customers/${customerId}/`);
+    const response = await apiGet<CustomerResponse>(`/shop/customers/${customerId}/`);
     
     return {
       id: response.id?.toString() || '',
-      name: response.name || `${response.first_name || ''} ${response.last_name || ''}`.trim() || '',
+      name: response.name || '',
       email: response.email || '',
-      phone: response.phone_number || response.phone || '', // Handle both field names
+      phone: response.phone_number || '', // Handle both field names
       address: response.address || '',
       city: response.city,
       state: response.state,
@@ -144,16 +79,16 @@ export const customerMngtService = {
   // Create new customer
   createCustomer: async (customerData: CreateCustomerData): Promise<Customer> => {
     // Only send fields that exist in the database
-    const createData: any = {
+    const createData: Partial<CreateCustomerData> = {
       name: customerData.name,
-      phone_number: customerData.phone, // Map to phone_number field
+      phone_number: customerData.phone_number, // Map to phone_number field
     };
     
     // Add optional fields if they have values
     if (customerData.email) createData.email = customerData.email;
     if (customerData.address) createData.address = customerData.address;
     
-    const response = await apiPost<any>('/shop/customers/', createData);
+    const response = await apiPost<CustomerResponse>('/shop/customers/', createData);
     
     return {
       id: response.id?.toString() || '',
@@ -176,14 +111,14 @@ export const customerMngtService = {
   // Update customer
   updateCustomer: async (customerId: string, customerData: UpdateCustomerData): Promise<Customer> => {
     // Only send fields that exist in the database
-    const updateData: any = {};
+    const updateData: Partial<UpdateCustomerData> = {};
     
     if (customerData.name !== undefined) updateData.name = customerData.name;
     if (customerData.phone !== undefined) updateData.phone_number = customerData.phone; // Map to phone_number
     if (customerData.email !== undefined) updateData.email = customerData.email;
     if (customerData.address !== undefined) updateData.address = customerData.address;
     
-    const response = await apiPut<any>(`/shop/customers/${customerId}/`, updateData);
+    const response = await apiPut<CustomerResponse>(`/shop/customers/${customerId}/`, updateData);
     
     return {
       id: response.id?.toString() || '',
@@ -210,13 +145,13 @@ export const customerMngtService = {
 
   // Deactivate customer (set User.is_active = false)
   deactivateCustomer: async (customerId: string): Promise<Customer> => {
-    const response = await apiPut<any>(`/shop/customers/${customerId}/deactivate/`, {});
+    const response = await apiPut<CustomerResponse>(`/shop/customers/${customerId}/deactivate/`, {});
     
     return {
       id: response.id?.toString() || '',
       name: response.name || '',
       email: response.email || '',
-      phone: response.phone_number || response.phone || '', // Handle both field names
+      phone: response.phone_number || '', // Handle both field names
       address: response.address || '',
       city: response.city,
       state: response.state,
@@ -232,13 +167,13 @@ export const customerMngtService = {
 
   // Activate customer (set User.is_active = true)
   activateCustomer: async (customerId: string): Promise<Customer> => {
-    const response = await apiPut<any>(`/shop/customers/${customerId}/activate/`, {});
+    const response = await apiPut<CustomerResponse>(`/shop/customers/${customerId}/activate/`, {});
     
     return {
       id: response.id?.toString() || '',
       name: response.name || '',
       email: response.email || '',
-      phone: response.phone_number || response.phone || '', // Handle both field names
+      phone: response.phone_number || '', // Handle both field names
       address: response.address || '',
       city: response.city,
       state: response.state,
@@ -269,7 +204,7 @@ export const customerMngtService = {
 
   // Get customer statistics
   getCustomerStats: async (): Promise<CustomerStats> => {
-    const response = await apiGet<any>('/shop/customers/stats/');
+    const response = await apiGet<CustomerStatsResponse>('/shop/customers/stats/');
     
     return {
       totalCustomers: response.total_customers || 0,
@@ -283,7 +218,7 @@ export const customerMngtService = {
 
   // Get customer history (appointments, repairs, etc.)
   getCustomerHistory: async (customerId: string): Promise<CustomerHistory> => {
-    const response = await apiGet<any>(`/shop/customers/${customerId}/history/`);
+    const response = await apiGet<CustomerHistoryResponse>(`/shop/customers/${customerId}/history/`);
     
     return {
       customerId,
@@ -320,7 +255,7 @@ export const customerMngtService = {
   },
 
   // Import customers data
-  importCustomers: async (file: File): Promise<{ success: number; errors: any[] }> => {
+  importCustomers: async (file: File): Promise<{ success: number; errors: string[] }> => {
     const formData = new FormData();
     formData.append('file', file);
     

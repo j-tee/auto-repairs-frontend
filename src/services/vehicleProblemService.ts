@@ -1,39 +1,10 @@
-import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api';
-
-export interface VehicleProblem {
-  id: string;
-  description: string;
-  reportedDate: string;
-  resolved: boolean;
-  vehicleId: string;
-}
-
-export interface CreateVehicleProblemData {
-  description: string;
-  vehicleId: string;
-}
-
-export interface UpdateVehicleProblemData {
-  description?: string;
-  resolved?: boolean;
-}
-
-export interface VehicleProblemQuery {
-  vehicleId?: string;
-  resolved?: boolean;
-  limit?: number;
-  offset?: number;
-  [key: string]: any; // Index signature for API compatibility
-}
-
-export interface VehicleProblemListResponse {
-  problems: VehicleProblem[];
-  total: number;
-}
+import { toast } from 'react-toastify';
+import type { CreateVehicleProblemData, UpdateVehicleProblemData, VehicleProblem, VehicleProblemListResponse, VehicleProblemQuery, VehicleProblemResponse } from '../types/vehicles';
+import { apiGet, apiPost, apiPut, apiDelete, type ApiQueryParams } from '../utils/api';
 
 export const vehicleProblemService = {
   // Get vehicle problems with filtering using enhanced backend endpoints
-  getVehicleProblems: async (query: VehicleProblemQuery = {}): Promise<VehicleProblemListResponse> => {
+  getVehicleProblems: async (query: VehicleProblemQuery = {}): Promise<{ problems: VehicleProblem[]; total: number }> => {
     try {
       let endpoint = '/shop/vehicle-problems/';
       
@@ -43,23 +14,27 @@ export const vehicleProblemService = {
         endpoint = '/shop/vehicle-problems/unresolved/';
       }
       
-      const response = await apiGet<any>(endpoint, query);
+      const response = await apiGet<VehicleProblemListResponse>(endpoint, query as ApiQueryParams);
       
       // Handle different response structures - API might return array directly or wrapped
       const problemArray = Array.isArray(response) ? response : (response.results || response.problems || response || []);
-      
+      const problems = problemArray.map((problem: VehicleProblemResponse) => ({
+        id: problem.id?.toString() || '',
+        description: problem.description || '',
+        reportedDate: problem.reported_date || '',
+        resolved: problem.resolved || false,
+        vehicleId: problem.vehicle_id?.toString() || ''
+      }));
       return {
-        problems: problemArray.map((problem: any) => ({
-          id: problem.id?.toString() || '',
-          description: problem.description || '',
-          reportedDate: problem.reported_date || problem.reportedDate || '',
-          resolved: problem.resolved || false,
-          vehicleId: problem.vehicle_id?.toString() || problem.vehicleId || ''
-        })),
+        problems,
         total: response.count || problemArray.length
       };
-    } catch (error: any) {
-      console.error('Error fetching vehicle problems:', error);
+    } catch (error: unknown) {
+      toast.error(
+        "Error fetching vehicle problems: " +
+          (error instanceof Error ? error.message : String(error)),
+        { type: "error" }
+      );
       throw error;
     }
   },
@@ -81,7 +56,7 @@ export const vehicleProblemService = {
 
   // Get problem by ID
   getVehicleProblemById: async (problemId: string): Promise<VehicleProblem> => {
-    const response = await apiGet<any>(`/shop/vehicle-problems/${problemId}/`);
+    const response = await apiGet<VehicleProblemResponse>(`/shop/vehicle-problems/${problemId}/`);
     
     return {
       id: response.id?.toString() || '',
@@ -100,7 +75,7 @@ export const vehicleProblemService = {
       resolved: false
     };
     
-    const response = await apiPost<any>('/shop/vehicle-problems/', createData);
+    const response = await apiPost<VehicleProblemResponse>('/shop/vehicle-problems/', createData);
     
     return {
       id: response.id?.toString() || '',
@@ -113,12 +88,12 @@ export const vehicleProblemService = {
 
   // Update vehicle problem
   updateVehicleProblem: async (problemId: string, problemData: UpdateVehicleProblemData): Promise<VehicleProblem> => {
-    const updateData: any = {};
+    const updateData: Partial<VehicleProblemResponse> = {};
     
     if (problemData.description !== undefined) updateData.description = problemData.description;
     if (problemData.resolved !== undefined) updateData.resolved = problemData.resolved;
     
-    const response = await apiPut<any>(`/shop/vehicle-problems/${problemId}/`, updateData);
+    const response = await apiPut<VehicleProblemResponse>(`/shop/vehicle-problems/${problemId}/`, updateData);
     
     return {
       id: response.id?.toString() || '',
@@ -151,8 +126,12 @@ export const vehicleProblemService = {
     try {
       const response = await vehicleProblemService.getVehicleProblems({ resolved: false });
       return response.problems;
-    } catch (error: any) {
-      console.error('Error fetching unresolved problems:', error);
+    } catch (error: unknown) {
+       toast.error(
+        "Error fetching vehicle problems: " +
+          (error instanceof Error ? error.message : String(error)),
+        { type: "error" }
+      );
       throw error;
     }
   },
@@ -170,11 +149,15 @@ export const vehicleProblemService = {
       cutoffDate.setDate(cutoffDate.getDate() - days);
       
       return response.problems.filter(problem => {
-        const problemDate = new Date(problem.reportedDate);
+        const problemDate = new Date(problem.reportedDate ?? '');
         return problemDate >= cutoffDate;
       });
-    } catch (error: any) {
-      console.error('Error fetching recent problems:', error);
+    } catch (error: unknown) {
+      toast.error(
+        "Error fetching recent problems: " +
+          (error instanceof Error ? error.message : String(error)),
+        { type: "error" }
+      );
       throw error;
     }
   },
@@ -201,8 +184,12 @@ export const vehicleProblemService = {
         resolvedProblems,
         recentProblems: recentProblems.length
       };
-    } catch (error: any) {
-      console.error('Error fetching problem stats:', error);
+    } catch (error: unknown) {
+      toast.error(
+        "Error fetching problem stats: " +
+          (error instanceof Error ? error.message : String(error)),
+        { type: "error" }
+      );
       throw error;
     }
   }

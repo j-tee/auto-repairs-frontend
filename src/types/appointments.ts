@@ -2,15 +2,16 @@ import type { Customer } from "./customers";
 import type { Employee } from "./employees";
 import type { RepairOrder } from "./repairOrders";
 import type { Shop } from "./shops";
+import type { VehicleProblem } from "./vehicles";
 
 // Frontend TypeScript types for Appointments
-export interface VehicleProblem {
-  id: string;
-  vehicle: string;
-  description: string;
-  reported_date: string;
-  resolved: boolean;
-}
+// export interface VehicleProblem {
+//   id: string;
+//   vehicle: string;
+//   description: string;
+//   reported_date: string;
+//   resolved: boolean;
+// }
 
 export interface Appointment {
 id: string;

@@ -1,5 +1,10 @@
 // Frontend TypeScript types for Customers and Vehicles
 
+import type { Appointment } from "./appointments";
+import type { RepairOrder } from "./repairOrders";
+import type { UserResponse } from "./userManagement";
+import type { Vehicle } from "./vehicles";
+
 export interface Customer {
   id: string;
   name: string;
@@ -21,7 +26,7 @@ export interface CustomerResponse {
   id: string;
   name: string;
   email: string;
-  phone: string;
+  phone_number: string;
   address: string;
   city?: string;
   state?: string;
@@ -32,6 +37,7 @@ export interface CustomerResponse {
   is_active: boolean; // Derived from User.is_active through user relationship
   created_at: string;
   updated_at: string;
+  user?:UserResponse;
 }
 // export interface Vehicle {
 //   id: string;
@@ -74,54 +80,95 @@ export interface CreateCustomerData {
   address?: string;
 }
 
+export interface CustomerHistory {
+  customerId: string;
+  appointments: Appointment[];
+  repairOrders: RepairOrder[];
+  vehicles: Vehicle[];
+  totalSpent: number;
+  lastVisit: string | null;
+  visitCount: number;
+}
+
+export interface CustomerHistoryResponse {
+  customer_id: string;
+  appointments: Appointment[];
+  repair_orders: RepairOrder[];
+  vehicles: Vehicle[];
+  total_spent: number;
+  last_visit: string | null;
+  visit_count: number;
+}
+export interface CustomerStatsResponse {
+  total_customers: number;
+  active_customers: number;
+  inactive_customers: number;
+  new_customers_this_month: number;
+  average_visits_per_customer: number;
+  total_revenue: number;
+}
+export interface CustomerStats {
+  totalCustomers: number;
+  activeCustomers: number;
+  inactiveCustomers: number;
+  newCustomersThisMonth: number;
+  averageVisitsPerCustomer: number;
+  totalRevenue: number;
+}
+export interface CustomerListView {
+  customers: Customer[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+export interface CustomerListResponse {
+  customers?: CustomerResponse[];
+  count?:number;
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  data?:CustomerResponse[];
+  results?: CustomerResponse[]; // Some APIs use 'results' key
+}
+export interface CustomerQuery {
+  page?: number;
+  limit?: number;
+  search?: string;
+  email?: string;
+  phone?: string;
+  city?: string;
+  state?: string;
+  isActive?: boolean;
+  sortBy?: 'name' | 'email' | 'createdAt' | 'updatedAt';
+  sortOrder?: 'asc' | 'desc';
+}
 export interface UpdateCustomerData {
   name?: string;
   phone_number?: string;
   email?: string;
   address?: string;
+  phone?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  emergencyContact?: string;
+  emergencyPhone?: string;
+  preferredContact?: 'email' | 'phone' | 'text';
+  isActive?: boolean; // Can be updated through User relationship
 }
+// export interface CreateVehicleProblemData {
+//   vehicle_id: string;
+//   problem_description: string;
+//   date_reported?: string;
+// }
 
-export interface CreateVehicleData {
-  customer_id: string;
-  make: string;
-  model: string;
-  year: number;
-  license_plate?: string;
-  vin: string;
-  color?: string;
-  mileage?: number;
-  engine_size?: string;
-  transmission_type?: Vehicle['transmission_type'];
-  fuel_type?: Vehicle['fuel_type'];
-  notes?: string;
-}
-
-export interface UpdateVehicleData {
-  customer_id?: string;
-  make?: string;
-  model?: string;
-  year?: number;
-  license_plate?: string;
-  vin?: string;
-  color?: string;
-  mileage?: number;
-  engine_size?: string;
-  transmission_type?: Vehicle['transmission_type'];
-  fuel_type?: Vehicle['fuel_type'];
-  notes?: string;
-}
-
-export interface CreateVehicleProblemData {
-  vehicle_id: string;
-  problem_description: string;
-  date_reported?: string;
-}
-
-export interface UpdateVehicleProblemData {
-  problem_description?: string;
-  resolved?: boolean;
-  resolution_notes?: string;
-}
+// export interface UpdateVehicleProblemData {
+//   problem_description?: string;
+//   resolved?: boolean;
+//   resolution_notes?: string;
+// }
 
 // Filters for API queries
 export interface CustomerFilters {
@@ -130,22 +177,22 @@ export interface CustomerFilters {
   date_to?: string;
 }
 
-export interface VehicleFilters {
-  customer_id?: string;
-  make?: string;
-  model?: string;
-  year_from?: number;
-  year_to?: number;
-  search?: string; // Search by make, model, license plate, or VIN
-}
+// export interface VehicleFilters {
+//   customer_id?: string;
+//   make?: string;
+//   model?: string;
+//   year_from?: number;
+//   year_to?: number;
+//   search?: string; // Search by make, model, license plate, or VIN
+// }
 
-export interface VehicleProblemFilters {
-  vehicle_id?: string;
-  customer_id?: string;
-  resolved?: boolean;
-  date_from?: string;
-  date_to?: string;
-}
+// export interface VehicleProblemFilters {
+//   vehicle_id?: string;
+//   customer_id?: string;
+//   resolved?: boolean;
+//   date_from?: string;
+//   date_to?: string;
+// }
 
 // Response types for API calls
 export interface CustomerWithVehicles extends Customer {
@@ -153,9 +200,3 @@ export interface CustomerWithVehicles extends Customer {
   total_vehicles: number;
 }
 
-export interface VehicleWithHistory extends Vehicle {
-  problems: VehicleProblem[];
-  total_appointments: number;
-  total_repair_orders: number;
-  last_service_date?: string;
-}

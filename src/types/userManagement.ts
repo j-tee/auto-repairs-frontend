@@ -13,6 +13,22 @@ export interface User {
   dateJoined?: string;
   permissions?: Permissions;
 }
+
+export interface UserResponse {
+  id?: string | number;
+  email?: string;
+  first_name?: string;
+  last_name?: string;
+  role?: 'owner' | 'employee' | 'customer';
+  avatar?: string;
+  phone?: string;
+  address?: string;
+  is_active?: boolean;
+  createdAt?: string;
+  last_login?: string;
+  date_joined?: string;
+  permissions?: Permissions;
+} 
 // Extended user interface for admin management
 export interface Permissions{
  can_manage_shops: boolean;
