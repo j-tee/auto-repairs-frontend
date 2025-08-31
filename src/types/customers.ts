@@ -2,47 +2,69 @@
 
 export interface Customer {
   id: string;
-  shop: string;
   name: string;
-  phone_number: string;
-  email?: string;
-  address?: string;
-  date_created: string;
-  updated_at: string;
+  email: string;
+  phone: string;
+  address: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  emergencyContact?: string;
+  emergencyPhone?: string;
+  preferredContact?: 'email' | 'phone' | 'text';
+  isActive: boolean; // Derived from User.is_active through user relationship
+  createdAt: string;
+  updatedAt: string;
 }
 
-export interface Vehicle {
+export interface CustomerResponse {
   id: string;
-  customer: {
-    id: string;
-    name: string;
-    phone_number: string;
-    email?: string;
-  };
-  make: string;
-  model: string;
-  year: number;
-  license_plate?: string;
-  vin: string;
-  color?: string;
-  mileage?: number;
-  engine_size?: string;
-  transmission_type?: 'manual' | 'automatic' | 'cvt';
-  fuel_type?: 'gasoline' | 'diesel' | 'hybrid' | 'electric';
-  date_created: string;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  city?: string;
+  state?: string;
+  zip_code?: string;
+  emergency_contact?: string;
+  emergency_phone?: string;
+  preferred_contact?: 'email' | 'phone' | 'text';
+  is_active: boolean; // Derived from User.is_active through user relationship
+  created_at: string;
   updated_at: string;
-  notes?: string;
 }
+// export interface Vehicle {
+//   id: string;
+//   customer: {
+//     id: string;
+//     name: string;
+//     phone_number: string;
+//     email?: string;
+//   };
+//   make: string;
+//   model: string;
+//   year: number;
+//   license_plate?: string;
+//   vin: string;
+//   color?: string;
+//   mileage?: number;
+//   engine_size?: string;
+//   transmission_type?: 'manual' | 'automatic' | 'cvt';
+//   fuel_type?: 'gasoline' | 'diesel' | 'hybrid' | 'electric';
+//   date_created: string;
+//   updated_at: string;
+//   notes?: string;
+// }
 
-export interface VehicleProblem {
-  id: string;
-  vehicle: string; // Vehicle ID
-  problem_description: string;
-  date_reported: string;
-  resolved: boolean;
-  date_resolved?: string;
-  resolution_notes?: string;
-}
+// export interface VehicleProblem {
+//   id: string;
+//   vehicle: string; // Vehicle ID
+//   problem_description: string;
+//   date_reported: string;
+//   resolved: boolean;
+//   date_resolved?: string;
+//   resolution_notes?: string;
+// }
 
 // Data transfer objects for API operations
 export interface CreateCustomerData {

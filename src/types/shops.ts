@@ -1,6 +1,7 @@
 
 // Shop types
 export interface Shop {
+  operatingHours: Record<string, { open: string; close: string; closed?: boolean }>;
   id: string;
   name: string;
   address: string;
@@ -235,8 +236,8 @@ export interface DashboardData {
     revenue: number[];
     labels: string[];
   };
-  recentActivity: any[];
-  upcomingAppointments: any[];
-  lowInventoryItems: any[];
-  employeePerformance: any[];
+  recentActivity: unknown[];
+  upcomingAppointments: unknown[];
+  lowInventoryItems: unknown[];
+  employeePerformance: unknown[];
 }

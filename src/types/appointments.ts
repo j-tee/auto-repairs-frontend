@@ -1,3 +1,8 @@
+import type { Customer } from "./customers";
+import type { Employee } from "./employees";
+import type { RepairOrder } from "./repairOrders";
+import type { Shop } from "./shops";
+
 // Frontend TypeScript types for Appointments
 export interface VehicleProblem {
   id: string;
@@ -8,7 +13,27 @@ export interface VehicleProblem {
 }
 
 export interface Appointment {
-  id: string;
+id: string;
+  customerId: string;
+  vehicleId: string;
+  employeeId: string; // service advisor
+  shopId: string;
+  appointmentDate: string;
+  appointmentTime: string;
+  duration: number; // in minutes
+  serviceType: string;
+  description: string;
+  status: 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no_show';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  estimatedCost?: number;
+  notes?: string;
+  reminderSent: boolean;
+  createdAt: string;
+  updatedAt: string;
+  // Related data for display
+  customer?: Customer;
+  employee?: Employee;
+  shop?: Shop;
   vehicle: {
     id: string;
     make: string;
@@ -23,9 +48,7 @@ export interface Appointment {
     };
   };
   reported_problem?: VehicleProblem;
-  description?: string;
   date: string; // ISO datetime
-  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
   created_at?: string;
   updated_at?: string;
 }
@@ -51,4 +74,20 @@ export interface AppointmentFilters {
   date_to?: string;
   customer_id?: string;
   vehicle_id?: string;
+}
+
+
+export interface RepairOrderFilters {
+  status?: RepairOrder['status'] | RepairOrder['status'][];
+  dateFrom?: string;
+  dateTo?: string;
+  customerId?: string;
+  vehicleId?: string;
+  technicianId?: string;
+  serviceAdvisorId?: string;
+  shopId?: string;
+  priority?: RepairOrder['priority'] | RepairOrder['priority'][];
+  minAmount?: number;
+  maxAmount?: number;
+  workOrderNumber?: string;
 }

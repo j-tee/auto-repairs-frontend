@@ -166,3 +166,9 @@ export interface WorkSchedule {
 export interface EmployeeAvailability {
     technicians: Employee[];
 }
+export interface EmployeeFilters {
+  role?: Employee['role'] | Employee['role'][];
+  department?: string;
+  isActive?: boolean;
+  shopId?: string;
+}
