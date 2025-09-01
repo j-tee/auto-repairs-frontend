@@ -1,4 +1,4 @@
-import type { Customer, CustomerResponse } from "./customers";
+import type { CustomerResponse } from "./customers";
 
 // Enhanced types to align with Django backend models
 export interface Vehicle {

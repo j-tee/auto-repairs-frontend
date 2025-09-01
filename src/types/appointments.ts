@@ -1,5 +1,5 @@
 import type { Customer, CustomerResponse, EmbeddedCustomer } from "./customers";
-import type { Employee, EmployeeListResponse, EmployeeResponse } from "./employees";
+import type { Employee, EmployeeResponse } from "./employees";
 import type { RepairOrder } from "./repairOrders";
 import type { Shop } from "./shops";
 import type {

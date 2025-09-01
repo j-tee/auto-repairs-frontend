@@ -1,4 +1,5 @@
-import type { AuthResponse, LoginCredentials } from '../types/auth';
+import type { AuthResponse, LoginCredentials, PasswordReset, PasswordResetRequest, RegisterData } from '../types/auth';
+import type { User, UserResponse } from '../types/userManagement';
 import { 
   apiPost, 
   apiGet, 
@@ -32,7 +33,7 @@ export const authService = {
     localStorage.setItem('refreshToken', authResponse.refreshToken);
     
     try {
-      const userData = await apiGet<any>('/auth/user/');
+      const userData = await apiGet<UserResponse>('/auth/user/');
       
       const user: User = {
         id: userData.id?.toString() || '',
@@ -157,7 +158,7 @@ export const authService = {
       throw new Error('No authentication token');
     }
     
-    const userData = await apiGet<any>('/auth/user/');
+    const userData = await apiGet<UserResponse>('/auth/user/');
     
     const user: User = {
       id: userData.id?.toString() || '',
