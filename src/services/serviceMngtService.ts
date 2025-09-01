@@ -1,47 +1,7 @@
+import type { Service } from '../types/repairOrders';
+import type { CreateServiceData, ServiceListResponse, ServiceQuery, ServiceResponse, UpdateServiceData } from '../types/services';
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api';
 
-// Service types (matching entities.ts)
-export interface Service {
-  id?: number;
-  shop: number; // Foreign key to Shop
-  name: string;
-  description?: string;
-  category?: string; // Service category
-  labor_cost: string; // Decimal field as string
-  price?: string; // Alternative price field (may be same as labor_cost)
-  taxable: boolean;
-  warranty_months: number;
-}
-
-export interface CreateServiceData {
-  shop: number;
-  name: string;
-  description?: string;
-  category?: string;
-  labor_cost: string;
-  price?: string;
-  taxable?: boolean;
-  warranty_months?: number;
-}
-
-export interface UpdateServiceData {
-  shop?: number;
-  name?: string;
-  description?: string;
-  category?: string;
-  labor_cost?: string;
-  price?: string;
-  taxable?: boolean;
-  warranty_months?: number;
-}
-
-export interface ServiceQuery {
-  search?: string;
-  category?: string;
-  shop?: number;
-  limit?: number;
-  offset?: number;
-}
 
 // Service Management Service
 export const serviceMngtService = {
@@ -56,13 +16,13 @@ export const serviceMngtService = {
     if (query.offset) params.append('offset', query.offset.toString());
     
     const endpoint = `/services/${params.toString() ? `?${params.toString()}` : ''}`;
-    const response = await apiGet<any>(endpoint);
+    const response = await apiGet<ServiceListResponse>(endpoint);
     
     // Handle both paginated and non-paginated responses
     const services = response.results || response;
     
-    return services.map((service: any): Service => ({
-      id: service.id,
+    return services.map((service: ServiceResponse): Service => ({
+      id: service.id ?? '',
       shop: service.shop,
       name: service.name || '',
       description: service.description,
@@ -76,10 +36,10 @@ export const serviceMngtService = {
 
   // Get service by ID
   getServiceById: async (serviceId: string): Promise<Service> => {
-    const response = await apiGet<any>(`/services/${serviceId}/`);
+    const response = await apiGet<ServiceResponse>(`/services/${serviceId}/`);
     
     return {
-      id: response.id,
+      id: response.id ?? '',
       shop: response.shop,
       name: response.name || '',
       description: response.description,
@@ -104,10 +64,10 @@ export const serviceMngtService = {
       warranty_months: serviceData.warranty_months ?? 0
     };
     
-    const response = await apiPost<any>('/services/', createData);
+    const response = await apiPost<ServiceResponse>('/services/', createData);
     
     return {
-      id: response.id,
+      id: response.id ?? '',
       shop: response.shop,
       name: response.name || '',
       description: response.description,
@@ -121,7 +81,7 @@ export const serviceMngtService = {
 
   // Update service
   updateService: async (serviceId: string, serviceData: UpdateServiceData): Promise<Service> => {
-    const updateData: any = {};
+    const updateData: Partial<ServiceResponse> = {};
     
     if (serviceData.shop !== undefined) updateData.shop = serviceData.shop;
     if (serviceData.name !== undefined) updateData.name = serviceData.name;
@@ -132,10 +92,10 @@ export const serviceMngtService = {
     if (serviceData.taxable !== undefined) updateData.taxable = serviceData.taxable;
     if (serviceData.warranty_months !== undefined) updateData.warranty_months = serviceData.warranty_months;
     
-    const response = await apiPut<any>(`/services/${serviceId}/`, updateData);
+    const response = await apiPut<ServiceResponse>(`/services/${serviceId}/`, updateData);
     
     return {
-      id: response.id,
+      id: response.id ?? '',
       shop: response.shop,
       name: response.name || '',
       description: response.description,

@@ -6,12 +6,14 @@ import type { Vehicle, VehicleResponse } from "./vehicles";
 
 // Frontend TypeScript types for Repair Orders
 export interface Service {
-  id: string;
-  shop: string;
+  id: string | number;
+  shop: string | number;
   name: string;
   description?: string;
   labor_cost: string; // Decimal as string
   taxable: boolean;
+  category?: string;
+  price?: string; // Alternative price field (may be same as labor_cost)
   warranty_months: number;
 }
 

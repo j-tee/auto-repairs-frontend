@@ -235,7 +235,13 @@ export const repairOrderMngtService = {
             totalPages: Math.ceil(activeOrders.length / (query.limit || 10)),
           };
         } catch (fallbackError) {
-          console.warn("❌ Active orders fallback also failed:", fallbackError);
+          // toast.warn("❌ Active orders fallback also failed:", fallbackError);
+          toast.warn(
+              "❌ Alternative endpoint also failed: " +
+                (fallbackError instanceof Error
+                  ? fallbackError.message
+                  : String(fallbackError))
+            );
 
           // Try one more alternative approach - use a different endpoint pattern
           try {
@@ -291,10 +297,13 @@ export const repairOrderMngtService = {
               totalPages: Math.ceil(altOrders.length / (query.limit || 10)),
             };
           } catch (altError) {
-            console.warn("❌ Alternative endpoint also failed:", altError);
+            toast.warn(
+              "❌ Alternative endpoint also failed: " +
+                (altError instanceof Error ? altError.message : String(altError))
+            );
 
             // Final fallback - return empty result
-            console.warn(
+            toast.warn(
               "🚧 All repair order endpoints failed - returning empty result"
             );
             return {
@@ -754,9 +763,9 @@ export const repairOrderMngtService = {
         totalRevenueThisMonth: response.total_revenue_this_month || 0,
         averageOrderValue: response.average_order_value || 0,
         ordersByStatus: {
+          in_progress: response.orders_by_status?.in_progress || 0,
           pending: response.orders_by_status?.pending || 0,
           approved: response.orders_by_status?.approved || 0,
-          pending: response.orders_by_status?.pending || 0,
           completed: response.orders_by_status?.completed || 0,
           on_hold: response.orders_by_status?.on_hold || 0,
           cancelled: response.orders_by_status?.cancelled || 0,
@@ -796,7 +805,7 @@ export const repairOrderMngtService = {
           ordersByStatus: {
             pending: 0,
             approved: 0,
-            pending: 0,
+            in_progress: 0,
             completed: 0,
             on_hold: 0,
             cancelled: 0,
