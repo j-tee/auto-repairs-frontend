@@ -1,64 +1,6 @@
+import type { CreatePartData, Part, PartListResponse, PartQuery, PartResponse, UpdatePartData } from '../types/parts';
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api';
 
-// Part types
-export interface Part {
-  id: string;
-  name: string;
-  partNumber: string;
-  description: string;
-  brand: string;
-  category: string;
-  price: number;
-  cost: number;
-  quantity: number;
-  minimumStock: number;
-  location: string;
-  isActive: boolean;
-  shopId: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface CreatePartData {
-  name: string;
-  partNumber: string;
-  description: string;
-  brand: string;
-  category: string;
-  price: number;
-  cost: number;
-  quantity: number;
-  minimumStock: number;
-  location: string;
-  shopId: string;
-  isActive?: boolean;
-}
-
-export interface UpdatePartData {
-  name?: string;
-  partNumber?: string;
-  description?: string;
-  brand?: string;
-  category?: string;
-  price?: number;
-  cost?: number;
-  quantity?: number;
-  minimumStock?: number;
-  location?: string;
-  shopId?: string;
-  isActive?: boolean;
-}
-
-export interface PartQuery {
-  search?: string;
-  category?: string;
-  brand?: string;
-  shopId?: string;
-  isActive?: boolean;
-  lowStock?: boolean;
-  limit?: number;
-  offset?: number;
-}
 
 // Parts Management Service
 export const partMngtService = {
@@ -76,50 +18,50 @@ export const partMngtService = {
     if (query.offset) params.append('offset', query.offset.toString());
     
     const endpoint = `/parts/${params.toString() ? `?${params.toString()}` : ''}`;
-    const response = await apiGet<any>(endpoint);
+    const response = await apiGet<PartListResponse>(endpoint);
     
     // Handle both paginated and non-paginated responses
     const parts = response.results || response;
     
-    return parts.map((part: any): Part => ({
+    return parts.map((part: PartResponse): Part => ({
       id: part.id?.toString() || '',
       name: part.name || '',
-      partNumber: part.part_number || part.partNumber || '',
+      partNumber: part.part_number || '',
       description: part.description || '',
       brand: part.brand || '',
       category: part.category || '',
-      price: parseFloat(part.price) || 0,
-      cost: parseFloat(part.cost) || 0,
-      quantity: parseInt(part.quantity) || 0,
-      minimumStock: parseInt(part.minimum_stock || part.minimumStock) || 0,
+      price: (part.price) || 0,
+      cost: (part.cost) || 0,
+      quantity: (part.quantity) || 0,
+      minimumStock: part.minimum_stock || 0,
       location: part.location || '',
       isActive: part.is_active ?? true,
-      shopId: part.shop_id?.toString() || part.shop?.toString() || '',
-      createdAt: part.created_at || part.createdAt || new Date().toISOString(),
-      updatedAt: part.updated_at || part.updatedAt || new Date().toISOString()
+      shopId: part.shop_id?.toString() || '',
+      createdAt: part.created_at || new Date().toISOString(),
+      updatedAt: part.updated_at || new Date().toISOString()
     }));
   },
 
   // Get part by ID
   getPartById: async (partId: string): Promise<Part> => {
-    const response = await apiGet<any>(`/parts/${partId}/`);
+    const response = await apiGet<PartResponse>(`/parts/${partId}/`);
     
     return {
       id: response.id?.toString() || '',
       name: response.name || '',
-      partNumber: response.part_number || response.partNumber || '',
+      partNumber: response.part_number || '',
       description: response.description || '',
       brand: response.brand || '',
       category: response.category || '',
-      price: parseFloat(response.price) || 0,
-      cost: parseFloat(response.cost) || 0,
-      quantity: parseInt(response.quantity) || 0,
-      minimumStock: parseInt(response.minimum_stock || response.minimumStock) || 0,
+      price: (response.price) || 0,
+      cost: (response.cost) || 0,
+      quantity: (response.quantity) || 0,
+      minimumStock: response.minimum_stock || 0,
       location: response.location || '',
       isActive: response.is_active ?? true,
-      shopId: response.shop_id?.toString() || response.shop?.toString() || '',
-      createdAt: response.created_at || response.createdAt || new Date().toISOString(),
-      updatedAt: response.updated_at || response.updatedAt || new Date().toISOString()
+      shopId: response.shop_id?.toString() || '',
+      createdAt: response.created_at || new Date().toISOString(),
+      updatedAt: response.updated_at || new Date().toISOString()
     };
   },
 
@@ -140,30 +82,30 @@ export const partMngtService = {
       is_active: partData.isActive ?? true
     };
     
-    const response = await apiPost<any>('/shop/parts/', createData);
+    const response = await apiPost<PartResponse>('/shop/parts/', createData);
     
     return {
       id: response.id?.toString() || '',
       name: response.name || '',
-      partNumber: response.part_number || response.partNumber || '',
+      partNumber: response.part_number || '',
       description: response.description || '',
       brand: response.brand || '',
       category: response.category || '',
-      price: parseFloat(response.price) || 0,
-      cost: parseFloat(response.cost) || 0,
-      quantity: parseInt(response.quantity) || 0,
-      minimumStock: parseInt(response.minimum_stock || response.minimumStock) || 0,
+      price: (response.price) || 0,
+      cost: (response.cost) || 0,
+      quantity: (response.quantity) || 0,
+      minimumStock: (response.minimum_stock) || 0,
       location: response.location || '',
       isActive: response.is_active ?? true,
-      shopId: response.shop_id?.toString() || response.shop?.toString() || '',
-      createdAt: response.created_at || response.createdAt || new Date().toISOString(),
-      updatedAt: response.updated_at || response.updatedAt || new Date().toISOString()
+      shopId: response.shop_id?.toString() || '',
+      createdAt: response.created_at || new Date().toISOString(),
+      updatedAt: response.updated_at || new Date().toISOString()
     };
   },
 
   // Update part
   updatePart: async (partId: string, partData: UpdatePartData): Promise<Part> => {
-    const updateData: any = {};
+    const updateData: Partial<PartResponse> = {};
     
     if (partData.name !== undefined) updateData.name = partData.name;
     if (partData.partNumber !== undefined) updateData.part_number = partData.partNumber;
@@ -178,24 +120,24 @@ export const partMngtService = {
     if (partData.shopId !== undefined) updateData.shop_id = partData.shopId;
     if (partData.isActive !== undefined) updateData.is_active = partData.isActive;
     
-    const response = await apiPut<any>(`/parts/${partId}/`, updateData);
+    const response = await apiPut<PartResponse>(`/parts/${partId}/`, updateData);
     
     return {
       id: response.id?.toString() || '',
       name: response.name || '',
-      partNumber: response.part_number || response.partNumber || '',
+      partNumber: response.part_number || '',
       description: response.description || '',
       brand: response.brand || '',
       category: response.category || '',
-      price: parseFloat(response.price) || 0,
-      cost: parseFloat(response.cost) || 0,
-      quantity: parseInt(response.quantity) || 0,
-      minimumStock: parseInt(response.minimum_stock || response.minimumStock) || 0,
+      price: (response.price) || 0,
+      cost: (response.cost) || 0,
+      quantity: (response.quantity) || 0,
+      minimumStock: response.minimum_stock || 0,
       location: response.location || '',
       isActive: response.is_active ?? true,
-      shopId: response.shop_id?.toString() || response.shop?.toString() || '',
-      createdAt: response.created_at || response.createdAt || new Date().toISOString(),
-      updatedAt: response.updated_at || response.updatedAt || new Date().toISOString()
+      shopId: response.shop_id?.toString() || '',
+      createdAt: response.created_at || new Date().toISOString(),
+      updatedAt: response.updated_at || new Date().toISOString()
     };
   },
 
@@ -207,26 +149,26 @@ export const partMngtService = {
   // Get low stock parts
   getLowStockParts: async (shopId?: string): Promise<Part[]> => {
     const endpoint = `/parts/low_stock/${shopId ? `?shop_id=${shopId}` : ''}`;
-    const response = await apiGet<any>(endpoint);
+    const response = await apiGet<PartListResponse>(endpoint);
     
     const parts = response.results || response;
     
-    return parts.map((part: any): Part => ({
+    return parts.map((part: PartResponse): Part => ({
       id: part.id?.toString() || '',
       name: part.name || '',
-      partNumber: part.part_number || part.partNumber || '',
+      partNumber: part.part_number || '',
       description: part.description || '',
       brand: part.brand || '',
       category: part.category || '',
-      price: parseFloat(part.price) || 0,
-      cost: parseFloat(part.cost) || 0,
-      quantity: parseInt(part.quantity) || 0,
-      minimumStock: parseInt(part.minimum_stock || part.minimumStock) || 0,
+      price: (part.price) || 0,
+      cost: (part.cost) || 0,
+      quantity: (part.quantity) || 0,
+      minimumStock: part.minimum_stock || 0,
       location: part.location || '',
       isActive: part.is_active ?? true,
-      shopId: part.shop_id?.toString() || part.shop?.toString() || '',
-      createdAt: part.created_at || part.createdAt || new Date().toISOString(),
-      updatedAt: part.updated_at || part.updatedAt || new Date().toISOString()
+      shopId: part.shop_id?.toString()|| '',
+      createdAt: part.created_at || new Date().toISOString(),
+      updatedAt: part.updated_at || new Date().toISOString()
     }));
   },
 
