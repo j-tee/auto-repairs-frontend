@@ -1,3 +1,4 @@
+import type { Customer, CustomerResponse } from "./customers";
 
 // Enhanced types to align with Django backend models
 export interface Vehicle {
@@ -30,6 +31,7 @@ export interface VehicleResponse {
   engine?: string;
   transmission_type?: 'manual' | 'automatic' | 'cvt'; 
   fuel_type?:  'gasoline' | 'diesel' | 'hybrid' | 'electric';
+  customer?: CustomerResponse;
   created_at: string;
   updated_at: string;
 }
@@ -42,7 +44,7 @@ export interface VehicleProblemResponse {
   description: string;
   vehicle?: string; // vehicle ID
   severity: 'low' | 'medium' | 'high' | 'critical';
-  status: 'open' | 'in_progress' | 'resolved' | 'closed';
+  status: 'open' | 'pending' | 'resolved' | 'closed';
   reported_date: string;
   resolved_date?: string;
   estimated_cost?: number;
@@ -59,7 +61,15 @@ export interface VehicleProblem {
   title?: string;
   description: string;
   severity?: 'low' | 'medium' | 'high' | 'critical';
-  status?: 'open' | 'in_progress' | 'resolved' | 'closed';
+  status?:string;
+  // status?:
+  //   | "scheduled"
+  //   | "confirmed"
+  //   | "pending"
+  //   | "completed"
+  //   | "cancelled"
+  //   | "no_show"
+  //   | "in_progress";
   reportedDate?: string | number | Date;
   resolvedDate?: string;
   estimatedCost?: number;
@@ -92,7 +102,15 @@ export interface UpdateVehicleProblemData {
   title?: string;
   description?: string;
   severity?: 'low' | 'medium' | 'high' | 'critical';
-  status?: 'open' | 'in_progress' | 'resolved' | 'closed';
+  status?:string;
+  // status?:
+  //   | "scheduled"
+  //   | "confirmed"
+  //   | "pending"
+  //   | "completed"
+  //   | "cancelled"
+  //   | "no_show"
+  //   | "in_progress";
   estimatedCost?: number;
   actualCost?: number;
   notes?: string;
@@ -105,7 +123,15 @@ export interface UpdateVehicleProblemData {
 
 export interface VehicleProblemQuery {
   vehicleId?: string;
-  status?: 'open' | 'in_progress' | 'resolved' | 'closed';
+  status?: string;
+  // status?:
+  //   | "scheduled"
+  //   | "confirmed"
+  //   | "pending"
+  //   | "completed"
+  //   | "cancelled"
+  //   | "no_show"
+  //   | "in_progress";
   severity?: 'low' | 'medium' | 'high' | 'critical';
   search?: string;
   dateFrom?: string;

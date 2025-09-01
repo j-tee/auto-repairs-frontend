@@ -44,10 +44,10 @@ const AutoRepairsDashboard: React.FC = () => {
     }
 
     const statusFlow: Record<string, string> = {
-      created: "in_progress",
-      in_progress: "waiting_approval",
+      created: "pending",
+      pending: "waiting_approval",
       waiting_approval: "completed",
-      waiting_parts: "in_progress",
+      waiting_parts: "pending",
       completed: "created",
       cancelled: "created",
     };
@@ -175,7 +175,7 @@ const AutoRepairsDashboard: React.FC = () => {
                   backgroundColor:
                     order.status === "completed"
                       ? "#e8f5e8"
-                      : order.status === "in_progress"
+                      : order.status === "pending"
                       ? "#fff3cd"
                       : "#f8f9fa",
                 }}
@@ -196,9 +196,9 @@ const AutoRepairsDashboard: React.FC = () => {
                       backgroundColor:
                         order.status === "completed"
                           ? "#28a745"
-                          : order.status === "in_progress"
+                          : order.status === "pending"
                           ? "#ffc107"
-                          : order.status === "draft"
+                          : order.status === "pending"
                           ? "#6c757d"
                           : "#dc3545",
                       color: "white",

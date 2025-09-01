@@ -104,7 +104,7 @@ export const repairOrdersApi = createApi({
 
     // Get active repair orders
     getActiveRepairOrders: builder.query<RepairOrder[], void>({
-      query: () => 'repair-orders/?status=in_progress,pending_parts,on_hold',
+      query: () => 'repair-orders/?status=pending,pending_parts,on_hold',
       providesTags: ['RepairOrder'],
     }),
 

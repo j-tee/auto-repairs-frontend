@@ -17,7 +17,7 @@ interface StatsData {
     appointmentsByStatus: {
       scheduled: number;
       confirmed: number;
-      in_progress: number;
+      pending: number;
       completed: number;
       cancelled: number;
       no_show: number;

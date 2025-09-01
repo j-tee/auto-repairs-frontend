@@ -563,7 +563,7 @@ export const AutoRepairDashboard: React.FC = () => {
                               className={`badge ${
                                 appointment.status === "completed"
                                   ? "bg-success"
-                                  : appointment.status === "in_progress"
+                                  : appointment.status === "pending"
                                   ? "bg-warning"
                                   : appointment.status === "cancelled"
                                   ? "bg-danger"

@@ -39,38 +39,13 @@ export interface CustomerResponse {
   updated_at: string;
   user?:UserResponse;
 }
-// export interface Vehicle {
-//   id: string;
-//   customer: {
-//     id: string;
-//     name: string;
-//     phone_number: string;
-//     email?: string;
-//   };
-//   make: string;
-//   model: string;
-//   year: number;
-//   license_plate?: string;
-//   vin: string;
-//   color?: string;
-//   mileage?: number;
-//   engine_size?: string;
-//   transmission_type?: 'manual' | 'automatic' | 'cvt';
-//   fuel_type?: 'gasoline' | 'diesel' | 'hybrid' | 'electric';
-//   date_created: string;
-//   updated_at: string;
-//   notes?: string;
-// }
-
-// export interface VehicleProblem {
-//   id: string;
-//   vehicle: string; // Vehicle ID
-//   problem_description: string;
-//   date_reported: string;
-//   resolved: boolean;
-//   date_resolved?: string;
-//   resolution_notes?: string;
-// }
+export interface EmbeddedCustomer {
+  id: string;
+  name: string;
+  email: string;
+  phone_number: string;
+  address?: string;
+}
 
 // Data transfer objects for API operations
 export interface CreateCustomerData {

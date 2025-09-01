@@ -76,7 +76,7 @@ export const dashboardService = {
             
             stats.customerVehicles = vehiclesResponse.vehicles?.length || 0;
             stats.customerActiveAppointments = appointmentResponse.appointments.filter(
-              apt => ['scheduled', 'confirmed', 'in_progress'].includes(apt.status)
+              apt => ['scheduled', 'confirmed', 'pending'].includes(apt.status)
             ).length;
             stats.customerRepairOrders = repairOrdersResponse.repairOrders?.length || 0;
             stats.customerTotalSpent = repairOrdersResponse.repairOrders?.reduce(

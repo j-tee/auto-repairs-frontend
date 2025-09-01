@@ -1,6 +1,43 @@
 
 
 // Employee types
+export interface EmployeeResponse {
+    id: string;
+  first_name?: string;
+  last_name?: string;
+  email: string;
+  phone: string;
+  position: string;
+  department: string;
+  employee_id?: string;
+  hire_date?: string;
+  status: 'active' | 'inactive' | 'terminated';
+  hourly_rate?: number;
+  salary?: number;
+  specialties: string[];
+  certifications: string[];
+  skills: string[];
+  address?: string;
+  emergency_contact?: {
+    name: string;
+    phone: string;
+    relationship: string;
+  };
+  work_schedule?: WorkSchedule;
+  notes?: string;
+  avatar?: string;
+  is_active?: boolean;
+  created_at: string;
+  updated_at: string;
+  performance?: {
+    rating: number;
+    completed_jobs: number;
+    average_job_time: number;
+    customer_rating: number;
+    last_review_date?: string;
+  };
+  role?: 'manager' | 'technician' | 'service_advisor' | 'admin';
+}
 export interface Employee {
   id: string;
   first_name?: string;

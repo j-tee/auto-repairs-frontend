@@ -134,7 +134,7 @@ export const AppointmentManagement: React.FC = () => {
         return "info";
       case "cancelled":
         return "danger";
-      case "in_progress":
+      case "pending":
         return "primary";
       default:
         return "secondary";

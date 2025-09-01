@@ -65,7 +65,7 @@ export const repairOrderMngtService = {
           vehicleId: order.vehicle_id?.toString() || "",
           appointmentId: order.appointment_id?.toString(),
           orderNumber: order.order_number || `RO-${order.id}`,
-          status: order.status || "draft",
+          status: order.status || "pending",
           priority: order.priority || "medium",
           description: order.description || "",
           diagnosis: order.diagnosis,
@@ -208,7 +208,7 @@ export const repairOrderMngtService = {
               vehicleId: order.vehicle_id?.toString() || "",
               appointmentId: order.appointment_id?.toString(),
               orderNumber: order.order_number || `RO-${order.id}`,
-              status: order.status || "in_progress",
+              status: order.status || "pending",
               priority: order.priority || "medium",
               description: order.description || "",
               diagnosis: order.diagnosis,
@@ -245,7 +245,7 @@ export const repairOrderMngtService = {
             const altResponse = await apiGet<RepairOrderDetailsResponse[] | { results?: RepairOrderDetailsResponse[]; repairOrders?: RepairOrderDetailsResponse[] }>(
               "/shop/repair-orders/",
               {
-                status: "in_progress",
+                status: "pending",
                 limit: query.limit || 10,
               }
             );
@@ -264,7 +264,7 @@ export const repairOrderMngtService = {
                 vehicleId: order.vehicle_id?.toString() || "",
                 appointmentId: order.appointment_id?.toString(),
                 orderNumber: order.order_number || `RO-${order.id}`,
-                status: order.status || "in_progress",
+                status: order.status || "pending",
                 priority: order.priority || "medium",
                 description: order.description || "Repair Service",
                 diagnosis: order.diagnosis,
@@ -325,7 +325,7 @@ export const repairOrderMngtService = {
       vehicleId: response.vehicle_id?.toString() || "",
       appointmentId: response.appointment_id?.toString(),
       orderNumber: response.order_number || "",
-      status: response.status || "draft",
+      status: response.status || "pending",
       priority: response.priority || "medium",
       description: response.description || "",
       diagnosis: response.diagnosis,
@@ -446,7 +446,7 @@ export const repairOrderMngtService = {
       vehicleId: response.vehicle_id?.toString() || "",
       appointmentId: response.appointment_id?.toString(),
       orderNumber: response.order_number || "",
-      status: response.status || "draft",
+      status: response.status || "pending",
       priority: response.priority || "medium",
       description: response.description || "",
       diagnosis: response.diagnosis,
@@ -545,7 +545,7 @@ export const repairOrderMngtService = {
       vehicleId: response.vehicle_id?.toString() || "",
       appointmentId: response.appointment_id?.toString(),
       orderNumber: response.order_number || "",
-      status: response.status || "draft",
+      status: response.status || "pending",
       priority: response.priority || "medium",
       description: response.description || "",
       diagnosis: response.diagnosis,
@@ -644,7 +644,7 @@ export const repairOrderMngtService = {
   // Start repair order work
   startRepairOrder: async (repairOrderId: string): Promise<RepairOrder> => {
     return await repairOrderMngtService.updateRepairOrder(repairOrderId, {
-      status: "in_progress",
+      status: "pending",
     });
   },
 
@@ -754,9 +754,9 @@ export const repairOrderMngtService = {
         totalRevenueThisMonth: response.total_revenue_this_month || 0,
         averageOrderValue: response.average_order_value || 0,
         ordersByStatus: {
-          draft: response.orders_by_status?.draft || 0,
+          pending: response.orders_by_status?.pending || 0,
           approved: response.orders_by_status?.approved || 0,
-          in_progress: response.orders_by_status?.in_progress || 0,
+          pending: response.orders_by_status?.pending || 0,
           completed: response.orders_by_status?.completed || 0,
           on_hold: response.orders_by_status?.on_hold || 0,
           cancelled: response.orders_by_status?.cancelled || 0,
@@ -794,9 +794,9 @@ export const repairOrderMngtService = {
           totalRevenueThisMonth: 0,
           averageOrderValue: 0,
           ordersByStatus: {
-            draft: 0,
+            pending: 0,
             approved: 0,
-            in_progress: 0,
+            pending: 0,
             completed: 0,
             on_hold: 0,
             cancelled: 0,

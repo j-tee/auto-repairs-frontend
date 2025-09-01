@@ -88,7 +88,7 @@ export interface Appointment {
   time?: string; // Time field for appointments
   service?: number; // Foreign key to Service
   notes?: string; // Notes field for appointments
-  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+  status: 'pending' | 'pending' | 'completed' | 'cancelled';
 }
 
 export interface RepairOrder {
@@ -100,7 +100,7 @@ export interface RepairOrder {
   discount_percent: string; // Decimal field as string
   tax_percent: string; // Decimal field as string
   total_cost: string; // Decimal field as string
-  status: 'pending' | 'in_progress' | 'completed' | 'cancelled'; // Status field
+  status: 'pending' | 'pending' | 'completed' | 'cancelled'; // Status field
   date_created?: string;
   created_date?: string; // Alternative date field name
   notes?: string;
@@ -188,7 +188,15 @@ export interface AppointmentFormData {
   reported_problem?: number;
   description?: string;
   date: string;
-  status?: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+  status?: string;
+  // status?:
+  //   | "scheduled"
+  //   | "confirmed"
+  //   | "pending"
+  //   | "completed"
+  //   | "cancelled"
+  //   | "no_show"
+  //   | "in_progress";
 }
 
 export interface RepairOrderFormData {

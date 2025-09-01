@@ -90,7 +90,7 @@ export interface RepairOrderDetailsResponse{
   vehicle_id: number;
   appointment_id?: number; // Optional link to appointment
   order_number: string;
-  status: "in_progress" | "created" | "waiting_parts" | "waiting_approval" | "completed" | "cancelled" | "draft" | "on_hold" ;
+  status: "pending" | "created" | "waiting_parts" | "waiting_approval" | "completed" | "cancelled" | "pending" | "on_hold" ;
   priority: 'low' | 'medium' | 'high' | 'urgent';
   description: string;
   diagnosis?: string;
@@ -146,7 +146,15 @@ export interface RepairOrder {
   serviceAdvisorId?: string;
   shopId?: string;
   workOrderNumber?: string;
-  status?: "in_progress" | "created" | "waiting_parts" | "waiting_approval" | "completed" | "cancelled" | "draft" | "on_hold";
+  status?: string;
+  // status?:
+  //   | "scheduled"
+  //   | "confirmed"
+  //   | "pending"
+  //   | "completed"
+  //   | "cancelled"
+  //   | "no_show"
+  //   | "in_progress";
   priority?: 'low' | 'medium' | 'high' | 'urgent';
 
   // Timestamps
@@ -193,7 +201,7 @@ export interface RepairOrder {
   repairOrderItems?: RepairOrderItem[];
   services?: RepairOrderService[];
   parts?: RepairOrderPart[];
-  // status: 'pending' | 'in_progress' | 'pending_parts' | 'on_hold' | 'completed' | 'cancelled';
+  // status: 'pending' | 'pending' | 'pending_parts' | 'on_hold' | 'completed' | 'cancelled';
   discount_amount?: string;
   discount_percent?: string;
   tax_percent?: string;
@@ -212,7 +220,14 @@ export interface RepairJob {
   id: string;
   vehicleId: string;
   description: string;
-  status: 'pending' | 'in-progress' | 'completed' | 'cancelled' | 'on-hold';
+  status?:
+    | "scheduled"
+    | "confirmed"
+    | "pending"
+    | "completed"
+    | "cancelled"
+    | "no_show"
+    | "in_progress";
   estimatedCost: number;
   actualCost?: number;
   createdAt: string;
@@ -294,7 +309,7 @@ export interface RepairOrderQuery {
   customerId?: string;
   vehicleId?: string;
   technicianId?: string;
-  // Filters repair orders by their own status (e.g., 'draft', 'approved', etc.)
+  // Filters repair orders by their own status (e.g., 'pending', 'approved', etc.)
   status?: string; 
   priority?: RepairOrder['priority'];
   dateFrom?: string;
@@ -325,9 +340,9 @@ export interface RepairOrderStatsResponse {
   total_revenue_this_month: number;
   average_order_value: number;
   orders_by_status: {
-    draft: number;
-    approved: number;
     in_progress: number;
+    approved: number;
+    pending: number;
     completed: number;
     on_hold: number;
     cancelled: number;
@@ -341,9 +356,9 @@ export interface RepairOrderStats {
   totalRevenueThisMonth: number;
   averageOrderValue: number;
   ordersByStatus: {
-    draft: number;
-    approved: number;
     in_progress: number;
+    approved: number;
+    pending: number;
     completed: number;
     on_hold: number;
     cancelled: number;
