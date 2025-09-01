@@ -1,40 +1,10 @@
-import { appointmentMngtService, type AppointmentStats } from './appointmentMngtService';
-import { customerMngtService, type CustomerStats } from './customerMngtService';
+import { appointmentMngtService } from './appointmentMngtService';
+import { customerMngtService} from './customerMngtService';
 import { vehicleMngtService } from './vehicleMngtService';
-import { repairOrderMngtService, type RepairOrderStats } from './repairOrderMngtService';
-import { shopMngtService, type ShopStats } from './shopMngtService';
+import { repairOrderMngtService} from './repairOrderMngtService';
+import { shopMngtService } from './shopMngtService';
+import type { DashboardStats, DashboardSummary } from '../types/dashboard';
 
-// Dashboard Statistics Types
-export interface DashboardStats {
-  // Overview stats
-  todaysAppointments: number;
-  activeRepairs: number;
-  totalCustomers: number;
-  todaysRevenue: number;
-  
-  // This month stats
-  monthlyAppointments: number;
-  monthlyRevenue: number;
-  monthlyNewCustomers: number;
-  
-  // Customer stats for customer role
-  customerVehicles?: number;
-  customerActiveAppointments?: number;
-  customerRepairOrders?: number;
-  customerTotalSpent?: number;
-  
-  // Detailed breakdown
-  appointments?: AppointmentStats;
-  customers?: CustomerStats;
-  repairOrders?: RepairOrderStats;
-  shop?: ShopStats;
-}
-
-export interface DashboardSummary {
-  role: 'customer' | 'employee' | 'owner';
-  stats: DashboardStats;
-  lastUpdated: string;
-}
 
 // Dashboard Management Service
 export const dashboardService = {
@@ -76,7 +46,7 @@ export const dashboardService = {
             
             stats.customerVehicles = vehiclesResponse.vehicles?.length || 0;
             stats.customerActiveAppointments = appointmentResponse.appointments.filter(
-              apt => ['scheduled', 'confirmed', 'pending'].includes(apt.status)
+              apt => apt.status && ['scheduled', 'confirmed', 'pending','completed','cancelled','no_show'].includes(apt.status)
             ).length;
             stats.customerRepairOrders = repairOrdersResponse.repairOrders?.length || 0;
             stats.customerTotalSpent = repairOrdersResponse.repairOrders?.reduce(
@@ -109,7 +79,7 @@ export const dashboardService = {
           // Calculate monthly appointments (completed this month)
           const thisMonth = new Date().toISOString().substring(0, 7); // YYYY-MM
           stats.monthlyAppointments = appointments.filter(apt => 
-            apt.scheduledDate.startsWith(thisMonth) && apt.status === 'completed'
+            apt.scheduledDate && apt.scheduledDate.startsWith(thisMonth) && apt.status === 'completed'
           ).length;
           
         } catch (error) {

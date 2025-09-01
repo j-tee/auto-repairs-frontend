@@ -19,24 +19,6 @@ export interface BackupSettingsREsponse{
   retentionPeriod: number;
   backupLocation: string;
  }
-// Appointment types
-
-// Repair Order types
-
-// Legacy RepairJob type for backward compatibility
-
-
-// Dashboard summary types
-export interface DashboardSummary {
-  todaysAppointments: number;
-  activeRepairOrders: number;
-  pendingApprovals: number;
-  completedToday: number;
-  totalRevenue: number;
-  averageRepairTime: number;
-  customerSatisfaction: number;
-  techniciansWorking: number;
-}
 
 // API Response types
 export interface PaginatedResponse<T> {
