@@ -251,6 +251,7 @@ export const vehicleProblemMngtService = {
               fuelType: problem.vehicle_details.fuel_type || undefined,
               createdAt: problem.vehicle_details.created_at,
               updatedAt: problem.vehicle_details.updated_at,
+              isActive: problem.vehicle_details.is_active ?? true,
             }
           : undefined,
       })
