@@ -1,5 +1,7 @@
-import type { CreateShopData, Shop, ShopListResponse, ShopQuery, ShopResponse, UpdateShopData } from '../types/shops';
+import { toast } from 'react-toastify';
+import type { AvailableSlotResponse, BusySlot, CreateShopData, DashboardDataResponse, Shop, ShopAvailability, ShopAvailabilityResponse, ShopListResponse, ShopQuery, ShopResponse, ShopStats, SHopStatsResponse, TopServices, UpdateShopData } from '../types/shops';
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api';
+import type { DashboardData } from '../types/dashboard';
 
 // Shop Management Service
 export const shopMngtService = {
@@ -36,6 +38,7 @@ export const shopMngtService = {
         email: shop.email || '',
         website: shop.website,
         description: shop.description,
+        operatingHours: shop.operating_hours,
         businessHours: shop.business_hours || {
           monday: { open: '08:00', close: '17:00' },
           tuesday: { open: '08:00', close: '17:00' },
@@ -98,6 +101,7 @@ export const shopMngtService = {
       email: response.email || '',
       website: response.website,
       description: response.description,
+      operatingHours: response.operating_hours,
       businessHours: response.business_hours || {
         monday: { open: '08:00', close: '17:00' },
         tuesday: { open: '08:00', close: '17:00' },
@@ -329,6 +333,7 @@ export const shopMngtService = {
       
       return mainShop || (response.shops.length > 0 ? response.shops[0] : null);
     } catch (error) {
+      toast.error('Failed to fetch main shop'+( error instanceof Error ? `: ${error.message}` : ''));
       return null;
     }
   },
@@ -336,7 +341,7 @@ export const shopMngtService = {
   // Get shop statistics
   getShopStats: async (shopId?: string): Promise<ShopStats> => {
     const endpoint = shopId ? `/shop/shops/${shopId}/stats/` : '/shop/shops/stats/';
-    const response = await apiGet<any>(endpoint);
+    const response = await apiGet<SHopStatsResponse>(endpoint);
     
     return {
       totalShops: response.total_shops || 0,
@@ -347,7 +352,7 @@ export const shopMngtService = {
       monthlyAppointments: response.monthly_appointments || 0,
       monthlyRevenue: response.monthly_revenue || 0,
       averageRating: response.average_rating || 0,
-      topServices: response.top_services?.map((service: any) => ({
+      topServices: response.top_services?.map((service: TopServices) => ({
         service: service.service || '',
         count: service.count || 0
       })) || []
@@ -356,18 +361,18 @@ export const shopMngtService = {
 
   // Get shop availability
   getShopAvailability: async (shopId: string, date: string): Promise<ShopAvailability> => {
-    const response = await apiGet<any>(`/shop/shops/${shopId}/availability/?date=${date}`);
+    const response = await apiGet<ShopAvailabilityResponse>(`/shop/shops/${shopId}/availability/?date=${date}`);
     
     return {
       shopId,
       date,
-      availableSlots: response.available_slots?.map((slot: any) => ({
+      availableSlots: response.available_slots?.map((slot: AvailableSlotResponse) => ({
         time: slot.time || '',
         duration: slot.duration || 60,
         bayNumber: slot.bay_number,
         technicianId: slot.technician_id?.toString()
       })) || [],
-      busySlots: response.busy_slots?.map((slot: any) => ({
+      busySlots: response.busy_slots?.map((slot: BusySlot) => ({
         time: slot.time || '',
         duration: slot.duration || 60,
         reason: slot.reason || ''
@@ -388,7 +393,7 @@ export const shopMngtService = {
   // Get dashboard data
   getDashboardData: async (shopId?: string): Promise<DashboardData> => {
     const endpoint = shopId ? `/shop/shops/${shopId}/dashboard/` : '/dashboard/';
-    const response = await apiGet<any>(endpoint);
+    const response = await apiGet<DashboardDataResponse>(endpoint);
     
     return {
       todaysAppointments: response.todays_appointments || 0,
@@ -461,7 +466,7 @@ export const shopMngtService = {
       throw new Error('Logo upload failed');
     }
     
-    const result = await response.json();
+    await response.json();
     return await shopMngtService.getShopById(shopId);
   },
 
@@ -473,7 +478,7 @@ export const shopMngtService = {
     const queryString = params.toString();
     const endpoint = `/shop/shops/${shopId}/is-open/${queryString ? `?${queryString}` : ''}`;
     
-    const response = await apiGet<any>(endpoint);
+    const response = await apiGet<{ is_open: boolean }>(endpoint);
     return response.is_open || false;
   }
 };

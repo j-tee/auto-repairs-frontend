@@ -43,3 +43,19 @@ export interface DashboardSummary {
   customerSatisfaction?: number;
   techniciansWorking?: number;
 }
+
+export interface DashboardData {
+  todaysAppointments: number;
+  todaysRevenue: number;
+  activeJobs: number;
+  availableBays: number;
+  weeklyStats: {
+    appointments: number[];
+    revenue: number[];
+    labels: string[];
+  };
+  recentActivity: unknown[];
+  upcomingAppointments: unknown[];
+  lowInventoryItems: unknown[];
+  employeePerformance: unknown[];
+}

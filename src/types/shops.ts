@@ -1,7 +1,7 @@
 
 // Shop types
 export interface Shop {
-  operatingHours: Record<string, { open: string; close: string; closed?: boolean }>;
+  operatingHours?: Record<string, { open: string; close: string; closed?: boolean }>;
   id: string;
   name: string;
   address: string;
@@ -73,6 +73,7 @@ export interface ShopResponse {
     email: string;
     website?: string;
     description?: string;
+    operating_hours: Record<string, { open: string; close: string; closed?: boolean }>;
     business_hours: {
         monday: { open: string; close: string; is_closed?: boolean };
         tuesday: { open: string; close: string; is_closed?: boolean };
@@ -210,6 +211,57 @@ export interface ShopStats {
   topServices: { service: string; count: number }[];
 }
 
+export interface TopServices {
+    service: string;
+    count: number;
+}
+
+export interface AvailableSlot {
+    time: string;
+    duration: number;
+    bayNumber?: number;
+    technicianId?: string;
+}
+
+export interface AvailableSlotResponse {
+    time: string;
+    duration: number;
+    bay_number?: number;
+    technician_id?: string;
+}
+
+export interface BusySlot {
+    time: string;
+    duration: number;
+    reason: string;
+}
+export interface ShopAvailabilityResponse {
+    shop_id: string;
+    date: string;
+    available_slots: {
+        time: string;
+        duration: number;
+        bay_number?: number;
+        technician_id?: string;
+    }[];
+    busy_slots: {
+        time: string;
+        duration: number;
+        reason: string;
+    }[];
+}
+export interface SHopStatsResponse {
+    total_shops: number;
+    active_shops: number;
+    total_bays: number;
+    available_bays: number;
+    utilization_rate: number;
+    monthly_appointments: number;
+    monthly_revenue: number;
+    average_rating: number;
+    top_services: TopServices[];
+}
+
 export interface ShopAvailability {
   shopId: string;
   date: string;
@@ -225,19 +277,18 @@ export interface ShopAvailability {
     reason: string;
   }[];
 }
-
-export interface DashboardData {
-  todaysAppointments: number;
-  todaysRevenue: number;
-  activeJobs: number;
-  availableBays: number;
-  weeklyStats: {
-    appointments: number[];
-    revenue: number[];
-    labels: string[];
-  };
-  recentActivity: unknown[];
-  upcomingAppointments: unknown[];
-  lowInventoryItems: unknown[];
-  employeePerformance: unknown[];
+export interface DashboardDataResponse {
+    todays_appointments: number;
+    todays_revenue: number;
+    active_jobs: number;
+    available_bays: number;
+    weekly_stats: {
+        appointments: number[];
+        revenue: number[];
+        labels: string[];
+    };
+    recent_activity: unknown[];
+    upcoming_appointments: unknown[];
+    low_inventory_items: unknown[];
+    employee_performance: unknown[];
 }
