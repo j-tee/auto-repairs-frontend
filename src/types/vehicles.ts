@@ -1,4 +1,6 @@
 import type { CustomerResponse } from "./customers";
+import type { RepairOrder } from "./repairOrders";
+import type { ServiceResponse } from "./services";
 
 // Enhanced types to align with Django backend models
 export interface Vehicle {
@@ -12,10 +14,22 @@ export interface Vehicle {
   color?: string;
   mileage?: number;
   engine?: string;
-  transmissionType?: 'manual' | 'automatic' | 'cvt';
+  transmission?: 'manual' | 'automatic' | 'cvt';
   fuelType?:  'gasoline' | 'diesel' | 'hybrid' | 'electric';
   createdAt: string;
   updatedAt: string;
+  //////////////////////////////////////////////////////////////////////////////
+  notes?: string;
+  isActive: boolean;
+  customer?: {
+    id: string;
+    name: string; // Combined firstName + lastName from backend
+    email: string;
+    phone: string;
+  };
+  lastServiceDate?: string;
+  nextServiceDue?: string;
+  repairHistory?: RepairOrder[];
 }
 
 export interface VehicleResponse {
@@ -29,11 +43,16 @@ export interface VehicleResponse {
   color?: string;
   mileage?: number;
   engine?: string;
-  transmission_type?: 'manual' | 'automatic' | 'cvt'; 
+  transmission?: 'manual' | 'automatic' | 'cvt'; 
   fuel_type?:  'gasoline' | 'diesel' | 'hybrid' | 'electric';
   customer?: CustomerResponse;
   created_at: string;
   updated_at: string;
+  notes?: string;
+  is_active: boolean;
+  last_service_date?: string;
+  next_service_due?: string;
+  repair_history?: RepairOrder[];
 }
 
 export interface VehicleProblemResponse {
@@ -139,12 +158,49 @@ export interface VehicleProblemQuery {
   limit?: number;
   offset?: number;
   resolved?: boolean;
+  page?: number;
+  customerId?: string;
+  make?: string;
+  year?: number;
+  model?: string;
+  isActive?: boolean;
+  sortBy?: 'reportedDate' | 'severity' | 'status' | 'createdAt';
+  sortOrder?: 'asc' | 'desc';
+  serviceDue?: boolean;
+  lastServiceBefore?: string;
+  lastServiceAfter?: string;
+}
+
+export interface VehicleListResponse {
+  vehicles: VehicleResponse[];
+  total: number;
+  results: VehicleResponse[]
+  count: number;
+}
+export interface VehicleList{
+  vehicles: Vehicle[];
+  results?: Vehicle[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  count?: number;
 }
 export interface VehicleProblemListResponse {
   problems: VehicleProblemResponse[];
   total: number;
   results: VehicleProblemResponse[]
   count: number;
+}
+
+export interface VehicleProblemList {
+  vehicles: VehicleProblem[];
+  results?: VehicleProblem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  count?: number;
 }
 
 export interface CreateVehicleData {
@@ -157,11 +213,27 @@ export interface CreateVehicleData {
   color?: string;
   mileage?: number;
   engine_size?: string;
-  transmission_type?: Vehicle['transmissionType'];
+  transmission?: Vehicle['transmission'];
   fuel_type?: Vehicle['fuelType'];
   notes?: string;
+  engine?: string;
+  //////////////////////////////////////////////////////////////////////////
+  customerId: string;
+  licensePlate: string;
 }
-
+export interface VehicleQuery{
+  customerId?: string;
+  make?: string;
+  model?: string;
+  yearFrom?: number;
+  yearTo?: number;
+  search?: string; // Search by make, model, license plate, or VIN
+  isActive?: boolean;
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
 
 export interface UpdateVehicleData {
   customer_id?: string;
@@ -173,9 +245,11 @@ export interface UpdateVehicleData {
   color?: string;
   mileage?: number;
   engine_size?: string;
-  transmission_type?: Vehicle['transmissionType'];
+  transmission?: Vehicle['transmission'];
   fuel_type?: Vehicle['fuelType'];
   notes?: string;
+  engine?: string;
+  is_active?: boolean;
 }
 
 export interface VehicleFilters {
@@ -200,4 +274,51 @@ export interface VehicleWithHistory extends Vehicle {
   total_appointments: number;
   total_repair_orders: number;
   last_service_date?: string;
+}
+
+export interface TopMake  { make: string; count: number }
+export interface VehicleStatsResponse {
+  total_vehicles: number;
+  active_vehicles: number;
+  services_due: number;
+  average_mileage: number;
+  top_makes: { make: string; count: number }[];
+  recently_added: VehicleResponse[];
+}
+
+export interface VehicleStats {
+  totalVehicles: number;
+  activeVehicles: number;
+  servicesDue: number;
+  averageMileage: number;
+  topMakes: { make: string; count: number }[];
+  recentlyAdded: Vehicle[];
+}
+
+export interface MaintenanceReminder {
+  id: string;
+  vehicleId: string;
+  serviceType: string;
+  dueDate: string;
+  mileageDue?: number;
+  notes?: string;
+  isSent: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface VehicleServiceHistoryResponse {
+  vehicle_id: string;
+  services: ServiceResponse[]; // Replace 'any' with actual service type if available
+  total_cost: number;
+  last_service?: string;
+  next_service_due?: string;
+  maintenance_reminders: MaintenanceReminder[]; // Replace 'any' with actual reminder type if available
+}
+export interface VehicleServiceHistory {
+  vehicleId: string;
+  services: ServiceResponse[];
+  totalCost: number;
+  lastService?: string;
+  nextServiceDue?: string;
+  maintenanceReminders: MaintenanceReminder[];
 }

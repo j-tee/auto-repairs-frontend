@@ -51,7 +51,7 @@ export const vehicleProblemMngtService = {
         color: problem.vehicle_details.color || undefined,
         mileage: problem.vehicle_details.mileage ,
         engine: problem.vehicle_details.engine || undefined,
-        transmissionType: problem.vehicle_details.transmission_type || undefined,
+        transmission?: problem.vehicle_details.transmission || undefined,
         fuelType: problem.vehicle_details.fuel_type || undefined,
         createdAt: problem.vehicle_details.created_at ,
         updatedAt: problem.vehicle_details.updated_at 
@@ -89,7 +89,7 @@ export const vehicleProblemMngtService = {
         color: response.vehicle_details.color || undefined,
         mileage: response.vehicle_details.mileage ,
         engine: response.vehicle_details.engine || undefined,
-        transmissionType: response.vehicle_details.transmission_type || undefined,
+        transmission?: response.vehicle_details.transmission || undefined,
         fuelType: response.vehicle_details.fuel_type || undefined,
         createdAt: response.vehicle_details.created_at ,
         updatedAt: response.vehicle_details.updated_at
@@ -201,7 +201,7 @@ export const vehicleProblemMngtService = {
         color: problem.vehicle_details.color || undefined,
         mileage: problem.vehicle_details.mileage ,
         engine: problem.vehicle_details.engine || undefined,
-        transmissionType: problem.vehicle_details.transmission_type || undefined,
+        transmission?: problem.vehicle_details.transmission || undefined,
         fuelType: problem.vehicle_details.fuel_type || undefined,
         createdAt: problem.vehicle_details.created_at ,
         updatedAt: problem.vehicle_details.updated_at

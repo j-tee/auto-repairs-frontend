@@ -418,3 +418,8 @@ export interface RepairOrderResponse {
   repair_orders: RepairOrderDetailsResponse[]; // For compatibility with paginated responses
   count?: number;
 }
+
+// export interface RepairHistory{
+//   vehicleId: string;
+//   history: RepairOrder[];
+// }
