@@ -141,6 +141,7 @@ export const repairOrderMngtService = {
                 customerId: order.vehicle.customer_id,
                 createdAt: order.vehicle.created_at,
                 updatedAt: order.vehicle.updated_at,
+                isActive: order.vehicle.is_active,
               }
             : undefined,
           technician: order.technician
@@ -391,6 +392,7 @@ export const repairOrderMngtService = {
             customerId: response.vehicle.customer_id,
             createdAt: response.vehicle.created_at,
             updatedAt: response.vehicle.updated_at,
+            isActive: response.vehicle.is_active,
           }
         : undefined,
       technician: response.technician
@@ -611,6 +613,7 @@ export const repairOrderMngtService = {
             customerId: response.vehicle.customer_id,
             createdAt: response.vehicle.created_at,
             updatedAt: response.vehicle.updated_at,
+            isActive: response.vehicle.is_active,
           }
         : undefined,
       technician: response.technician

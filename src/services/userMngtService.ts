@@ -16,69 +16,7 @@ import type {
 import { apiGet, apiPost, apiPut, apiDelete } from "../utils/api";
 import type { PasswordPolicyResponse } from "../types/auth";
 import type { BackupSettings, ManualBackUpTrigger, SystemNotification } from "../types/autoRepairs";
-// import type { User } from "./authService";
 
-// User types
-// export interface AdminUser {
-//   id: string;
-//   email: string;
-//   firstName: string;
-//   lastName: string;
-//   role: 'owner' | 'employee' | 'customer';
-//   avatar?: string;
-//   phone?: string;
-//   address?: string;
-//   isActive: boolean;
-//   createdAt: string;
-//   lastLogin?: string;
-//   permissions?: string[];
-
-//   // Extended properties for admin management
-//   department?: string;
-//   employeeId?: string;
-//   hireDate?: string;
-//   salary?: number;
-//   manager?: string;
-//   notes?: string;
-//   loginAttempts?: number;
-//   lastPasswordChange?: string;
-//   passwordExpiresAt?: string;
-//   twoFactorEnabled?: boolean;
-//   shopId?: string; // For employees - which shop they work at
-//   shopName?: string; // For display purposes
-// }
-
-// export interface CreateUserData {
-//   email: string;
-//   password: string;
-//   firstName: string;
-//   lastName: string;
-//   role: AdminUser['role'];
-//   phone?: string;
-//   address?: string;
-//   permissions?: string[];
-// }
-
-// export interface UpdateUserData {
-//   email?: string;
-//   firstName?: string;
-//   lastName?: string;
-//   role?: AdminUser['role'];
-//   phone?: string;
-//   address?: string;
-//   isActive?: boolean;
-//   permissions?: string[];
-// }
-
-// export interface UserQuery {
-//   page?: number;
-//   limit?: number;
-//   search?: string;
-//   role?: AdminUser['role'];
-//   isActive?: boolean;
-//   sortBy?: string;
-//   sortOrder?: 'asc' | 'desc';
-// }
 
 // User Management Service
 export const userMngtService = {
