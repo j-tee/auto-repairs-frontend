@@ -121,7 +121,7 @@ export interface UpdateVehicleProblemData {
   title?: string;
   description?: string;
   severity?: 'low' | 'medium' | 'high' | 'critical';
-  status?:string;
+  status?:"resolved" | "open" | "pending" | "closed" | undefined;
   // status?:
   //   | "scheduled"
   //   | "confirmed"
