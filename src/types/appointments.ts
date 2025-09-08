@@ -168,20 +168,20 @@ export interface AppointmentFilters {
   vehicle_id?: string;
 }
 
-export interface RepairOrderFilters {
-  status?: RepairOrder["status"] | RepairOrder["status"][];
-  dateFrom?: string;
-  dateTo?: string;
-  customerId?: string;
-  vehicleId?: string;
-  technicianId?: string;
-  serviceAdvisorId?: string;
-  shopId?: string;
-  priority?: RepairOrder["priority"] | RepairOrder["priority"][];
-  minAmount?: number;
-  maxAmount?: number;
-  workOrderNumber?: string;
-}
+// export interface RepairOrderFilters {
+//   status?: RepairOrder["status"] | RepairOrder["status"][];
+//   dateFrom?: string;
+//   dateTo?: string;
+//   customerId?: string;
+//   vehicleId?: string;
+//   technicianId?: string;
+//   serviceAdvisorId?: string;
+//   shopId?: string;
+//   priority?: RepairOrder["priority"] | RepairOrder["priority"][];
+//   minAmount?: number;
+//   maxAmount?: number;
+//   workOrderNumber?: string;
+// }
 
 export interface AppointmentQuery {
   page?: number;

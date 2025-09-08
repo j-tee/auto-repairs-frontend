@@ -62,23 +62,6 @@ export const appointmentMngtService = {
 
     return {
       appointments: appointmentsArray.map((appointment: AppointmentResponse) => {
-        // Map backend status string to allowed Appointment['status'] union
-        // const allowedStatuses = [
-        //   'scheduled',
-        //   'confirmed',
-        //   'pending',
-        //   'completed',
-        //   'cancelled',
-        //   'no_show',
-        //   'in_progress'
-        // ] as const;
-        // const status =
-        //   allowedStatuses.includes(
-        //     (appointment.status as string)?.toLowerCase() as typeof allowedStatuses[number]
-        //   )
-        //     ? ((appointment.status as string)?.toLowerCase() as Appointment['status'])
-        //     : 'pending';
-
         return {
           id: appointment.id?.toString() || '',
           customerId: appointment.customer_id?.toString() || '',

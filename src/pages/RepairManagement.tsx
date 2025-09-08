@@ -47,9 +47,10 @@ export const RepairManagement: React.FC = () => {
       console.log("User data:", localStorage.getItem("user_data"));
 
       // Use Redux slice actions to load data
+      // Don't load appointments to avoid interfering with dashboard filters
       await Promise.all([
         loadRepairOrders(),
-        loadAppointments(),
+        // loadAppointments(), // Removed - let dashboard control appointment filtering
         loadVehicles(),
         loadCustomers(),
       ]);

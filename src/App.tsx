@@ -8,7 +8,6 @@ import {
 import { Navigation } from "./components/navigation/Navigation";
 import { AuthPage } from "./components/auth/AuthPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
-import { DashboardPage } from "./pages/DashboardPage";
 import { AutoRepairDashboard } from "./pages/AutoRepairDashboard";
 import { UserManagement } from "./pages/UserManagement";
 import { ShopManagement } from "./pages/ShopManagement";
@@ -55,14 +54,6 @@ const AppContent: React.FC = () => {
             element={
               <ProtectedRoute>
                 <AutoRepairDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/legacy-dashboard"
-            element={
-              <ProtectedRoute>
-                <DashboardPage />
               </ProtectedRoute>
             }
           />

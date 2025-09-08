@@ -35,17 +35,15 @@ import {
   
   // Error handling
   clearError,
-  clearErrors
+  clearErrors,
+  clearAppointments
 } from '../store/slices/autoRepairsSlice';
-
-import type { 
-  Vehicle, 
-  Customer, 
-  Appointment, 
-  RepairOrder, 
-  Employee, 
-  Shop
-} from '../types/autoRepairs';
+import type { Vehicle, VehicleFilters } from '../types/vehicles';
+import type { Customer, CustomerFilters } from '../types/customers';
+import type { Appointment, AppointmentFilters } from '../types/appointments';
+import type { RepairOrder, RepairOrderFilters } from '../types/repairOrders';
+import type { Employee } from '../types/employees';
+import type { Shop } from '../types/shops';
 
 export const useAutoRepairs = () => {
   const dispatch = useAppDispatch();
@@ -70,7 +68,7 @@ export const useAutoRepairs = () => {
   });
 
   // Vehicle operations
-  const loadVehicles = useCallback((filters?: any) => {
+  const loadVehicles = useCallback((filters?: VehicleFilters) => {
     return dispatch(fetchVehicles(filters));
   }, [dispatch]);
 
@@ -87,7 +85,7 @@ export const useAutoRepairs = () => {
   }, [dispatch]);
 
   // Customer operations
-  const loadCustomers = useCallback((filters?: any) => {
+  const loadCustomers = useCallback((filters?: CustomerFilters) => {
     return dispatch(fetchCustomers(filters));
   }, [dispatch]);
 
@@ -104,7 +102,7 @@ export const useAutoRepairs = () => {
   }, [dispatch]);
 
   // Appointment operations
-  const loadAppointments = useCallback((filters?: any) => {
+  const loadAppointments = useCallback((filters?: AppointmentFilters) => {
     return dispatch(fetchAppointments(filters));
   }, [dispatch]);
 
@@ -121,7 +119,7 @@ export const useAutoRepairs = () => {
   }, [dispatch]);
 
   // Repair Order operations
-  const loadRepairOrders = useCallback((filters?: any) => {
+  const loadRepairOrders = useCallback((filters?: RepairOrderFilters) => {
     return dispatch(fetchRepairOrders(filters));
   }, [dispatch]);
 
@@ -157,11 +155,11 @@ export const useAutoRepairs = () => {
 
   // Batch operations
   const loadAllData = useCallback(() => {
-    dispatch(fetchVehicles());
-    dispatch(fetchCustomers());
-    dispatch(fetchAppointments());
-    dispatch(fetchRepairOrders());
-    dispatch(fetchEmployees());
+    dispatch(fetchVehicles(undefined));
+    dispatch(fetchCustomers(undefined));
+    dispatch(fetchAppointments(undefined));
+    dispatch(fetchRepairOrders(undefined));
+    dispatch(fetchEmployees(undefined));
     dispatch(fetchShops());
   }, [dispatch]);
 
@@ -298,5 +296,6 @@ export const useAutoRepairs = () => {
     // Error Handling
     clearError: handleClearError,
     clearAllErrors: handleClearAllErrors,
+    clearAppointments: useCallback(() => dispatch(clearAppointments()), [dispatch]),
   };
 };

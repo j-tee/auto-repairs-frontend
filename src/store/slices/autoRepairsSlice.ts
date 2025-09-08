@@ -492,6 +492,7 @@ export const fetchRepairOrders = createAsyncThunk(
   async (filters: any = {}, { rejectWithValue }) => {
     try {
       const response = await repairOrderMngtService.getRepairOrders(filters);
+      console.log('Fetched repair orders:', response, filters);
       return response.repairOrders;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Unknown error');
@@ -830,6 +831,9 @@ export const autoRepairsSlice = createSlice({
       state.token = null;
       state.isAuthenticated = false;
     },
+    clearAppointments: (state) => {
+      state.appointments = [];
+    },
   },
   extraReducers: (builder) => {
     // Auth reducers - Login
@@ -1155,6 +1159,7 @@ export const {
   clearErrors,
   clearPasswordResetEmail, 
   setUser, 
-  clearUser 
+  clearUser,
+  clearAppointments
 } = autoRepairsSlice.actions;
 export default autoRepairsSlice.reducer;
