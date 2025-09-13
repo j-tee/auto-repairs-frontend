@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Revenue Debug</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: #f5f5f5; 
+        }
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 20px; 
+            border-radius: 8px; 
+        }
+        .log { 
+            background: #f8f9fa; 
+            border: 1px solid #e9ecef; 
+            padding: 10px; 
+            margin: 10px 0; 
+            border-radius: 4px; 
+            font-family: monospace; 
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        button { 
+            background: #007bff; 
+            color: white; 
+            border: none; 
+            padding: 10px 20px; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            margin: 5px; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐛 Revenue Debug Tool</h1>
+        <p>Today's Date: <strong id="todayDate"></strong></p>
+        
+        <div>
+            <button onclick="testCurrentDashboard()">Test Current Dashboard</button>
+            <button onclick="testReduxRevenue()">Test Redux Revenue</button>
+            <button onclick="testServiceDirect()">Test Service Direct</button>
+            <button onclick="clearLog()">Clear Log</button>
+        </div>
+        
+        <div id="logOutput" class="log">Click a button to start debugging...</div>
+    </div>
+
+    <script>
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('todayDate').textContent = today;
+        
+        function log(message) {
+            const output = document.getElementById('logOutput');
+            const timestamp = new Date().toLocaleTimeString();
+            output.textContent += `[${timestamp}] ${message}\n`;
+            output.scrollTop = output.scrollHeight;
+        }
+        
+        function clearLog() {
+            document.getElementById('logOutput').textContent = '';
+        }
+        
+        async function testCurrentDashboard() {
+            clearLog();
+            log('🔍 Testing current dashboard implementation...');
+            
+            // Check if we can access the window Redux store
+            try {
+                if (window.__REDUX_DEVTOOLS_EXTENSION__) {
+                    log('✅ Redux DevTools available');
+                } else {
+                    log('❌ Redux DevTools not available');
+                }
+                
+                // Try to access the Redux state
+                if (window.store) {
+                    const state = window.store.getState();
+                    log(`✅ Redux store accessible: ${JSON.stringify(Object.keys(state))}`);
+                    
+                    if (state.autoRepairs) {
+                        log(`✅ autoRepairs slice found`);
+                        log(`📊 todaysRevenue: ${state.autoRepairs.todaysRevenue}`);
+                        log(`🔄 loading.todaysRevenue: ${state.autoRepairs.loading?.todaysRevenue}`);
+                        log(`❌ error.todaysRevenue: ${state.autoRepairs.error?.todaysRevenue}`);
+                    }
+                } else {
+                    log('❌ Redux store not accessible on window');
+                }
+                
+            } catch (error) {
+                log(`❌ Error accessing Redux: ${error.message}`);
+            }
+        }
+        
+        async function testReduxRevenue() {
+            clearLog();
+            log('🚀 Testing Redux revenue thunk...');
+            
+            try {
+                // Try to dispatch the fetchTodaysRevenue action if we can access the store
+                if (window.store) {
+                    log('📤 Dispatching fetchTodaysRevenue...');
+                    
+                    // Import the action (this might not work in this context)
+                    const result = await window.store.dispatch({
+                        type: 'autoRepairs/fetchTodaysRevenue/pending'
+                    });
+                    
+                    log(`📥 Dispatch result: ${JSON.stringify(result)}`);
+                } else {
+                    log('❌ Cannot access Redux store for dispatch');
+                }
+                
+            } catch (error) {
+                log(`❌ Redux test error: ${error.message}`);
+            }
+        }
+        
+        async function testServiceDirect() {
+            clearLog();
+            log('🔧 Testing service layer directly...');
+            
+            const API_BASE_URL = 'http://127.0.0.1:8000/api';
+            
+            try {
+                // Check if we can get the auth token
+                const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+                
+                if (!token) {
+                    log('❌ No auth token found. Please login first.');
+                    return;
+                }
+                
+                log(`🔑 Found auth token: ${token.substring(0, 20)}...`);
+                
+                // Test the repair orders endpoint
+                log('📡 Testing repair orders API...');
+                
+                const response = await fetch(`${API_BASE_URL}/shop/repair-orders/?status=completed&limit=10`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                log(`📡 Response status: ${response.status}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`✅ API call successful`);
+                    log(`📊 Response structure: ${Object.keys(data).join(', ')}`);
+                    
+                    const orders = data.results || data.repair_orders || data || [];
+                    log(`📋 Found ${orders.length} completed orders`);
+                    
+                    if (orders.length > 0) {
+                        log('🔍 Sample order structure:');
+                        const sample = orders[0];
+                        log(`   Keys: ${Object.keys(sample).join(', ')}`);
+                        
+                        // Check for revenue fields
+                        const totalField = sample.total_cost || sample.total || sample.amount;
+                        log(`   Revenue field: ${totalField} (${typeof totalField})`);
+                        
+                        // Calculate today's revenue
+                        const todaysOrders = orders.filter(order => {
+                            const completionDate = order.actual_completion_date || 
+                                                 order.completed_at || 
+                                                 order.updated_at;
+                            return completionDate && completionDate.startsWith(today);
+                        });
+                        
+                        log(`📅 Orders completed today: ${todaysOrders.length}`);
+                        
+                        if (todaysOrders.length > 0) {
+                            const revenue = todaysOrders.reduce((sum, order) => {
+                                const amount = Number(order.total_cost || order.total || order.amount || 0);
+                                return sum + amount;
+                            }, 0);
+                            
+                            log(`💰 Calculated today's revenue: $${revenue.toFixed(2)}`);
+                            
+                            // Show individual orders
+                            todaysOrders.forEach((order, index) => {
+                                const amount = order.total_cost || order.total || order.amount || 0;
+                                const date = order.actual_completion_date || order.completed_at || order.updated_at;
+                                log(`   Order ${index + 1}: ID=${order.id}, Amount=$${amount}, Date=${date}`);
+                            });
+                        } else {
+                            log('📭 No orders completed today');
+                        }
+                    } else {
+                        log('📭 No completed orders in database');
+                    }
+                } else {
+                    const errorText = await response.text();
+                    log(`❌ API call failed: ${response.status} ${response.statusText}`);
+                    log(`   Error: ${errorText}`);
+                }
+                
+            } catch (error) {
+                log(`❌ Service test error: ${error.message}`);
+            }
+        }
+        
+        // Auto-run tests on page load
+        setTimeout(() => {
+            testCurrentDashboard();
+        }, 1000);
+    </script>
+</body>
+</html>

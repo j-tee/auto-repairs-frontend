@@ -8,6 +8,47 @@ import type {
   VehicleResponse,
 } from "./vehicles";
 
+// NEW: Appointment status constants matching updated API workflow
+export const APPOINTMENT_STATUSES = {
+  PENDING: 'pending' as const,        // Customer booked appointment (initial status)
+  ASSIGNED: 'assigned' as const,      // Technician assigned but not started
+  IN_PROGRESS: 'in_progress' as const, // Work has begun
+  COMPLETED: 'completed' as const,    // Work finished
+  CANCELLED: 'cancelled' as const,    // Appointment cancelled
+  NO_SHOW: 'no_show' as const        // Customer didn't show up
+};
+
+// NEW: Technician workload interfaces (technician is an Employee)
+export interface TechnicianWorkload {
+  technician: Employee;    // Employee with technician role
+  workload: {
+    current_appointments: number;
+    is_available: boolean;
+    appointments_today: number;
+    max_capacity: number;
+  };
+  current_jobs: Array<{
+    appointment_id: number;
+    vehicle: string;
+    customer: string;
+    status: string;
+    assigned_at: string;
+    started_at: string | null;
+  }>;
+}
+
+export interface TechnicianWorkloadSummary {
+  total_technicians: number;
+  available_technicians: number;
+  busy_technicians: number;
+  utilization_rate: string;
+}
+
+export interface TechnicianWorkloadResponse {
+  summary: TechnicianWorkloadSummary;
+  technicians: TechnicianWorkload[];
+}
+
 // Frontend TypeScript types for Appointments
 // export interface VehicleProblem {
 //   id: string;
@@ -62,35 +103,47 @@ export interface Appointment {
   duration?: number; // in minutes
   serviceType?: string;
   description?: string;
-  status?: string;
-  // status?:
-  //   | "scheduled"
-  //   | "confirmed"
-  //   | "pending"
-  //   | "completed"
-  //   | "cancelled"
-  //   | "no_show"
-  //   | "in_progress";
+  
+  // Updated status with new workflow
+  status?: 'pending' | 'assigned' | 'in_progress' | 'completed' | 'cancelled' | 'no_show';
+  
   priority?: "low" | "medium" | "high" | "urgent";
   estimatedCost?: number;
   notes?: string;
   reminderSent?: boolean;
   createdAt?: string;
   updatedAt?: string;
-  // Related data for display
+  
+  // NEW: Consistent API pattern - both ID and object fields
+  vehicle_id?: number;           // Integer for relationships
+  customer_id?: number;          // Integer for relationships
+  customer_name?: string;        // Convenience field - no additional API call needed
+  
+  // NEW: Technician allocation fields (technician is an Employee)
+  assigned_technician_id?: number | null;  // Employee ID
+  assigned_technician?: Employee | null;   // Employee object for display
+  
+  // NEW: Timestamp tracking for workflow
+  assigned_at?: string | null;
+  started_at?: string | null;
+  completed_at?: string | null;
+  
+  // Related data for display (updated to match API consistency)
   customer?: Customer | EmbeddedCustomer;
   employee?: Employee;
   shop?: Shop;
   vehicle?: {
-    id?: string;
+    id?: number;
     make?: string;
     model?: string;
     year?: number;
-    licensePlate?: string;
+    license_plate?: string;    // Updated to match API
+    vin?: string;
+    color?: string;
     customer?: {
-      id?: string;
+      id?: number;
       name?: string;
-      phoneNumber?: string;
+      phone_number?: string;   // Updated to match API
       email?: string;
     };
   };

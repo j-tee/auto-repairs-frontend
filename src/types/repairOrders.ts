@@ -140,7 +140,8 @@ export interface RepairOrder {
     description?: string;
   };
   ////////////////////////////////////////////////
-  id?: string;
+  id?: number;
+  customer_name?: string;
   customerId?: string;
   vehicleId?: string;
   appointmentId?: string; // Optional link to appointment

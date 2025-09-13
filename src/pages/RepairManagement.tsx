@@ -23,7 +23,6 @@ export const RepairManagement: React.FC = () => {
     loading,
     error,
     loadRepairOrders,
-    loadAppointments,
     loadVehicles,
     loadCustomers,
   } = useAutoRepairs();
@@ -42,10 +41,6 @@ export const RepairManagement: React.FC = () => {
     try {
       setSuccessMessage(null);
 
-      console.log("RepairManagement component mounting...");
-      console.log("Auth token:", localStorage.getItem("auth_token"));
-      console.log("User data:", localStorage.getItem("user_data"));
-
       // Use Redux slice actions to load data
       // Don't load appointments to avoid interfering with dashboard filters
       await Promise.all([
@@ -55,7 +50,7 @@ export const RepairManagement: React.FC = () => {
         loadCustomers(),
       ]);
 
-      console.log("RepairManagement data loaded via Redux");
+      console.log("RepairManagement data loaded via Redux",repairOrders);
     } catch (err: any) {
       console.error("Error loading data:", err);
     }
@@ -69,8 +64,9 @@ export const RepairManagement: React.FC = () => {
 
   const getCustomerInfo = (vehicleId: number) => {
     const vehicle = vehicles.find((v: any) => v.id === vehicleId);
+    console.log('Finding customer for vehicleId:', vehicleId, 'Found vehicle:', vehicle);
     if (!vehicle) return "Unknown Customer";
-    const customer = customers.find((c: any) => c.id === vehicle.customerId);
+    const customer = customers.find((c: any) => c.id === vehicle.customer.id);
     if (!customer) return "Unknown Customer";
 
     // Customer has a single 'name' field according to Django model
@@ -173,7 +169,7 @@ export const RepairManagement: React.FC = () => {
                   <tbody>
                     {repairOrders.map((order: any) => (
                       <tr key={order.id}>
-                        <td>{order.workOrderNumber}</td>
+                        <td>{order.id}</td>
                         <td>{getVehicleInfo(order.vehicleId)}</td>
                         <td>{getCustomerInfo(order.vehicleId)}</td>
                         <td>
@@ -263,7 +259,7 @@ export const RepairManagement: React.FC = () => {
             <Col md={3}>
               <Card className="text-center">
                 <Card.Body>
-                  <h3 className="text-primary">{repairOrders.length}</h3>
+                  <h3 className="text-primary">{repairOrders.filter(repair => (repair.status ==='in_progress')).length}</h3>
                   <p className="mb-0">Active Repair Orders</p>
                 </Card.Body>
               </Card>

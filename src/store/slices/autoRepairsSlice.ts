@@ -5,7 +5,8 @@ import {
   appointmentMngtService,
   repairOrderMngtService,
   authService,
-  userMngtService
+  userMngtService,
+  technicianWorkloadService
 } from '../../services';
 import { apiPost, apiGet, setAuthToken, removeAuthToken, getAuthToken } from '../../utils/api';
 
@@ -80,6 +81,37 @@ export interface EnhancedAutoRepairsState {
   employees: Employee[]; // TODO: Define proper Employee type
   shops: any[]; // TODO: Define proper Shop type
   
+  // NEW: Technician workload management
+  technicianWorkload: {
+    summary: {
+      total_technicians: number;
+      available_technicians: number;
+      busy_technicians: number;
+      utilization_rate: string;
+    } | null;
+    technicians: Array<{
+      technician: Employee;
+      workload: {
+        current_appointments: number;
+        is_available: boolean;
+        appointments_today: number;
+        max_capacity: number;
+      };
+      current_jobs: Array<{
+        appointment_id: number;
+        vehicle: string;
+        customer: string;
+        status: string;
+        assigned_at: string;
+        started_at: string | null;
+      }>;
+    }>;
+  };
+  availableTechnicians: Employee[];
+  
+  // Dashboard stats
+  todaysRevenue: number;
+  
   // User management
   adminUsers: AdminUser[];
   userStats: UserStats | null;
@@ -106,6 +138,16 @@ export interface EnhancedAutoRepairsState {
     employees: boolean;
     shops: boolean;
     
+    // NEW: Technician assignment loading states
+    assignTechnician: boolean;
+    startWork: boolean;
+    completeWork: boolean;
+    technicianWorkload: boolean;
+    availableTechnicians: boolean;
+    
+    // Dashboard stats loading states
+    todaysRevenue: boolean;
+    
     // User management loading states
     adminUsers: boolean;
     userStats: boolean;
@@ -131,6 +173,16 @@ export interface EnhancedAutoRepairsState {
     repairOrders: string | null;
     employees: string | null;
     shops: string | null;
+    
+    // NEW: Technician assignment error states
+    assignTechnician: string | null;
+    startWork: string | null;
+    completeWork: string | null;
+    technicianWorkload: string | null;
+    availableTechnicians: string | null;
+    
+    // Dashboard stats error states
+    todaysRevenue: string | null;
     
     // User management error states
     adminUsers: string | null;
@@ -442,9 +494,77 @@ export const fetchAppointments = createAsyncThunk(
   'autoRepairs/fetchAppointments',
   async (filters: any = {}, { rejectWithValue }) => {
     try {
-      const response = await appointmentMngtService.getAppointments(filters);
-      return response.appointments;
+      // Transform AppointmentFilters to AppointmentQuery format
+      const transformedFilters: any = { ...filters };
+      
+      // Transform snake_case to camelCase for API compatibility
+      if (filters.date_from) {
+        transformedFilters.dateFrom = filters.date_from;
+        delete transformedFilters.date_from;
+      }
+      if (filters.date_to) {
+        transformedFilters.dateTo = filters.date_to;
+        delete transformedFilters.date_to;
+      }
+      if (filters.customer_id) {
+        transformedFilters.customerId = filters.customer_id;
+        delete transformedFilters.customer_id;
+      }
+      if (filters.vehicle_id) {
+        transformedFilters.vehicleId = filters.vehicle_id;
+        delete transformedFilters.vehicle_id;
+      }
+      
+      // Debug logging
+      console.log('🔍 fetchAppointments - Original filters:', filters);
+      console.log('🔍 fetchAppointments - Transformed filters:', transformedFilters);
+      
+      const response = await appointmentMngtService.getAppointments(transformedFilters);
+      
+      console.log('🔍 fetchAppointments - API response:', { 
+        count: response.appointments.length, 
+        total: response.total,
+        appointments: response.appointments.map(apt => ({ 
+          id: apt.id, 
+          scheduledDate: apt.scheduledDate,
+          status: apt.status 
+        }))
+      });
+      
+      // WORKAROUND: Backend date filtering is broken, so filter on frontend
+      let filteredAppointments = response.appointments;
+      
+      if (transformedFilters.dateFrom || transformedFilters.dateTo) {
+        filteredAppointments = response.appointments.filter(appointment => {
+          if (!appointment.date && !appointment.scheduledDate) return false;
+          
+          // Use the date field from the API response (which is 'date', not 'scheduledDate')
+          const appointmentDate = new Date(appointment.date || appointment.scheduledDate || '').toISOString().split('T')[0];
+          
+          const fromDate = transformedFilters.dateFrom;
+          const toDate = transformedFilters.dateTo;
+          
+          if (fromDate && appointmentDate < fromDate) return false;
+          if (toDate && appointmentDate > toDate) return false;
+          
+          return true;
+        });
+        
+        console.log('🔧 FRONTEND DATE FILTER APPLIED:', {
+          originalCount: response.appointments.length,
+          filteredCount: filteredAppointments.length,
+          dateFrom: transformedFilters.dateFrom,
+          dateTo: transformedFilters.dateTo,
+          filteredDates: filteredAppointments.map(apt => ({
+            id: apt.id,
+            date: new Date(apt.date || apt.scheduledDate || '').toISOString().split('T')[0]
+          }))
+        });
+      }
+      
+      return filteredAppointments;
     } catch (error) {
+      console.error('❌ fetchAppointments error:', error);
       return rejectWithValue(error instanceof Error ? error.message : 'Unknown error');
     }
   }
@@ -480,6 +600,68 @@ export const deleteAppointment = createAsyncThunk(
     try {
       await appointmentMngtService.deleteAppointment(id);
       return id;
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Unknown error');
+    }
+  }
+);
+
+// NEW: Technician Assignment Workflow
+export const assignTechnician = createAsyncThunk(
+  'autoRepairs/assignTechnician',
+  async ({ appointmentId, technicianId }: { appointmentId: string; technicianId: string }, { rejectWithValue }) => {
+    try {
+      const updatedAppointment = await appointmentMngtService.assignTechnician(appointmentId, technicianId);
+      return updatedAppointment;
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Unknown error');
+    }
+  }
+);
+
+export const startWork = createAsyncThunk(
+  'autoRepairs/startWork',
+  async (appointmentId: string, { rejectWithValue }) => {
+    try {
+      const updatedAppointment = await appointmentMngtService.startWork(appointmentId);
+      return updatedAppointment;
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Unknown error');
+    }
+  }
+);
+
+export const completeWork = createAsyncThunk(
+  'autoRepairs/completeWork',
+  async (appointmentId: string, { rejectWithValue }) => {
+    try {
+      const updatedAppointment = await appointmentMngtService.completeWork(appointmentId);
+      return updatedAppointment;
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Unknown error');
+    }
+  }
+);
+
+// NEW: Technician Workload Management
+export const fetchTechnicianWorkload = createAsyncThunk(
+  'autoRepairs/fetchTechnicianWorkload',
+  async (_, { rejectWithValue }) => {
+    try {
+      const workloadData = await technicianWorkloadService.getTechnicianWorkload();
+      return workloadData;
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Unknown error');
+    }
+  }
+);
+
+export const fetchAvailableTechnicians = createAsyncThunk(
+  'autoRepairs/fetchAvailableTechnicians',
+  async (_, { rejectWithValue }) => {
+    try {
+      const technicians = await technicianWorkloadService.getAvailableTechnicians();
+      return technicians;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Unknown error');
     }
@@ -532,6 +714,22 @@ export const deleteRepairOrder = createAsyncThunk(
       return id;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Unknown error');
+    }
+  }
+);
+
+// Fetch today's revenue (server-side calculation)
+export const fetchTodaysRevenue = createAsyncThunk(
+  'autoRepairs/fetchTodaysRevenue',
+  async (_, { rejectWithValue }) => {
+    try {
+      console.log('🚀 fetchTodaysRevenue thunk started');
+      const revenue = await repairOrderMngtService.getTodaysRevenue();
+      console.log('💰 fetchTodaysRevenue result:', revenue);
+      return revenue;
+    } catch (error) {
+      console.error('❌ fetchTodaysRevenue error:', error);
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch today\'s revenue');
     }
   }
 );
@@ -727,6 +925,16 @@ const initialState: EnhancedAutoRepairsState = {
   employees: [],
   shops: [],
   
+  // NEW: Technician workload management
+  technicianWorkload: {
+    summary: null,
+    technicians: [],
+  },
+  availableTechnicians: [],
+  
+  // Dashboard stats
+  todaysRevenue: 0,
+  
   // User management
   adminUsers: [],
   userStats: null,
@@ -753,6 +961,16 @@ const initialState: EnhancedAutoRepairsState = {
     employees: false,
     shops: false,
     
+    // NEW: Technician assignment loading states
+    assignTechnician: false,
+    startWork: false,
+    completeWork: false,
+    technicianWorkload: false,
+    availableTechnicians: false,
+    
+    // Dashboard stats loading states
+    todaysRevenue: false,
+    
     // User management loading states
     adminUsers: false,
     userStats: false,
@@ -778,6 +996,16 @@ const initialState: EnhancedAutoRepairsState = {
     repairOrders: null,
     employees: null,
     shops: null,
+    
+    // NEW: Technician assignment error states
+    assignTechnician: null,
+    startWork: null,
+    completeWork: null,
+    technicianWorkload: null,
+    availableTechnicians: null,
+    
+    // Dashboard stats error states
+    todaysRevenue: null,
     
     // User management error states
     adminUsers: null,
@@ -1019,6 +1247,86 @@ export const autoRepairsSlice = createSlice({
         state.loading.appointments = false;
         state.error.appointments = action.payload as string;
       })
+
+      // NEW: Technician Assignment Workflow Reducers
+      .addCase(assignTechnician.pending, (state) => {
+        state.loading.assignTechnician = true;
+        state.error.assignTechnician = null;
+      })
+      .addCase(assignTechnician.fulfilled, (state, action) => {
+        state.loading.assignTechnician = false;
+        // Update the appointment in the appointments array
+        const index = state.appointments.findIndex(apt => apt.id === action.payload.id);
+        if (index >= 0) {
+          state.appointments[index] = action.payload;
+        }
+      })
+      .addCase(assignTechnician.rejected, (state, action) => {
+        state.loading.assignTechnician = false;
+        state.error.assignTechnician = action.payload as string;
+      })
+
+      .addCase(startWork.pending, (state) => {
+        state.loading.startWork = true;
+        state.error.startWork = null;
+      })
+      .addCase(startWork.fulfilled, (state, action) => {
+        state.loading.startWork = false;
+        // Update the appointment in the appointments array
+        const index = state.appointments.findIndex(apt => apt.id === action.payload.id);
+        if (index >= 0) {
+          state.appointments[index] = action.payload;
+        }
+      })
+      .addCase(startWork.rejected, (state, action) => {
+        state.loading.startWork = false;
+        state.error.startWork = action.payload as string;
+      })
+
+      .addCase(completeWork.pending, (state) => {
+        state.loading.completeWork = true;
+        state.error.completeWork = null;
+      })
+      .addCase(completeWork.fulfilled, (state, action) => {
+        state.loading.completeWork = false;
+        // Update the appointment in the appointments array
+        const index = state.appointments.findIndex(apt => apt.id === action.payload.id);
+        if (index >= 0) {
+          state.appointments[index] = action.payload;
+        }
+      })
+      .addCase(completeWork.rejected, (state, action) => {
+        state.loading.completeWork = false;
+        state.error.completeWork = action.payload as string;
+      })
+
+      // NEW: Technician Workload Management Reducers
+      .addCase(fetchTechnicianWorkload.pending, (state) => {
+        state.loading.technicianWorkload = true;
+        state.error.technicianWorkload = null;
+      })
+      .addCase(fetchTechnicianWorkload.fulfilled, (state, action) => {
+        state.loading.technicianWorkload = false;
+        state.technicianWorkload = action.payload;
+      })
+      .addCase(fetchTechnicianWorkload.rejected, (state, action) => {
+        state.loading.technicianWorkload = false;
+        state.error.technicianWorkload = action.payload as string;
+      })
+
+      .addCase(fetchAvailableTechnicians.pending, (state) => {
+        state.loading.availableTechnicians = true;
+        state.error.availableTechnicians = null;
+      })
+      .addCase(fetchAvailableTechnicians.fulfilled, (state, action) => {
+        state.loading.availableTechnicians = false;
+        state.availableTechnicians = action.payload;
+      })
+      .addCase(fetchAvailableTechnicians.rejected, (state, action) => {
+        state.loading.availableTechnicians = false;
+        state.error.availableTechnicians = action.payload as string;
+      })
+
       // Repair Orders
       .addCase(fetchRepairOrders.pending, (state) => {
         state.loading.repairOrders = true;
@@ -1031,6 +1339,21 @@ export const autoRepairsSlice = createSlice({
       .addCase(fetchRepairOrders.rejected, (state, action) => {
         state.loading.repairOrders = false;
         state.error.repairOrders = action.payload as string;
+      })
+
+      // Fetch Today's Revenue
+      .addCase(fetchTodaysRevenue.pending, (state) => {
+        state.loading.todaysRevenue = true;
+        state.error.todaysRevenue = null;
+      })
+      .addCase(fetchTodaysRevenue.fulfilled, (state, action) => {
+        state.loading.todaysRevenue = false;
+        state.todaysRevenue = action.payload;
+        state.error.todaysRevenue = null;
+      })
+      .addCase(fetchTodaysRevenue.rejected, (state, action) => {
+        state.loading.todaysRevenue = false;
+        state.error.todaysRevenue = action.payload as string;
       })
 
       // User Management reducers

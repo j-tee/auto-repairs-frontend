@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Row,
   Col,
@@ -16,7 +16,6 @@ import {
   AddRepairOrderModal,
   AddVehicleProblemModal,
 } from "../components/modals";
-import { dashboardService } from "../services";
 import type { DashboardSummary } from "../types/dashboard";
 import type { Appointment } from "../types/appointments";
 import type { RepairOrder } from "../types/repairOrders";
@@ -34,8 +33,10 @@ export const AutoRepairDashboard: React.FC = () => {
     loadRepairOrders,
     loadCustomers,
     loadVehicles,
+    todaysRevenue,
+    loadTodaysRevenue,
     clearError,
-    clearAppointments
+    clearAppointments,
   } = useAutoRepairs();
 
   // Modal states
@@ -59,32 +60,119 @@ export const AutoRepairDashboard: React.FC = () => {
   useEffect(() => {
     if (user?.role) {
       const initializeData = async () => {
-        await loadDashboardData();
         await loadAllEntityData();
       };
       initializeData();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.role, user?.id, loadAppointments, loadRepairOrders, loadCustomers, loadVehicles]);
 
-  const loadDashboardData = async () => {
+  // Calculate dashboard stats from Redux state instead of bypassing Redux
+  const calculateDashboardStats = useCallback(() => {
+    const today = new Date().toISOString().split('T')[0];
+    
+    if (user?.role === "customer") {
+      // Customer stats calculated from Redux state
+      const customerTotalSpent = repairOrders.reduce((sum, order) => sum + (order.total || 0), 0);
+      
+      return {
+        role: "customer" as const,
+        stats: {
+          customerVehicles: vehicles.length,
+          customerActiveAppointments: appointments.length,
+          customerRepairOrders: repairOrders.length,
+          customerTotalSpent,
+          todaysAppointments: 0,
+          activeRepairs: 0,
+          totalCustomers: 0,
+          todaysRevenue: 0,
+          monthlyAppointments: 0,
+          monthlyRevenue: 0,
+          monthlyNewCustomers: 0
+        },
+        lastUpdated: new Date().toISOString()
+      };
+    } else {
+      // Employee/Owner stats calculated from Redux state
+      console.log(`🔍 Dashboard calculation - Today: ${today}`);
+      console.log(`📋 Total appointments in Redux: ${appointments.length}`);
+      console.log(`📋 Appointments data:`, appointments.map(apt => ({
+        id: apt.id,
+        scheduledDate: apt.scheduledDate,
+        status: apt.status,
+        date: apt.date
+      })));
+      
+      const todaysAppointments = appointments.filter(apt => 
+        apt.scheduledDate === today
+      ).length;
+      
+      console.log(`📊 Today's appointments count: ${todaysAppointments}`);
+      
+      // Use server-calculated today's revenue from Redux instead of client-side calculation
+      const revenueToday = todaysRevenue || 0;
+      console.log(`📊 Dashboard stats: todaysRevenue from Redux = ${todaysRevenue}, revenueToday = ${revenueToday}`);
+
+      // Calculate monthly stats
+      const thisMonth = new Date().toISOString().substring(0, 7); // YYYY-MM
+      const monthlyAppointments = appointments.filter(apt => 
+        apt.scheduledDate?.startsWith(thisMonth)  // ✅ Remove status filter - count ALL appointments scheduled this month
+      ).length;
+      
+      const monthlyRevenue = repairOrders
+        .filter(order => 
+          order.completedAt?.startsWith(thisMonth) || 
+          (order.status === 'completed' && order.updatedAt?.startsWith(thisMonth))
+        )
+        .reduce((sum, order) => sum + (order.total || 0), 0);
+        
+      const monthlyNewCustomers = customers.filter(customer => 
+        customer.createdAt?.startsWith(thisMonth)
+      ).length;
+      
+      return {
+        role: (user?.role || "employee") as "employee" | "owner",
+        stats: {
+          todaysAppointments,
+          activeRepairs: repairOrders.length, // These are already filtered for active status
+          totalCustomers: customers.length,
+          todaysRevenue: revenueToday, // Use server-calculated value
+          monthlyAppointments,
+          monthlyRevenue,
+          monthlyNewCustomers,
+          customerVehicles: 0,
+          customerActiveAppointments: 0,
+          customerRepairOrders: 0,
+          customerTotalSpent: 0
+        },
+        lastUpdated: new Date().toISOString()
+      };
+    }
+  }, [user, appointments, repairOrders, vehicles, customers, todaysRevenue]);
+
+  // Update dashboard data when Redux state changes
+  const loadDashboardData = useCallback(() => {
     try {
       setDashboardLoading(true);
       setDashboardError(null);
-
-      const data = await dashboardService.getDashboardStats(
-        user?.role || "customer",
-        user?.id
-      );
-
-      setDashboardData(data);
+      
+      const calculatedData = calculateDashboardStats();
+      setDashboardData(calculatedData);
     } catch (error) {
-      console.error("Error loading dashboard data:", error);
-      const errorMessage = error instanceof Error ? error.message : "Failed to load dashboard data";
+      console.error("Error calculating dashboard data:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to calculate dashboard data";
       setDashboardError(errorMessage);
     } finally {
       setDashboardLoading(false);
     }
-  };
+  }, [calculateDashboardStats]);
+
+  // Update dashboard stats when Redux state changes
+  useEffect(() => {
+    if (user?.role && (appointments.length > 0 || repairOrders.length > 0 || customers.length > 0 || vehicles.length > 0)) {
+      loadDashboardData();
+    }
+  }, [user?.role, appointments, repairOrders, customers, vehicles, loadDashboardData]);
 
   const loadAllEntityData = async () => {
     try {
@@ -115,6 +203,10 @@ export const AutoRepairDashboard: React.FC = () => {
         // Load basic customer and vehicle data for context
         await loadCustomers();
         await loadVehicles();
+        
+        // Load today's revenue from server-side calculation
+        console.log('🔄 Dashboard loading today\'s revenue...');
+        await loadTodaysRevenue();
       } else {
         // For customers, load their specific data
         await loadAppointments({ 
@@ -127,7 +219,7 @@ export const AutoRepairDashboard: React.FC = () => {
           customer_id: user.id
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error loading entity data:", error);
     }
   };
@@ -169,7 +261,7 @@ export const AutoRepairDashboard: React.FC = () => {
     }
   };
 
-  const handleSuccess = (entityType: string, _data: unknown) => {
+  const handleSuccess = (entityType: string) => {
     setSuccessMessage(`${entityType} created successfully!`);
     setTimeout(() => setSuccessMessage(null), 5000);
     
@@ -213,8 +305,8 @@ export const AutoRepairDashboard: React.FC = () => {
         break;
     }
     
-    // Also refresh dashboard stats
-    loadDashboardData();
+    // Only refresh dashboard stats occasionally, not after every entity creation
+    // The main stats come from Redux state anyway
   };
 
   const getCustomerActions = () => [
@@ -846,31 +938,31 @@ export const AutoRepairDashboard: React.FC = () => {
       <AddCustomerModal
         show={showCustomerModal}
         onHide={() => setShowCustomerModal(false)}
-        onSuccess={(data: unknown) => handleSuccess("Customer", data)}
+        onSuccess={() => handleSuccess("Customer")}
       />
 
       <AddVehicleModal
         show={showVehicleModal}
         onHide={() => setShowVehicleModal(false)}
-        onSuccess={(data: unknown) => handleSuccess("Vehicle", data)}
+        onSuccess={() => handleSuccess("Vehicle")}
       />
 
       <AddAppointmentModal
         show={showAppointmentModal}
         onHide={() => setShowAppointmentModal(false)}
-        onSuccess={(data: unknown) => handleSuccess("Appointment", data)}
+        onSuccess={() => handleSuccess("Appointment")}
       />
 
       <AddRepairOrderModal
         show={showRepairOrderModal}
         onHide={() => setShowRepairOrderModal(false)}
-        onSuccess={(data: unknown) => handleSuccess("Repair Order", data)}
+        onSuccess={() => handleSuccess("Repair Order")}
       />
 
       <AddVehicleProblemModal
         show={showProblemModal}
         onHide={() => setShowProblemModal(false)}
-        onSuccess={(data: unknown) => handleSuccess("Problem Report", data)}
+        onSuccess={() => handleSuccess("Problem Report")}
       />
     </div>
   );
