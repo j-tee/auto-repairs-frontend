@@ -1,0 +1,264 @@
+.technician-assignment-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 16px;
+  overflow: hidden;
+  transition: box-shadow 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 16px;
+    border-bottom: 1px solid #e9ecef;
+    background-color: #f8f9fa;
+
+    .appointment-info {
+      flex: 1;
+
+      .customer-name {
+        margin: 0 0 8px 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #212529;
+      }
+
+      .vehicle-info {
+        margin: 0 0 4px 0;
+        font-size: 0.95rem;
+        color: #495057;
+        font-weight: 500;
+      }
+
+      .license-plate {
+        margin: 0;
+        font-size: 0.85rem;
+        color: #6c757d;
+        font-family: 'Courier New', monospace;
+        background-color: #e9ecef;
+        padding: 2px 8px;
+        border-radius: 4px;
+        display: inline-block;
+      }
+    }
+
+    .status-section {
+      .status-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+
+        &.status-pending {
+          background-color: #e3f2fd;
+          color: #1976d2;
+          border: 1px solid #bbdefb;
+        }
+
+        &.status-assigned {
+          background-color: #fff3e0;
+          color: #f57c00;
+          border: 1px solid #ffcc02;
+        }
+
+        &.status-in-progress {
+          background-color: #e8f5e8;
+          color: #2e7d32;
+          border: 1px solid #a5d6a7;
+        }
+
+        &.status-completed {
+          background-color: #f3e5f5;
+          color: #7b1fa2;
+          border: 1px solid #ce93d8;
+        }
+
+        &.status-cancelled {
+          background-color: #ffebee;
+          color: #d32f2f;
+          border: 1px solid #ffcdd2;
+        }
+
+        &.status-default {
+          background-color: #f5f5f5;
+          color: #616161;
+          border: 1px solid #e0e0e0;
+        }
+      }
+    }
+  }
+
+  .card-body {
+    padding: 16px;
+
+    .appointment-details {
+      margin-bottom: 16px;
+
+      p {
+        margin: 0 0 8px 0;
+        font-size: 0.9rem;
+
+        strong {
+          color: #495057;
+        }
+      }
+    }
+
+    .technician-info {
+      background-color: #f8f9fa;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      border-left: 4px solid #007bff;
+
+      h4 {
+        margin: 0 0 8px 0;
+        font-size: 0.9rem;
+        color: #495057;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .technician-name {
+        margin: 0 0 4px 0;
+        font-size: 1rem;
+        color: #212529;
+      }
+
+      .technician-role {
+        margin: 0 0 8px 0;
+        font-size: 0.85rem;
+        color: #6c757d;
+        font-style: italic;
+      }
+
+      .assignment-time,
+      .start-time,
+      .completion-time {
+        margin: 4px 0;
+        font-size: 0.8rem;
+        color: #6c757d;
+      }
+    }
+
+    .action-section {
+      .technician-selector {
+        .form-select {
+          width: 100%;
+          padding: 8px 12px;
+          border: 1px solid #ced4da;
+          border-radius: 4px;
+          font-size: 0.9rem;
+          margin-bottom: 8px;
+
+          &:focus {
+            border-color: #80bdff;
+            outline: 0;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+          }
+        }
+
+        .selector-actions {
+          display: flex;
+          gap: 8px;
+        }
+      }
+
+      .error-message {
+        margin-top: 8px;
+        padding: 8px 12px;
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+        border-radius: 4px;
+        font-size: 0.85rem;
+      }
+    }
+  }
+
+  // Button styles
+  .btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    &.btn-primary {
+      background-color: #007bff;
+      color: white;
+
+      &:hover:not(:disabled) {
+        background-color: #0056b3;
+      }
+    }
+
+    &.btn-success {
+      background-color: #28a745;
+      color: white;
+
+      &:hover:not(:disabled) {
+        background-color: #1e7e34;
+      }
+    }
+
+    &.btn-warning {
+      background-color: #ffc107;
+      color: #212529;
+
+      &:hover:not(:disabled) {
+        background-color: #e0a800;
+      }
+    }
+
+    &.btn-secondary {
+      background-color: #6c757d;
+      color: white;
+
+      &:hover:not(:disabled) {
+        background-color: #545b62;
+      }
+    }
+
+    &.btn-sm {
+      padding: 4px 8px;
+      font-size: 0.8rem;
+    }
+  }
+}
+
+// Responsive design
+@media (max-width: 576px) {
+  .technician-assignment-card {
+    .card-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .selector-actions {
+      flex-direction: column;
+      
+      .btn {
+        width: 100%;
+      }
+    }
+  }
+}

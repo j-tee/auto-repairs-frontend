@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redux Revenue Debug</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: #f5f5f5; 
+        }
+        .container { 
+            max-width: 1000px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 20px; 
+            border-radius: 8px; 
+        }
+        .log { 
+            background: #f8f9fa; 
+            border: 1px solid #e9ecef; 
+            padding: 15px; 
+            margin: 10px 0; 
+            border-radius: 4px; 
+            font-family: monospace; 
+            font-size: 13px;
+            max-height: 500px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        button { 
+            background: #007bff; 
+            color: white; 
+            border: none; 
+            padding: 10px 20px; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            margin: 5px; 
+        }
+        .status { 
+            padding: 10px; 
+            margin: 10px 0; 
+            border-radius: 4px; 
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐛 Redux Revenue Debug Tool</h1>
+        <p><strong>Purpose:</strong> Debug why Revenue Today shows $0 despite proper Redux implementation</p>
+        <p><strong>Today's Date:</strong> <span id="todayDate"></span></p>
+        
+        <div class="status" id="connectionStatus">
+            <strong>🔌 Connection Status:</strong> Testing...
+        </div>
+        
+        <div>
+            <button onclick="testReduxConnection()">Test Redux Connection</button>
+            <button onclick="testAPICall()">Test API Call</button>
+            <button onclick="checkReduxState()">Check Redux State</button>
+            <button onclick="triggerRevenueFetch()">Trigger Revenue Fetch</button>
+            <button onclick="clearLog()">Clear Log</button>
+        </div>
+        
+        <div id="logOutput" class="log">🚀 Redux Revenue Debug Tool Started
+Click buttons above to start debugging...</div>
+    </div>
+
+    <script>
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('todayDate').textContent = today;
+        
+        function log(message, type = 'info') {
+            const output = document.getElementById('logOutput');
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : type === 'warning' ? '⚠️' : 'ℹ️';
+            output.textContent += `\n[${timestamp}] ${prefix} ${message}`;
+            output.scrollTop = output.scrollHeight;
+        }
+        
+        function clearLog() {
+            document.getElementById('logOutput').textContent = '🚀 Redux Revenue Debug Tool Started\nClick buttons above to start debugging...';
+        }
+        
+        function updateStatus(message, type = 'info') {
+            const status = document.getElementById('connectionStatus');
+            status.className = `status ${type}`;
+            status.innerHTML = `<strong>🔌 Connection Status:</strong> ${message}`;
+        }
+        
+        async function testReduxConnection() {
+            log('🔍 Testing Redux connection to frontend app...');
+            
+            try {
+                // Try to access the parent window's Redux store
+                const frontendApp = window.opener || window.parent;
+                
+                if (frontendApp && frontendApp.store) {
+                    log('✅ Redux store found in parent window', 'success');
+                    const state = frontendApp.store.getState();
+                    log(`📊 Redux state keys: ${Object.keys(state).join(', ')}`);
+                    
+                    if (state.autoRepairs) {
+                        log('✅ autoRepairs slice found', 'success');
+                        log(`💰 todaysRevenue: ${state.autoRepairs.todaysRevenue}`);
+                        log(`🔄 loading.todaysRevenue: ${JSON.stringify(state.autoRepairs.loading?.todaysRevenue)}`);
+                        log(`❌ error.todaysRevenue: ${JSON.stringify(state.autoRepairs.error?.todaysRevenue)}`);
+                        
+                        // Store reference for other functions
+                        window.frontendStore = frontendApp.store;
+                        updateStatus('Connected to Redux store', 'success');
+                    } else {
+                        log('❌ autoRepairs slice not found', 'error');
+                        updateStatus('Redux store found but autoRepairs slice missing', 'warning');
+                    }
+                } else {
+                    log('❌ Cannot access parent window Redux store', 'error');
+                    updateStatus('Cannot connect to Redux store', 'error');
+                    log('💡 Try opening this page from the main app dashboard');
+                }
+                
+            } catch (error) {
+                log(`❌ Redux connection error: ${error.message}`, 'error');
+                updateStatus('Redux connection failed', 'error');
+            }
+        }
+        
+        async function checkReduxState() {
+            if (!window.frontendStore) {
+                log('❌ No Redux store connection. Run "Test Redux Connection" first.', 'error');
+                return;
+            }
+            
+            try {
+                log('📊 Checking current Redux state...');
+                const state = window.frontendStore.getState();
+                
+                if (state.autoRepairs) {
+                    const autoRepairsState = state.autoRepairs;
+                    
+                    log('=== REDUX STATE SNAPSHOT ===');
+                    log(`💰 todaysRevenue: ${autoRepairsState.todaysRevenue}`);
+                    log(`📊 appointments: ${autoRepairsState.appointments?.length || 0} items`);
+                    log(`🔧 repairOrders: ${autoRepairsState.repairOrders?.length || 0} items`);
+                    log(`👥 customers: ${autoRepairsState.customers?.length || 0} items`);
+                    log(`🚗 vehicles: ${autoRepairsState.vehicles?.length || 0} items`);
+                    
+                    log('\n--- Loading States ---');
+                    Object.entries(autoRepairsState.loading || {}).forEach(([key, value]) => {
+                        log(`🔄 loading.${key}: ${value}`);
+                    });
+                    
+                    log('\n--- Error States ---');
+                    Object.entries(autoRepairsState.error || {}).forEach(([key, value]) => {
+                        if (value) log(`❌ error.${key}: ${value}`);
+                    });
+                    
+                    log('=== END REDUX STATE ===');
+                    
+                    updateStatus(`Redux state checked - Revenue: $${autoRepairsState.todaysRevenue || 0}`, 
+                               autoRepairsState.todaysRevenue > 0 ? 'success' : 'warning');
+                }
+            } catch (error) {
+                log(`❌ Error checking Redux state: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testAPICall() {
+            log('🌐 Testing direct API call...');
+            
+            try {
+                const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+                
+                if (!token) {
+                    log('❌ No auth token found in localStorage', 'error');
+                    log('💡 Please login to the main app first');
+                    updateStatus('No authentication token', 'error');
+                    return;
+                }
+                
+                log(`🔑 Found auth token: ${token.substring(0, 20)}...`);
+                
+                const API_BASE_URL = 'http://127.0.0.1:8000/api';
+                const endpoint = `${API_BASE_URL}/shop/repair-orders/?status=completed&limit=20`;
+                
+                log(`📡 Testing endpoint: ${endpoint}`);
+                
+                const response = await fetch(endpoint, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                log(`📡 Response status: ${response.status} ${response.statusText}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`✅ API call successful`, 'success');
+                    
+                    const orders = data.results || data.repair_orders || data || [];
+                    log(`📋 Found ${orders.length} completed orders total`);
+                    
+                    if (orders.length > 0) {
+                        // Filter for today's orders
+                        const todaysOrders = orders.filter(order => {
+                            const completionDate = order.actual_completion_date || 
+                                                 order.completed_at || 
+                                                 order.updated_at;
+                            return completionDate && completionDate.startsWith(today);
+                        });
+                        
+                        log(`📅 Orders completed today (${today}): ${todaysOrders.length}`);
+                        
+                        if (todaysOrders.length > 0) {
+                            let totalRevenue = 0;
+                            log('\n--- TODAY\'S COMPLETED ORDERS ---');
+                            todaysOrders.forEach((order, index) => {
+                                const amount = Number(order.total_cost || order.total || order.amount || 0);
+                                const date = order.actual_completion_date || order.completed_at || order.updated_at;
+                                log(`${index + 1}. Order #${order.id}: $${amount} (${date})`);
+                                totalRevenue += amount;
+                            });
+                            log(`💰 TOTAL TODAY'S REVENUE: $${totalRevenue.toFixed(2)}`, 'success');
+                            
+                            updateStatus(`API working - Today's revenue: $${totalRevenue.toFixed(2)}`, 'success');
+                        } else {
+                            log(`📭 No orders completed today (${today})`, 'warning');
+                            updateStatus('API working but no revenue today', 'warning');
+                        }
+                    } else {
+                        log('📭 No completed orders found in database', 'warning');
+                        updateStatus('API working but no completed orders', 'warning');
+                    }
+                } else {
+                    const errorText = await response.text();
+                    log(`❌ API call failed: ${response.status} ${response.statusText}`, 'error');
+                    log(`Error details: ${errorText}`);
+                    updateStatus(`API call failed: ${response.status}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ API test error: ${error.message}`, 'error');
+                updateStatus('API connection failed', 'error');
+            }
+        }
+        
+        async function triggerRevenueFetch() {
+            if (!window.frontendStore) {
+                log('❌ No Redux store connection. Run "Test Redux Connection" first.', 'error');
+                return;
+            }
+            
+            try {
+                log('🚀 Triggering Redux fetchTodaysRevenue thunk...');
+                
+                // Try to get access to the Redux action
+                const frontendApp = window.opener || window.parent;
+                
+                if (frontendApp && frontendApp.autoRepairsActions) {
+                    log('📤 Dispatching fetchTodaysRevenue action...');
+                    
+                    const result = await window.frontendStore.dispatch(
+                        frontendApp.autoRepairsActions.fetchTodaysRevenue()
+                    );
+                    
+                    log(`📥 Dispatch result: ${JSON.stringify(result, null, 2)}`);
+                    
+                    // Check updated state
+                    setTimeout(() => {
+                        checkReduxState();
+                    }, 1000);
+                    
+                } else {
+                    log('❌ Cannot access Redux actions from parent window', 'error');
+                    log('💡 Try manually calling loadTodaysRevenue() from the main app');
+                }
+                
+            } catch (error) {
+                log(`❌ Error triggering revenue fetch: ${error.message}`, 'error');
+            }
+        }
+        
+        // Auto-start connection test
+        setTimeout(() => {
+            testReduxConnection();
+        }, 1000);
+        
+        // Auto-refresh every 30 seconds
+        setInterval(() => {
+            if (window.frontendStore) {
+                checkReduxState();
+            }
+        }, 30000);
+    </script>
+</body>
+</html>

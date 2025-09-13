@@ -12,130 +12,65 @@ import {
   Table,
 } from "react-bootstrap";
 import { useAuth } from "../hooks/useAuth";
-import {
-  appointmentMngtService,
-  type Appointment,
-} from "../services/appointmentMngtService";
-import { customerMngtService } from "../services/customerMngtService";
-import { vehicleMngtService } from "../services/vehicleMngtService";
+import { useAutoRepairs } from "../hooks/useAutoRepairs";
+import type { Appointment } from "../types/appointments";
 
 export const AppointmentManagement: React.FC = () => {
   const { user } = useAuth();
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    appointments,
+    loading,
+    error,
+    loadAppointments,
+    clearError
+  } = useAutoRepairs();
+  
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Don't automatically load all appointments to avoid interfering with dashboard filters
+  // Appointments will be loaded on-demand via search/filter actions
+
+  const handleSearch = async () => {
+    try {
+      await loadAppointments({
+        searchTerm: searchTerm || undefined,
+        limit: 50
+      } as any);
+    } catch (error: any) {
+      console.error("Error searching appointments:", error);
+    }
+  };
+
+  // Reload when search term changes  
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      handleSearch();
+    }, 300);
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
 
   // Helper function to get customer phone number regardless of source
   const getCustomerPhone = (customer: any) => {
     return customer.phone_number || customer.phone || "N/A";
   };
-  const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-
-  // Load appointments on component mount
-  useEffect(() => {
-    loadAppointments();
-  }, []);
-
-  const loadAppointments = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response = await appointmentMngtService.getAppointments({
-        limit: 50,
-        search: searchTerm || undefined,
-      });
-
-      console.log("Loaded appointments:", response.appointments);
-
-      // Fetch customer and vehicle details for each appointment
-      const appointmentsWithDetails = await Promise.all(
-        response.appointments.map(async (appointment) => {
-          try {
-            // Fetch customer details if customerId exists
-            let customer = appointment.customer;
-            if (!customer && appointment.customerId) {
-              try {
-                customer = await customerMngtService.getCustomerById(
-                  appointment.customerId
-                );
-                console.log(
-                  `Fetched customer ${appointment.customerId}:`,
-                  customer
-                );
-              } catch (customerErr) {
-                console.warn(
-                  `Failed to fetch customer ${appointment.customerId}:`,
-                  customerErr
-                );
-              }
-            }
-
-            // Fetch vehicle details if vehicleId exists
-            let vehicle = appointment.vehicle;
-            if (!vehicle && appointment.vehicleId) {
-              try {
-                vehicle = await vehicleMngtService.getVehicleById(
-                  appointment.vehicleId
-                );
-                console.log(
-                  `Fetched vehicle ${appointment.vehicleId}:`,
-                  vehicle
-                );
-              } catch (vehicleErr) {
-                console.warn(
-                  `Failed to fetch vehicle ${appointment.vehicleId}:`,
-                  vehicleErr
-                );
-              }
-            }
-
-            return {
-              ...appointment,
-              customer,
-              vehicle,
-            };
-          } catch (detailErr) {
-            console.warn(
-              `Failed to fetch details for appointment ${appointment.id}:`,
-              detailErr
-            );
-            return appointment;
-          }
-        })
-      );
-
-      setAppointments(appointmentsWithDetails);
-      console.log("Appointments with details:", appointmentsWithDetails);
-    } catch (err: any) {
-      console.error("Error loading appointments:", err);
-      setError(err.message || "Failed to load appointments");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Reload when search term changes
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      loadAppointments();
-    }, 300);
-    return () => clearTimeout(timeoutId);
-  }, [searchTerm]);
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
       case "completed":
         return "success";
-      case "pending":
-        return "warning";
-      case "confirmed":
+      case "scheduled":
         return "info";
+      case "confirmed":
+        return "primary";
       case "cancelled":
         return "danger";
+      case "no_show":
+        return "warning";
+      case "in_progress":
+        return "info";
       case "pending":
-        return "primary";
+        return "warning";
       default:
         return "secondary";
     }
@@ -155,7 +90,7 @@ export const AppointmentManagement: React.FC = () => {
     return timeString;
   };
 
-  if (loading) {
+  if (loading.appointments) {
     return (
       <Container className="mt-4">
         <div className="text-center">
@@ -191,13 +126,13 @@ export const AppointmentManagement: React.FC = () => {
                   {successMessage}
                 </Alert>
               )}
-              {error && (
+              {error.appointments && (
                 <Alert
                   variant="danger"
                   dismissible
-                  onClose={() => setError(null)}
+                  onClose={() => clearError('appointments')}
                 >
-                  {error}
+                  {error.appointments}
                 </Alert>
               )}
 
@@ -214,9 +149,13 @@ export const AppointmentManagement: React.FC = () => {
                   </Form.Group>
                 </Col>
                 <Col md={6} className="text-end">
-                  <Button variant="primary" onClick={loadAppointments}>
-                    <i className="bi bi-arrow-clockwise me-1"></i>
-                    Refresh
+                  <Button 
+                    variant="outline-primary" 
+                    onClick={handleSearch}
+                    disabled={loading.appointments}
+                  >
+                    <i className="bi bi-search me-1"></i>
+                    Search
                   </Button>
                 </Col>
               </Row>
@@ -224,11 +163,11 @@ export const AppointmentManagement: React.FC = () => {
               {/* Appointments Table */}
               {appointments.length === 0 ? (
                 <Alert variant="info" className="text-center">
-                  <i className="bi bi-calendar-x fs-1 d-block mb-2"></i>
+                  <i className="bi bi-calendar-x display-4 d-block mb-3"></i>
                   <h5>No appointments found</h5>
                   <p className="mb-0">
                     {searchTerm
-                      ? "Try adjusting your search terms."
+                      ? "Try adjusting your search criteria."
                       : "No appointments have been scheduled yet."}
                   </p>
                 </Alert>
@@ -236,86 +175,86 @@ export const AppointmentManagement: React.FC = () => {
                 <Table responsive striped hover>
                   <thead>
                     <tr>
-                      <th>ID</th>
-                      <th>Date</th>
-                      <th>Time</th>
+                      <th>Date & Time</th>
+                      <th>Customer</th>
+                      <th>Vehicle</th>
                       <th>Description</th>
                       <th>Status</th>
-                      <th>Vehicle</th>
-                      <th>Customer</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {appointments.map((appointment) => (
                       <tr key={appointment.id}>
-                        <td>{appointment.id}</td>
-                        <td>{formatDate(appointment.scheduledDate)}</td>
-                        <td>{formatTime(appointment.scheduledTime)}</td>
                         <td>
-                          <div style={{ maxWidth: "200px" }}>
-                            {appointment.description || "No description"}
+                          <div>
+                            <strong>{formatDate(appointment.scheduledDate || appointment.date)}</strong>
+                            <br />
+                            <small className="text-muted">
+                              {formatTime(appointment.scheduledTime || "")}
+                            </small>
                           </div>
                         </td>
                         <td>
-                          <Badge bg={getStatusBadgeVariant(appointment.status)}>
-                            {appointment.status}
+                          <div>
+                            <strong>
+                              {appointment.customer?.name || 
+                               appointment.customer?.firstName + " " + appointment.customer?.lastName ||
+                               "Unknown Customer"}
+                            </strong>
+                            <br />
+                            <small className="text-muted">
+                              {appointment.customer?.email || "N/A"}
+                              <br />
+                              {getCustomerPhone(appointment.customer)}
+                            </small>
+                          </div>
+                        </td>
+                        <td>
+                          <div>
+                            {appointment.vehicle ? (
+                              <>
+                                <strong>
+                                  {appointment.vehicle.year} {appointment.vehicle.make} {appointment.vehicle.model}
+                                </strong>
+                                <br />
+                                <small className="text-muted">
+                                  {appointment.vehicle.licensePlate || appointment.vehicle.license_plate || "No License"}
+                                </small>
+                              </>
+                            ) : (
+                              <span className="text-muted">No vehicle info</span>
+                            )}
+                          </div>
+                        </td>
+                        <td>
+                          <div>
+                            {appointment.description || appointment.serviceType || "No description"}
+                            {appointment.reportedProblem && (
+                              <>
+                                <br />
+                                <small className="text-info">
+                                  Problem: {appointment.reportedProblem.description}
+                                </small>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                        <td>
+                          <Badge bg={getStatusBadgeVariant(appointment.status || "pending")}>
+                            {appointment.status || "pending"}
                           </Badge>
                         </td>
                         <td>
-                          {appointment.vehicle ? (
-                            <div>
-                              <strong>
-                                {appointment.vehicle.make}{" "}
-                                {appointment.vehicle.model}
-                              </strong>
-                              <br />
-                              <small className="text-muted">
-                                {appointment.vehicle.year}
-                              </small>
-                            </div>
-                          ) : (
-                            <span className="text-muted">
-                              Vehicle ID: {appointment.vehicleId}
-                            </span>
-                          )}
-                        </td>
-                        <td>
-                          {appointment.customer ? (
-                            <div>
-                              <strong>
-                                {appointment.customer.name || "Name Missing"}
-                              </strong>
-                              <br />
-                              <small className="text-muted">
-                                {appointment.customer.email}
-                              </small>
-                            </div>
-                          ) : (
-                            <span className="text-muted">
-                              Customer ID: {appointment.customerId}
-                            </span>
-                          )}
-                        </td>
-                        <td>
                           <div className="d-flex gap-1">
-                            <Button
-                              size="sm"
-                              variant="outline-primary"
-                              onClick={() =>
-                                console.log("View appointment:", appointment.id)
-                              }
-                            >
+                            <Button size="sm" variant="outline-primary">
                               <i className="bi bi-eye"></i>
                             </Button>
-                            <Button
-                              size="sm"
-                              variant="outline-secondary"
-                              onClick={() =>
-                                console.log("Edit appointment:", appointment.id)
-                              }
-                            >
+                            <Button size="sm" variant="outline-warning">
                               <i className="bi bi-pencil"></i>
+                            </Button>
+                            <Button size="sm" variant="outline-danger">
+                              <i className="bi bi-trash"></i>
                             </Button>
                           </div>
                         </td>
@@ -329,23 +268,25 @@ export const AppointmentManagement: React.FC = () => {
         </Col>
       </Row>
 
-      {/* Debug Information - Only in development */}
-      {import.meta.env.DEV && (
+      {/* Debug Information - Only in dev mode */}
+      {process.env.NODE_ENV === "development" && (
         <Row className="mt-3">
           <Col>
-            <Card bg="light">
+            <Card>
               <Card.Header>
                 <small>Debug Information</small>
               </Card.Header>
               <Card.Body>
                 <small>
-                  <strong>User:</strong> {user?.email} ({user?.role})<br />
-                  <strong>Appointments loaded:</strong> {appointments.length}
+                  <strong>User Role:</strong> {user?.role || "N/A"}
                   <br />
-                  <strong>Search term:</strong> "{searchTerm}"<br />
-                  <strong>Loading:</strong> {loading ? "Yes" : "No"}
+                  <strong>Appointments Count:</strong> {appointments.length}
                   <br />
-                  <strong>Error:</strong> {error || "None"}
+                  <strong>Search Term:</strong> {searchTerm || "None"}
+                  <br />
+                  <strong>Loading:</strong> {loading.appointments ? "Yes" : "No"}
+                  <br />
+                  <strong>Error:</strong> {error.appointments || "None"}
                 </small>
               </Card.Body>
             </Card>

@@ -1,17 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Row,
   Col,
   Card,
   Button,
   Alert,
-  Tab,
-  Tabs,
   Spinner,
 } from "react-bootstrap";
 import { useAuth } from "../hooks/useAuth";
-import { AutoRepairsDashboard } from "../components";
-import { RebuildDashboard } from "../components/RebuildDashboard";
+import { useAutoRepairs } from "../hooks/useAutoRepairs";
 import {
   AddCustomerModal,
   AddVehicleModal,
@@ -19,18 +16,28 @@ import {
   AddRepairOrderModal,
   AddVehicleProblemModal,
 } from "../components/modals";
-import { dashboardService, type DashboardSummary } from "../services";
-import {
-  appointmentMngtService,
-  type Appointment,
-} from "../services/appointmentMngtService";
-import {
-  repairOrderMngtService,
-  type RepairOrder,
-} from "../services/repairOrderMngtService";
+import type { DashboardSummary } from "../types/dashboard";
+import type { Appointment } from "../types/appointments";
+import type { RepairOrder } from "../types/repairOrders";
 
 export const AutoRepairDashboard: React.FC = () => {
   const { user } = useAuth();
+  const {
+    appointments,
+    repairOrders,
+    customers,
+    vehicles,
+    loading,
+    error,
+    loadAppointments,
+    loadRepairOrders,
+    loadCustomers,
+    loadVehicles,
+    todaysRevenue,
+    loadTodaysRevenue,
+    clearError,
+    clearAppointments,
+  } = useAutoRepairs();
 
   // Modal states
   const [showCustomerModal, setShowCustomerModal] = useState(false);
@@ -42,110 +49,178 @@ export const AutoRepairDashboard: React.FC = () => {
   // Success message
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // Dashboard data state
+  // Dashboard data state (only for dashboard-specific stats)
   const [dashboardData, setDashboardData] = useState<DashboardSummary | null>(
     null
   );
   const [dashboardLoading, setDashboardLoading] = useState(true);
   const [dashboardError, setDashboardError] = useState<string | null>(null);
 
-  // Today's appointments data
-  const [todaysAppointments, setTodaysAppointments] = useState<Appointment[]>(
-    []
-  );
-  const [appointmentsLoading, setAppointmentsLoading] = useState(false);
-
-  // Active repairs data
-  const [activeRepairs, setActiveRepairs] = useState<RepairOrder[]>([]);
-  const [repairsLoading, setRepairsLoading] = useState(false);
-
   // Load dashboard data on component mount
   useEffect(() => {
     if (user?.role) {
-      loadDashboardData();
+      const initializeData = async () => {
+        await loadAllEntityData();
+      };
+      initializeData();
     }
-  }, [user?.role, user?.id]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.role, user?.id, loadAppointments, loadRepairOrders, loadCustomers, loadVehicles]);
 
-  const loadDashboardData = async () => {
+  // Calculate dashboard stats from Redux state instead of bypassing Redux
+  const calculateDashboardStats = useCallback(() => {
+    const today = new Date().toISOString().split('T')[0];
+    
+    if (user?.role === "customer") {
+      // Customer stats calculated from Redux state
+      const customerTotalSpent = repairOrders.reduce((sum, order) => sum + (order.total || 0), 0);
+      
+      return {
+        role: "customer" as const,
+        stats: {
+          customerVehicles: vehicles.length,
+          customerActiveAppointments: appointments.length,
+          customerRepairOrders: repairOrders.length,
+          customerTotalSpent,
+          todaysAppointments: 0,
+          activeRepairs: 0,
+          totalCustomers: 0,
+          todaysRevenue: 0,
+          monthlyAppointments: 0,
+          monthlyRevenue: 0,
+          monthlyNewCustomers: 0
+        },
+        lastUpdated: new Date().toISOString()
+      };
+    } else {
+      // Employee/Owner stats calculated from Redux state
+      console.log(`🔍 Dashboard calculation - Today: ${today}`);
+      console.log(`📋 Total appointments in Redux: ${appointments.length}`);
+      console.log(`📋 Appointments data:`, appointments.map(apt => ({
+        id: apt.id,
+        scheduledDate: apt.scheduledDate,
+        status: apt.status,
+        date: apt.date
+      })));
+      
+      const todaysAppointments = appointments.filter(apt => 
+        apt.scheduledDate === today
+      ).length;
+      
+      console.log(`📊 Today's appointments count: ${todaysAppointments}`);
+      
+      // Use server-calculated today's revenue from Redux instead of client-side calculation
+      const revenueToday = todaysRevenue || 0;
+      console.log(`📊 Dashboard stats: todaysRevenue from Redux = ${todaysRevenue}, revenueToday = ${revenueToday}`);
+
+      // Calculate monthly stats
+      const thisMonth = new Date().toISOString().substring(0, 7); // YYYY-MM
+      const monthlyAppointments = appointments.filter(apt => 
+        apt.scheduledDate?.startsWith(thisMonth)  // ✅ Remove status filter - count ALL appointments scheduled this month
+      ).length;
+      
+      const monthlyRevenue = repairOrders
+        .filter(order => 
+          order.completedAt?.startsWith(thisMonth) || 
+          (order.status === 'completed' && order.updatedAt?.startsWith(thisMonth))
+        )
+        .reduce((sum, order) => sum + (order.total || 0), 0);
+        
+      const monthlyNewCustomers = customers.filter(customer => 
+        customer.createdAt?.startsWith(thisMonth)
+      ).length;
+      
+      return {
+        role: (user?.role || "employee") as "employee" | "owner",
+        stats: {
+          todaysAppointments,
+          activeRepairs: repairOrders.length, // These are already filtered for active status
+          totalCustomers: customers.length,
+          todaysRevenue: revenueToday, // Use server-calculated value
+          monthlyAppointments,
+          monthlyRevenue,
+          monthlyNewCustomers,
+          customerVehicles: 0,
+          customerActiveAppointments: 0,
+          customerRepairOrders: 0,
+          customerTotalSpent: 0
+        },
+        lastUpdated: new Date().toISOString()
+      };
+    }
+  }, [user, appointments, repairOrders, vehicles, customers, todaysRevenue]);
+
+  // Update dashboard data when Redux state changes
+  const loadDashboardData = useCallback(() => {
     try {
       setDashboardLoading(true);
       setDashboardError(null);
-
-      const data = await dashboardService.getDashboardStats(
-        user?.role || "customer",
-        user?.id
-      );
-
-      setDashboardData(data);
-
-      // Also load detailed data for the schedule and repairs sections
-      if (user?.role !== "customer") {
-        // Load appointments and repairs in parallel, but don't let one failure stop the other
-        const [appointmentsResult, repairsResult] = await Promise.allSettled([
-          loadTodaysAppointments(),
-          loadActiveRepairs(),
-        ]);
-
-        // Log any failures but continue
-        if (appointmentsResult.status === "rejected") {
-          console.error(
-            "Failed to load appointments:",
-            appointmentsResult.reason
-          );
-        }
-        if (repairsResult.status === "rejected") {
-          console.error("Failed to load repairs:", repairsResult.reason);
-        }
-      }
-    } catch (error: any) {
-      console.error("Error loading dashboard data:", error);
-      setDashboardError(error.message || "Failed to load dashboard data");
-
-      // Even if dashboard stats fail, try to load the appointments and repairs
-      if (user?.role !== "customer") {
-        try {
-          await Promise.allSettled([
-            loadTodaysAppointments(),
-            loadActiveRepairs(),
-          ]);
-        } catch (secondaryError) {
-          console.error("Secondary data loading also failed:", secondaryError);
-        }
-      }
+      
+      const calculatedData = calculateDashboardStats();
+      setDashboardData(calculatedData);
+    } catch (error) {
+      console.error("Error calculating dashboard data:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to calculate dashboard data";
+      setDashboardError(errorMessage);
     } finally {
       setDashboardLoading(false);
     }
-  };
+  }, [calculateDashboardStats]);
 
-  const loadTodaysAppointments = async () => {
-    try {
-      setAppointmentsLoading(true);
-      const appointments = await appointmentMngtService.getTodaysAppointments();
-      console.log("Today's appointments data:", appointments);
-      setTodaysAppointments(appointments.slice(0, 5)); // Show max 5 appointments
-    } catch (error: any) {
-      console.error("Error loading today's appointments:", error);
-      setTodaysAppointments([]); // Fall back to empty array
-    } finally {
-      setAppointmentsLoading(false);
+  // Update dashboard stats when Redux state changes
+  useEffect(() => {
+    if (user?.role && (appointments.length > 0 || repairOrders.length > 0 || customers.length > 0 || vehicles.length > 0)) {
+      loadDashboardData();
     }
-  };
+  }, [user?.role, appointments, repairOrders, customers, vehicles, loadDashboardData]);
 
-  const loadActiveRepairs = async () => {
+  const loadAllEntityData = async () => {
     try {
-      setRepairsLoading(true);
-      // Use the smart method that filters by appointment status
-      const activeRepairs =
-        await repairOrderMngtService.getActiveRepairOrders();
+      // Clear any previous errors
+      clearError('appointments');
+      clearError('repairOrders');
+      clearError('customers');
+      clearError('vehicles');
 
-      console.log(`✅ Loaded ${activeRepairs.length} active repair orders`);
+      if (user?.role !== "customer") {
+        // For employees and owners, load all data
+        const today = new Date().toISOString().split('T')[0];
+        
+        // Clear appointments to ensure fresh today's data
+        clearAppointments();
+        
+        // Load today's appointments
+        await loadAppointments({ 
+          date_from: today,
+          date_to: today
+        });
 
-      setActiveRepairs(activeRepairs.slice(0, 5)); // Show max 5 active repairs
-    } catch (error: any) {
-      console.error("Error loading active repairs:", error);
-      setActiveRepairs([]); // Fall back to empty array
-    } finally {
-      setRepairsLoading(false);
+        // Load active repair orders
+        await loadRepairOrders({ 
+          status: 'in_progress'
+        });
+
+        // Load basic customer and vehicle data for context
+        await loadCustomers();
+        await loadVehicles();
+        
+        // Load today's revenue from server-side calculation
+        console.log('🔄 Dashboard loading today\'s revenue...');
+        await loadTodaysRevenue();
+      } else {
+        // For customers, load their specific data
+        await loadAppointments({ 
+          customer_id: user.id
+        });
+        await loadRepairOrders({ 
+          customer_id: user.id
+        });
+        await loadVehicles({ 
+          customer_id: user.id
+        });
+      }
+    } catch (error: unknown) {
+      console.error("Error loading entity data:", error);
     }
   };
 
@@ -186,9 +261,52 @@ export const AutoRepairDashboard: React.FC = () => {
     }
   };
 
-  const handleSuccess = (entityType: string, _data: any) => {
+  const handleSuccess = (entityType: string) => {
     setSuccessMessage(`${entityType} created successfully!`);
     setTimeout(() => setSuccessMessage(null), 5000);
+    
+    // Refresh relevant data based on entity type
+    switch (entityType.toLowerCase()) {
+      case 'customer':
+        loadCustomers();
+        break;
+      case 'vehicle':
+        loadVehicles();
+        break;
+      case 'appointment':
+        // Maintain proper filters based on user role
+        if (user?.role !== "customer") {
+          // For employees and owners, reload today's appointments
+          const today = new Date().toISOString().split('T')[0];
+          clearAppointments(); // Clear before loading filtered data
+          loadAppointments({ 
+            date_from: today,
+            date_to: today
+          });
+        } else {
+          // For customers, reload their appointments
+          clearAppointments(); // Clear before loading customer data
+          loadAppointments({ 
+            customer_id: user.id
+          });
+        }
+        break;
+      case 'repair order':
+        // Maintain proper filters for repair orders too
+        if (user?.role !== "customer") {
+          loadRepairOrders({ 
+            status: 'in_progress'
+          });
+        } else {
+          loadRepairOrders({ 
+            customer_id: user.id
+          });
+        }
+        break;
+    }
+    
+    // Only refresh dashboard stats occasionally, not after every entity creation
+    // The main stats come from Redux state anyway
   };
 
   const getCustomerActions = () => [
@@ -322,19 +440,19 @@ export const AutoRepairDashboard: React.FC = () => {
       return [
         {
           title: "My Vehicles",
-          value: stats.customerVehicles?.toString() || "0",
+          value: vehicles.length.toString(),
           icon: "🚗",
           color: "primary",
         },
         {
           title: "Active Appointments",
-          value: stats.customerActiveAppointments?.toString() || "0",
+          value: appointments.length.toString(),
           icon: "📅",
           color: "info",
         },
         {
           title: "Repair Orders",
-          value: stats.customerRepairOrders?.toString() || "0",
+          value: repairOrders.length.toString(),
           icon: "📋",
           color: "warning",
         },
@@ -353,19 +471,19 @@ export const AutoRepairDashboard: React.FC = () => {
       return [
         {
           title: "Today's Appointments",
-          value: stats.todaysAppointments.toString(),
+          value: appointments.length.toString(),
           icon: "📅",
           color: "primary",
         },
         {
           title: "Active Repairs",
-          value: stats.activeRepairs.toString(),
+          value: repairOrders.length.toString(),
           icon: "🔧",
           color: "warning",
         },
         {
           title: "Total Customers",
-          value: stats.totalCustomers.toString(),
+          value: customers.length.toString(),
           icon: "👥",
           color: "info",
         },
@@ -448,13 +566,16 @@ export const AutoRepairDashboard: React.FC = () => {
             <Button
               variant="outline-primary"
               size="sm"
-              onClick={loadDashboardData}
+              onClick={() => {
+                loadDashboardData();
+                loadAllEntityData();
+              }}
               disabled={
-                dashboardLoading || appointmentsLoading || repairsLoading
+                dashboardLoading || loading.appointments || loading.repairOrders
               }
               className="ms-3"
             >
-              {dashboardLoading || appointmentsLoading || repairsLoading ? (
+              {dashboardLoading || loading.appointments || loading.repairOrders ? (
                 <>
                   <Spinner size="sm" animation="border" className="me-2" />
                   Refreshing...
@@ -530,18 +651,44 @@ export const AutoRepairDashboard: React.FC = () => {
                 <h5 className="mb-0">📅 Today's Schedule</h5>
               </Card.Header>
               <Card.Body>
-                {appointmentsLoading ? (
+                {loading.appointments ? (
                   <div className="text-center py-3">
                     <Spinner size="sm" animation="border" />
                     <p className="mt-2 mb-0">Loading appointments...</p>
                   </div>
-                ) : todaysAppointments.length === 0 ? (
+                ) : error.appointments ? (
+                  <div className="text-center py-3 text-danger">
+                    <p className="mb-0">Error: {error.appointments}</p>
+                    <Button 
+                      variant="outline-primary" 
+                      size="sm" 
+                      onClick={() => {
+                        if (user?.role !== "customer") {
+                          const today = new Date().toISOString().split('T')[0];
+                          clearAppointments(); // Clear before loading filtered data
+                          loadAppointments({ 
+                            date_from: today,
+                            date_to: today
+                          });
+                        } else {
+                          clearAppointments(); // Clear before loading customer data
+                          loadAppointments({ 
+                            customer_id: user.id
+                          });
+                        }
+                      }}
+                      className="mt-2"
+                    >
+                      Retry
+                    </Button>
+                  </div>
+                ) : appointments.length === 0 ? (
                   <div className="text-center py-3 text-muted">
                     <p className="mb-0">No appointments scheduled for today</p>
                   </div>
                 ) : (
                   <>
-                    {todaysAppointments.map((appointment, index) => (
+                    {appointments.slice(0, 5).map((appointment) => (
                       <div key={appointment.id} className="mb-3">
                         <strong>
                           {formatAppointmentTime(appointment)} -{" "}
@@ -595,27 +742,39 @@ export const AutoRepairDashboard: React.FC = () => {
                 <h5 className="mb-0">🔧 Active Repairs</h5>
               </Card.Header>
               <Card.Body>
-                {repairsLoading ? (
+                {loading.repairOrders ? (
                   <div className="text-center py-3">
                     <Spinner size="sm" animation="border" />
                     <p className="mt-2 mb-0">Loading repairs...</p>
                   </div>
-                ) : activeRepairs.length === 0 ? (
+                ) : error.repairOrders ? (
+                  <div className="text-center py-3 text-danger">
+                    <p className="mb-0">Error: {error.repairOrders}</p>
+                    <Button 
+                      variant="outline-warning" 
+                      size="sm" 
+                      onClick={() => loadRepairOrders()}
+                      className="mt-2"
+                    >
+                      Retry
+                    </Button>
+                  </div>
+                ) : repairOrders.length === 0 ? (
                   <div className="text-center py-3 text-muted">
                     <p className="mb-0">No active repairs at this time</p>
                   </div>
                 ) : (
                   <>
-                    {activeRepairs.map((repair: any, index) => {
+                    {repairOrders.slice(0, 5).map((repair, index) => {
                       const progress = getRepairProgress(repair);
 
                       // Helper function to safely get vehicle info
-                      const getVehicleInfo = (repair: any) => {
+                      const getVehicleInfo = (repair: RepairOrder) => {
                         // Try different possible field structures
                         const vehicle = repair.vehicle;
                         if (vehicle) {
-                          const year = vehicle.year || vehicle.model_year;
-                          const make = vehicle.make || vehicle.manufacturer;
+                          const year = vehicle.year;
+                          const make = vehicle.make;
                           const model = vehicle.model;
 
                           if (year && make && model) {
@@ -624,31 +783,22 @@ export const AutoRepairDashboard: React.FC = () => {
                           if (make && model) {
                             return `${make} ${model}`;
                           }
-                          if (vehicle.license_plate || vehicle.licensePlate) {
-                            return `Vehicle: ${
-                              vehicle.license_plate || vehicle.licensePlate
-                            }`;
+                          if (vehicle.licensePlate) {
+                            return `Vehicle: ${vehicle.licensePlate}`;
                           }
                         }
-                        return `Vehicle ID: ${
-                          repair.vehicleId || repair.vehicle_id || repair.id
-                        }`;
+                        return `Vehicle ID: ${repair.vehicleId || repair.id}`;
                       };
 
                       // Helper function to safely get description
-                      const getDescription = (repair: any) => {
+                      const getDescription = (repair: RepairOrder) => {
                         // Try different possible field names that might contain description
                         return (
                           repair.description ||
                           repair.notes ||
                           repair.diagnosis ||
-                          repair.service_type ||
-                          repair.work_description ||
                           (repair.orderNumber
                             ? `Repair Order #${repair.orderNumber}`
-                            : null) ||
-                          (repair.order_number
-                            ? `Repair Order #${repair.order_number}`
                             : null) ||
                           (repair.id ? `Repair Order #${repair.id}` : null) ||
                           "Repair Service"
@@ -703,20 +853,34 @@ export const AutoRepairDashboard: React.FC = () => {
                 <h5 className="mb-0">🚗 My Vehicles</h5>
               </Card.Header>
               <Card.Body>
-                <div className="mb-3">
-                  <strong>2020 Toyota Camry</strong>
-                  <br />
-                  <small className="text-muted">
-                    Last Service: Oil Change - Jan 15, 2024
-                  </small>
-                </div>
-                <div className="mb-3">
-                  <strong>2018 Honda CR-V</strong>
-                  <br />
-                  <small className="text-muted">
-                    Last Service: Brake Inspection - Dec 8, 2023
-                  </small>
-                </div>
+                {loading.vehicles ? (
+                  <div className="text-center py-3">
+                    <Spinner size="sm" animation="border" />
+                    <p className="mt-2 mb-0">Loading vehicles...</p>
+                  </div>
+                ) : error.vehicles ? (
+                  <div className="text-center py-3 text-danger">
+                    <p className="mb-0">Error: {error.vehicles}</p>
+                  </div>
+                ) : vehicles.length === 0 ? (
+                  <div className="text-center py-3 text-muted">
+                    <p className="mb-0">No vehicles registered</p>
+                  </div>
+                ) : (
+                  <>
+                    {vehicles.slice(0, 3).map((vehicle) => (
+                      <div key={vehicle.id} className="mb-3">
+                        <strong>
+                          {vehicle.year} {vehicle.make} {vehicle.model}
+                        </strong>
+                        <br />
+                        <small className="text-muted">
+                          License: {vehicle.licensePlate || 'N/A'}
+                        </small>
+                      </div>
+                    ))}
+                  </>
+                )}
                 <Button variant="outline-info" size="sm" className="w-100">
                   Manage Vehicles
                 </Button>
@@ -729,20 +893,38 @@ export const AutoRepairDashboard: React.FC = () => {
                 <h5 className="mb-0">📋 Recent Activity</h5>
               </Card.Header>
               <Card.Body>
-                <div className="mb-3">
-                  <strong>Appointment Scheduled</strong>
-                  <br />
-                  <small className="text-muted">
-                    Oil Change - Jan 25, 2024 at 10:00 AM
-                  </small>
-                </div>
-                <div className="mb-3">
-                  <strong>Service Completed</strong>
-                  <br />
-                  <small className="text-muted">
-                    Brake Inspection - Toyota Camry
-                  </small>
-                </div>
+                {loading.appointments || loading.repairOrders ? (
+                  <div className="text-center py-3">
+                    <Spinner size="sm" animation="border" />
+                    <p className="mt-2 mb-0">Loading activity...</p>
+                  </div>
+                ) : (
+                  <>
+                    {appointments.slice(0, 2).map((appointment) => (
+                      <div key={appointment.id} className="mb-3">
+                        <strong>Appointment Scheduled</strong>
+                        <br />
+                        <small className="text-muted">
+                          {appointment.serviceType || appointment.description} - {formatAppointmentTime(appointment)}
+                        </small>
+                      </div>
+                    ))}
+                    {repairOrders.slice(0, 2).map((repair) => (
+                      <div key={repair.id} className="mb-3">
+                        <strong>Service {repair.status === 'completed' ? 'Completed' : 'In Progress'}</strong>
+                        <br />
+                        <small className="text-muted">
+                          {repair.description || 'Repair Service'}
+                        </small>
+                      </div>
+                    ))}
+                    {appointments.length === 0 && repairOrders.length === 0 && (
+                      <div className="text-center py-3 text-muted">
+                        <p className="mb-0">No recent activity</p>
+                      </div>
+                    )}
+                  </>
+                )}
                 <Button variant="outline-success" size="sm" className="w-100">
                   View History
                 </Button>
@@ -752,88 +934,35 @@ export const AutoRepairDashboard: React.FC = () => {
         </Row>
       )}
 
-      <div style={{ marginTop: "30px" }}>
-        <Tabs defaultActiveKey="system" id="dashboard-tabs" className="mb-4">
-          <Tab eventKey="system" title="🏪 Shop System">
-            <Card>
-              <Card.Body>
-                <h4>Auto Repair Shop Management System</h4>
-                <p>
-                  This system helps manage all aspects of your auto repair
-                  business:
-                </p>
-                <Row>
-                  <Col md={4}>
-                    <h6>👥 Customer Management</h6>
-                    <ul>
-                      <li>Customer profiles</li>
-                      <li>Vehicle registration</li>
-                      <li>Service history</li>
-                    </ul>
-                  </Col>
-                  <Col md={4}>
-                    <h6>📅 Operations</h6>
-                    <ul>
-                      <li>Appointment scheduling</li>
-                      <li>Repair order tracking</li>
-                      <li>Parts inventory</li>
-                    </ul>
-                  </Col>
-                  <Col md={4}>
-                    <h6>📊 Business Intelligence</h6>
-                    <ul>
-                      <li>Financial reports</li>
-                      <li>Customer analytics</li>
-                      <li>Inventory reports</li>
-                    </ul>
-                  </Col>
-                </Row>
-              </Card.Body>
-            </Card>
-          </Tab>
-
-          <Tab eventKey="legacy" title="🔄 Legacy Dashboard">
-            <RebuildDashboard />
-          </Tab>
-
-          <Tab eventKey="original" title="📊 Original Components">
-            <h2>🏪 Auto Repairs Management System</h2>
-
-            {/* Auto Repairs Dashboard Component */}
-            <AutoRepairsDashboard />
-          </Tab>
-        </Tabs>
-      </div>
-
       {/* Modals */}
       <AddCustomerModal
         show={showCustomerModal}
         onHide={() => setShowCustomerModal(false)}
-        onSuccess={(data: any) => handleSuccess("Customer", data)}
+        onSuccess={() => handleSuccess("Customer")}
       />
 
       <AddVehicleModal
         show={showVehicleModal}
         onHide={() => setShowVehicleModal(false)}
-        onSuccess={(data: any) => handleSuccess("Vehicle", data)}
+        onSuccess={() => handleSuccess("Vehicle")}
       />
 
       <AddAppointmentModal
         show={showAppointmentModal}
         onHide={() => setShowAppointmentModal(false)}
-        onSuccess={(data: any) => handleSuccess("Appointment", data)}
+        onSuccess={() => handleSuccess("Appointment")}
       />
 
       <AddRepairOrderModal
         show={showRepairOrderModal}
         onHide={() => setShowRepairOrderModal(false)}
-        onSuccess={(data: any) => handleSuccess("Repair Order", data)}
+        onSuccess={() => handleSuccess("Repair Order")}
       />
 
       <AddVehicleProblemModal
         show={showProblemModal}
         onHide={() => setShowProblemModal(false)}
-        onSuccess={(data: any) => handleSuccess("Problem Report", data)}
+        onSuccess={() => handleSuccess("Problem Report")}
       />
     </div>
   );

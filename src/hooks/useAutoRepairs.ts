@@ -19,11 +19,23 @@ import {
   updateAppointment,
   deleteAppointment,
   
+  // NEW: Technician Assignment Workflow
+  assignTechnician,
+  startWork,
+  completeWork,
+  
+  // NEW: Technician Workload Management
+  fetchTechnicianWorkload,
+  fetchAvailableTechnicians,
+  
   // Repair Orders
   fetchRepairOrders,
   createRepairOrder,
   updateRepairOrder,
   deleteRepairOrder,
+  
+  // Dashboard stats
+  fetchTodaysRevenue,
   
   // Employees
   fetchEmployees,
@@ -35,17 +47,15 @@ import {
   
   // Error handling
   clearError,
-  clearErrors
+  clearErrors,
+  clearAppointments
 } from '../store/slices/autoRepairsSlice';
-
-import type { 
-  Vehicle, 
-  Customer, 
-  Appointment, 
-  RepairOrder, 
-  Employee, 
-  Shop
-} from '../types/autoRepairs';
+import type { Vehicle, VehicleFilters } from '../types/vehicles';
+import type { Customer, CustomerFilters } from '../types/customers';
+import type { Appointment, AppointmentFilters } from '../types/appointments';
+import type { RepairOrder, RepairOrderFilters } from '../types/repairOrders';
+import type { Employee } from '../types/employees';
+import type { Shop } from '../types/shops';
 
 export const useAutoRepairs = () => {
   const dispatch = useAppDispatch();
@@ -70,7 +80,7 @@ export const useAutoRepairs = () => {
   });
 
   // Vehicle operations
-  const loadVehicles = useCallback((filters?: any) => {
+  const loadVehicles = useCallback((filters?: VehicleFilters) => {
     return dispatch(fetchVehicles(filters));
   }, [dispatch]);
 
@@ -87,7 +97,7 @@ export const useAutoRepairs = () => {
   }, [dispatch]);
 
   // Customer operations
-  const loadCustomers = useCallback((filters?: any) => {
+  const loadCustomers = useCallback((filters?: CustomerFilters) => {
     return dispatch(fetchCustomers(filters));
   }, [dispatch]);
 
@@ -104,7 +114,7 @@ export const useAutoRepairs = () => {
   }, [dispatch]);
 
   // Appointment operations
-  const loadAppointments = useCallback((filters?: any) => {
+  const loadAppointments = useCallback((filters?: AppointmentFilters) => {
     return dispatch(fetchAppointments(filters));
   }, [dispatch]);
 
@@ -120,8 +130,30 @@ export const useAutoRepairs = () => {
     return dispatch(deleteAppointment(id));
   }, [dispatch]);
 
+  // NEW: Technician Assignment Workflow operations
+  const assignTechnicianToAppointment = useCallback((appointmentId: string, technicianId: string) => {
+    return dispatch(assignTechnician({ appointmentId, technicianId }));
+  }, [dispatch]);
+
+  const startAppointmentWork = useCallback((appointmentId: string) => {
+    return dispatch(startWork(appointmentId));
+  }, [dispatch]);
+
+  const completeAppointmentWork = useCallback((appointmentId: string) => {
+    return dispatch(completeWork(appointmentId));
+  }, [dispatch]);
+
+  // NEW: Technician Workload Management operations
+  const loadTechnicianWorkload = useCallback(() => {
+    return dispatch(fetchTechnicianWorkload());
+  }, [dispatch]);
+
+  const loadAvailableTechnicians = useCallback(() => {
+    return dispatch(fetchAvailableTechnicians());
+  }, [dispatch]);
+
   // Repair Order operations
-  const loadRepairOrders = useCallback((filters?: any) => {
+  const loadRepairOrders = useCallback((filters?: RepairOrderFilters) => {
     return dispatch(fetchRepairOrders(filters));
   }, [dispatch]);
 
@@ -137,8 +169,13 @@ export const useAutoRepairs = () => {
     return dispatch(deleteRepairOrder(id));
   }, [dispatch]);
 
+  // Dashboard stats actions
+  const loadTodaysRevenue = useCallback(() => {
+    return dispatch(fetchTodaysRevenue());
+  }, [dispatch]);
+
   // Employee operations
-  const loadEmployees = useCallback((filters?: any) => {
+  const loadEmployees = useCallback((filters?: Record<string, unknown>) => {
     return dispatch(fetchEmployees(filters));
   }, [dispatch]);
 
@@ -157,11 +194,11 @@ export const useAutoRepairs = () => {
 
   // Batch operations
   const loadAllData = useCallback(() => {
-    dispatch(fetchVehicles());
-    dispatch(fetchCustomers());
-    dispatch(fetchAppointments());
-    dispatch(fetchRepairOrders());
-    dispatch(fetchEmployees());
+    dispatch(fetchVehicles(undefined));
+    dispatch(fetchCustomers(undefined));
+    dispatch(fetchAppointments(undefined));
+    dispatch(fetchRepairOrders(undefined));
+    dispatch(fetchEmployees(undefined));
     dispatch(fetchShops());
   }, [dispatch]);
 
@@ -206,8 +243,8 @@ export const useAutoRepairs = () => {
       );
 
       const employees = state.employees.filter(e => 
-        e.firstName?.toLowerCase().includes(query.toLowerCase()) ||
-        e.lastName?.toLowerCase().includes(query.toLowerCase()) ||
+        e.first_name?.toLowerCase().includes(query.toLowerCase()) ||
+        e.last_name?.toLowerCase().includes(query.toLowerCase()) ||
         e.email?.toLowerCase().includes(query.toLowerCase())
       );
 
@@ -236,7 +273,7 @@ export const useAutoRepairs = () => {
   // Error handling
   const handleClearError = useCallback((errorType: keyof typeof state.error) => {
     dispatch(clearError(errorType));
-  }, [dispatch]);
+  }, [dispatch, state]);
 
   const handleClearAllErrors = useCallback(() => {
     dispatch(clearErrors());
@@ -252,6 +289,13 @@ export const useAutoRepairs = () => {
     shops: state.shops,
     loading: state.loading,
     error: state.error,
+    
+    // NEW: Technician workload state
+    technicianWorkload: state.technicianWorkload,
+    availableTechnicians: state.availableTechnicians,
+    
+    // Dashboard stats
+    todaysRevenue: state.todaysRevenue,
     
     // Enhanced Features
     isLoading,
@@ -275,11 +319,23 @@ export const useAutoRepairs = () => {
     editAppointment,
     removeAppointment,
     
+    // NEW: Technician Assignment Actions
+    assignTechnicianToAppointment,
+    startAppointmentWork,
+    completeAppointmentWork,
+    
+    // NEW: Technician Workload Actions
+    loadTechnicianWorkload,
+    loadAvailableTechnicians,
+    
     // Repair Order Actions
     loadRepairOrders,
     addRepairOrder,
     editRepairOrder,
     removeRepairOrder,
+    
+    // Dashboard stats actions
+    loadTodaysRevenue,
     
     // Employee Actions
     loadEmployees,
@@ -298,5 +354,6 @@ export const useAutoRepairs = () => {
     // Error Handling
     clearError: handleClearError,
     clearAllErrors: handleClearAllErrors,
+    clearAppointments: useCallback(() => dispatch(clearAppointments()), [dispatch]),
   };
 };
