@@ -695,11 +695,23 @@ export const appointmentMngtService = {
   // Start work (assigned → in_progress)
   startWork: async (appointmentId: string): Promise<Appointment> => {
     try {
-      // Use standard PATCH endpoint to update appointment status to in_progress
-      const response = await apiPut<AppointmentResponse>(
+      console.log('🚀 appointmentMngtService.startWork called with appointmentId:', appointmentId);
+      
+      const requestData = { status: "in_progress" };
+      
+      console.log('📡 Making start work API call:', {
+        endpoint: `/shop/appointments/${appointmentId}/`,
+        method: 'PATCH',
+        data: requestData
+      });
+
+      // Use PATCH method to update appointment status to in_progress
+      const response = await apiPatch<AppointmentResponse>(
         `/shop/appointments/${appointmentId}/`,
-        { status: "in_progress" }
+        requestData
       );
+
+      console.log('🔍 Start work API response:', response);
 
       return {
         id: response.id?.toString() || "",
@@ -724,7 +736,21 @@ export const appointmentMngtService = {
         started_at: response.started_at,
         completed_at: response.completed_at,
         customer: response.customer,
-        vehicle: response.vehicle,
+        vehicle: response.vehicle ? {
+          id: response.vehicle.id ? parseInt(response.vehicle.id.toString(), 10) : undefined,
+          make: response.vehicle.make,
+          model: response.vehicle.model,
+          year: response.vehicle.year,
+          license_plate: response.vehicle.license_plate,
+          vin: response.vehicle.vin,
+          color: response.vehicle.color,
+          customer: response.vehicle.customer ? {
+            id: response.vehicle.customer.id ? parseInt(response.vehicle.customer.id.toString(), 10) : undefined,
+            name: response.vehicle.customer.name,
+            phone_number: response.vehicle.customer.phone_number,
+            email: response.vehicle.customer.email
+          } : undefined
+        } : undefined,
         createdAt: response.created_at || "",
         updatedAt: response.updated_at || "",
       };
@@ -740,11 +766,23 @@ export const appointmentMngtService = {
   // Complete work (in_progress → completed)
   completeWork: async (appointmentId: string): Promise<Appointment> => {
     try {
-      // Use standard PATCH endpoint to update appointment status to completed
-      const response = await apiPut<AppointmentResponse>(
+      console.log('🏁 appointmentMngtService.completeWork called with appointmentId:', appointmentId);
+      
+      const requestData = { status: "completed" };
+      
+      console.log('📡 Making completion API call:', {
+        endpoint: `/shop/appointments/${appointmentId}/`,
+        method: 'PATCH',
+        data: requestData
+      });
+
+      // Use PATCH method to update appointment status to completed
+      const response = await apiPatch<AppointmentResponse>(
         `/shop/appointments/${appointmentId}/`,
-        { status: "completed" }
+        requestData
       );
+
+      console.log('🔍 Completion API response:', response);
 
       return {
         id: response.id?.toString() || "",
