@@ -15,7 +15,8 @@ import {
 import { useAutoRepairs } from "../hooks/useAutoRepairs";
 import { useAuth } from "../hooks/useAuth";
 import { TechnicianAssignmentCard } from "../components/TechnicianAssignmentCard";
-import { TechnicianDebugComponent } from "../components/TechnicianDebugComponent";
+import { TechnicianWorkloadDashboard } from "../components/TechnicianWorkloadDashboard";
+
 
 export const RepairManagement: React.FC = () => {
   const { user } = useAuth();
@@ -24,7 +25,6 @@ export const RepairManagement: React.FC = () => {
     appointments,
     vehicles,
     customers,
-    employees,
     loading,
     error,
     loadRepairOrders,
@@ -32,6 +32,8 @@ export const RepairManagement: React.FC = () => {
     loadVehicles,
     loadCustomers,
     loadEmployees,
+    technicianWorkload,
+    loadTechnicianWorkload,
   } = useAutoRepairs();
 
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -51,11 +53,12 @@ export const RepairManagement: React.FC = () => {
           loadVehicles(),
           loadCustomers(),
           loadEmployees(),
+          loadTechnicianWorkload(),
         ]);
 
-        console.log("RepairManagement data loaded via Redux");
-      } catch (err) {
-        console.error("Error loading data:", err);
+        // Data loaded successfully
+      } catch {
+        // Error handled by Redux error state
       }
     };
 
@@ -72,8 +75,8 @@ export const RepairManagement: React.FC = () => {
         loadCustomers(),
         loadEmployees(),
       ]);
-    } catch (err) {
-      console.error("Error refreshing data:", err);
+    } catch {
+      // Let Redux handle the error state
     }
   }, [loadRepairOrders, loadAppointments, loadVehicles, loadCustomers, loadEmployees]);
 
@@ -85,7 +88,6 @@ export const RepairManagement: React.FC = () => {
 
   const getCustomerInfo = (vehicleId: number) => {
     const vehicle = vehicles.find((v) => v.id === vehicleId);
-    console.log('Finding customer for vehicleId:', vehicleId, 'Found vehicle:', vehicle);
     if (!vehicle) return "Unknown Customer";
     const customer = customers.find((c) => c.id === vehicle.customer?.id);
     if (!customer) return "Unknown Customer";
@@ -154,9 +156,6 @@ export const RepairManagement: React.FC = () => {
           <p className="text-muted">Manage repair orders and appointments</p>
         </Col>
       </Row>
-
-      {/* Debug Component - Remove after fixing */}
-      <TechnicianDebugComponent />
 
       <Tabs defaultActiveKey="repair-orders" className="mb-4">
         <Tab eventKey="repair-orders" title="Repair Orders">
@@ -368,13 +367,7 @@ export const RepairManagement: React.FC = () => {
                 <Card className="text-center">
                   <Card.Body>
                     <h3 className="text-success">
-                      {(() => {
-                        const totalTechnicians = employees.filter(emp => 
-                          emp.role === 'technician' || emp.position?.toLowerCase().includes('tech')
-                        ).length;
-                        const busyTechnicians = appointments.filter(apt => apt.assigned_technician).length;
-                        return Math.max(0, totalTechnicians - busyTechnicians);
-                      })()}
+                      {technicianWorkload.summary?.available_technicians || 0}
                     </h3>
                     <p className="mb-0">Available Technicians</p>
                   </Card.Body>
@@ -384,7 +377,7 @@ export const RepairManagement: React.FC = () => {
                 <Card className="text-center">
                   <Card.Body>
                     <h3 className="text-warning">
-                      {appointments.filter(apt => apt.assigned_technician && (apt.status === 'assigned' || apt.status === 'in_progress')).length}
+                      {technicianWorkload.summary?.busy_technicians || 0}
                     </h3>
                     <p className="mb-0">Busy Technicians</p>
                   </Card.Body>
@@ -394,9 +387,7 @@ export const RepairManagement: React.FC = () => {
                 <Card className="text-center">
                   <Card.Body>
                     <h3 className="text-info">
-                      {employees.filter(emp => 
-                        emp.role === 'technician' || emp.position?.toLowerCase().includes('tech')
-                      ).length}
+                      {technicianWorkload.summary?.total_technicians || 0}
                     </h3>
                     <p className="mb-0">Total Technicians</p>
                   </Card.Body>
@@ -406,13 +397,7 @@ export const RepairManagement: React.FC = () => {
                 <Card className="text-center">
                   <Card.Body>
                     <h3 className="text-primary">
-                      {(() => {
-                        const totalTechs = employees.filter(emp => 
-                          emp.role === 'technician' || emp.position?.toLowerCase().includes('tech')
-                        ).length;
-                        const busyTechs = appointments.filter(apt => apt.assigned_technician && (apt.status === 'assigned' || apt.status === 'in_progress')).length;
-                        return totalTechs > 0 ? `${Math.round((busyTechs / totalTechs) * 100)}%` : "0%";
-                      })()}
+                      {technicianWorkload.summary?.utilization_rate || '0%'}
                     </h3>
                     <p className="mb-0">Utilization Rate</p>
                   </Card.Body>
@@ -485,87 +470,8 @@ export const RepairManagement: React.FC = () => {
 
 
 
-            {/* Technician Workload Dashboard */}
-            <Card>
-              <Card.Header>
-                <h5 className="mb-0">📊 Technician Workload Dashboard</h5>
-              </Card.Header>
-              <Card.Body>
-                {employees.filter(emp => emp.role === 'technician' || emp.position?.toLowerCase().includes('tech')).length === 0 ? (
-                  <p className="text-muted text-center py-4">
-                    No technicians found
-                  </p>
-                ) : (
-                  <Row>
-                    {employees
-                      .filter(emp => emp.role === 'technician' || emp.position?.toLowerCase().includes('tech'))
-                      .map((technician) => {
-                        const assignedJobs = appointments.filter(apt => 
-                          apt.assigned_technician?.id === technician.id ||
-                          apt.assigned_technician?.first_name === technician.first_name
-                        );
-                        const currentJobs = assignedJobs.filter(apt => 
-                          apt.status === 'assigned' || apt.status === 'in_progress'
-                        );
-                        const isAvailable = currentJobs.length < 3; // Assume max 3 concurrent jobs
-
-                        return (
-                          <Col md={6} lg={4} key={technician.id} className="mb-3">
-                            <Card className="h-100">
-                              <Card.Header className="d-flex justify-content-between align-items-center">
-                                <h6 className="mb-0">
-                                  {technician.first_name} {technician.last_name}
-                                </h6>
-                                <Badge bg={isAvailable ? "success" : "warning"}>
-                                  {isAvailable ? "Available" : "Busy"}
-                                </Badge>
-                              </Card.Header>
-                              <Card.Body>
-                                <div className="d-flex justify-content-between mb-2">
-                                  <span>Current Jobs:</span>
-                                  <strong>{currentJobs.length}</strong>
-                                </div>
-                                <div className="d-flex justify-content-between mb-2">
-                                  <span>Total Assignments:</span>
-                                  <strong>{assignedJobs.length}</strong>
-                                </div>
-                                <div className="d-flex justify-content-between mb-3">
-                                  <span>Max Capacity:</span>
-                                  <strong>3</strong>
-                                </div>
-                                
-                                {currentJobs.length > 0 && (
-                                  <>
-                                    <h6 className="mb-2">Current Jobs:</h6>
-                                    {currentJobs.map((job) => (
-                                      <div key={job.id} className="border rounded p-2 mb-2">
-                                        <div className="d-flex justify-content-between align-items-center">
-                                          <small className="fw-bold">
-                                            {getVehicleInfo(job.vehicleId || job.vehicle_id || 0)}
-                                          </small>
-                                          <Badge bg={getStatusBadgeVariant(job.status || 'pending')}>
-                                            {job.status}
-                                          </Badge>
-                                        </div>
-                                        <small className="text-muted d-block">
-                                          {getCustomerInfo(job.vehicleId || job.vehicle_id || 0)}
-                                        </small>
-                                        <small className="text-muted">
-                                          Service: {job.serviceType || 'General Service'}
-                                        </small>
-                                      </div>
-                                    ))}
-                                  </>
-                                )}
-                              </Card.Body>
-                            </Card>
-                          </Col>
-                        );
-                      })}
-                  </Row>
-                )}
-              </Card.Body>
-            </Card>
+            {/* Technician Workload Dashboard - Use proper Redux state */}
+            <TechnicianWorkloadDashboard />
 
             {/* Quick Actions Section */}
             <Card className="mt-4">
@@ -630,25 +536,13 @@ export const RepairManagement: React.FC = () => {
                       <h6>👥 Technician Status</h6>
                       <ul className="list-unstyled mb-0">
                         <li>• Available: <Badge bg="success">
-                          {(() => {
-                            const totalTechnicians = employees.filter(emp => 
-                              emp.role === 'technician' || emp.position?.toLowerCase().includes('tech')
-                            ).length;
-                            const busyTechnicians = appointments.filter(apt => apt.assigned_technician).length;
-                            return Math.max(0, totalTechnicians - busyTechnicians);
-                          })()}
+                          {technicianWorkload?.summary?.available_technicians || 0}
                         </Badge></li>
                         <li>• Busy: <Badge bg="warning">
-                          {appointments.filter(apt => apt.assigned_technician && (apt.status === 'assigned' || apt.status === 'in_progress')).length}
+                          {technicianWorkload?.summary?.busy_technicians || 0}
                         </Badge></li>
                         <li>• Utilization: <Badge bg="info">
-                          {(() => {
-                            const totalTechs = employees.filter(emp => 
-                              emp.role === 'technician' || emp.position?.toLowerCase().includes('tech')
-                            ).length;
-                            const busyTechs = appointments.filter(apt => apt.assigned_technician && (apt.status === 'assigned' || apt.status === 'in_progress')).length;
-                            return totalTechs > 0 ? `${Math.round((busyTechs / totalTechs) * 100)}%` : "0%";
-                          })()}
+                          {technicianWorkload?.summary?.utilization_rate || 0}%
                         </Badge></li>
                       </ul>
                     </Col>

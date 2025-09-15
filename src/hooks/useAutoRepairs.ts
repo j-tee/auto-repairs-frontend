@@ -287,9 +287,8 @@ export const useAutoRepairs = () => {
         shops
       });
 
-      console.log('Search completed for:', query);
     } catch (error) {
-      console.error('Search error:', error);
+      // Error handled by search logic
     } finally {
       setIsLoading(false);
     }
