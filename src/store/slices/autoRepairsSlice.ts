@@ -4,9 +4,9 @@ import {
   vehicleMngtService,
   appointmentMngtService,
   repairOrderMngtService,
+  employeeMngtService,
   authService,
-  userMngtService,
-  technicianWorkloadService
+  userMngtService
 } from '../../services';
 import { apiPost, apiGet, setAuthToken, removeAuthToken, getAuthToken } from '../../utils/api';
 
@@ -611,10 +611,38 @@ export const assignTechnician = createAsyncThunk(
   'autoRepairs/assignTechnician',
   async ({ appointmentId, technicianId }: { appointmentId: string; technicianId: string }, { rejectWithValue }) => {
     try {
+      console.log('🎯 Redux assignTechnician thunk called with:', { appointmentId, technicianId });
       const updatedAppointment = await appointmentMngtService.assignTechnician(appointmentId, technicianId);
+      console.log('✅ Redux assignTechnician success:', updatedAppointment);
+      console.log('🔍 Checking assignment fields:', {
+        assigned_technician_id: updatedAppointment.assigned_technician_id,
+        assignedTechnician: updatedAppointment.assignedTechnician,
+        assigned_technician: updatedAppointment.assigned_technician,
+        fullResponse: updatedAppointment
+      });
+      
+      // Temporarily disable verification to see what we get
+      // TODO: Re-enable verification once we understand the response format
+      /*
+      if (!updatedAppointment.assigned_technician_id && !updatedAppointment.assignedTechnician) {
+        throw new Error('Assignment failed: No technician ID in response');
+      }
+      */
+      
       return updatedAppointment;
     } catch (error) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Unknown error');
+      console.error('❌ Redux assignTechnician failed:', error);
+      let errorMessage = 'Assignment failed';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error && typeof error === 'object' && 'message' in error) {
+        errorMessage = String(error.message);
+      }
+      
+      return rejectWithValue(errorMessage);
     }
   }
 );
@@ -648,10 +676,34 @@ export const fetchTechnicianWorkload = createAsyncThunk(
   'autoRepairs/fetchTechnicianWorkload',
   async (_, { rejectWithValue }) => {
     try {
-      const workloadData = await technicianWorkloadService.getTechnicianWorkload();
-      return workloadData;
+      // Use existing employee service to get workload data
+      const employees = await employeeMngtService.getEmployees();
+      
+      // Filter to technicians and create workload summary using actual backend data properties
+      const technicians = employees.employees.filter((emp: Employee) => 
+        emp.role === 'technician' || emp.role === 'mechanic' || emp.is_technician
+      );
+      
+      return {
+        summary: {
+          total_technicians: technicians.length,
+          available_technicians: technicians.filter((t: Employee) => t.is_available).length,
+          busy_technicians: technicians.filter((t: Employee) => !t.is_available).length,
+          utilization_rate: technicians.length > 0 ? 
+            `${Math.round((technicians.filter((t: Employee) => !t.is_available).length / technicians.length) * 100)}%` : "0%"
+        },
+        technicians: technicians.map((tech: Employee) => ({
+          technician: tech,
+          workload: {
+            current_assignments: tech.workload_count || 0,
+            completed_today: tech.appointments_today_count || 0,
+            efficiency_rating: 85, // Default rating
+          },
+          current_jobs: tech.current_jobs || []
+        }))
+      };
     } catch (error) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Unknown error');
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch technician workload');
     }
   }
 );
@@ -660,10 +712,24 @@ export const fetchAvailableTechnicians = createAsyncThunk(
   'autoRepairs/fetchAvailableTechnicians',
   async (_, { rejectWithValue }) => {
     try {
-      const technicians = await technicianWorkloadService.getAvailableTechnicians();
-      return technicians;
+      // Use existing employee service to get available technicians
+      console.log('🔍 Fetching available technicians...');
+      const employees = await employeeMngtService.getEmployees();
+      console.log('📊 Raw employees response:', employees);
+      
+      // Filter to available technicians only using actual backend data properties
+      const availableTechnicians = employees.employees.filter((emp: Employee) => {
+        const isTechnician = emp.role === 'technician' || emp.role === 'mechanic' || emp.is_technician;
+        const isAvailable = emp.is_available;
+        console.log(`👤 Employee ${emp.name || `${emp.first_name} ${emp.last_name}`}: role=${emp.role}, is_technician=${emp.is_technician}, is_available=${emp.is_available}, included=${isTechnician && isAvailable}`);
+        return isTechnician && isAvailable;
+      });
+      
+      console.log('✅ Available technicians found:', availableTechnicians.length, availableTechnicians);
+      return availableTechnicians;
     } catch (error) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Unknown error');
+      console.error('❌ Error fetching available technicians:', error);
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch available technicians');
     }
   }
 );

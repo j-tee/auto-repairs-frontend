@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Technician Workflow API Tester</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+        .success { 
+            background-color: #d4edda; 
+            border-color: #c3e6cb; 
+            color: #155724; 
+        }
+        .error { 
+            background-color: #f8d7da; 
+            border-color: #f5c6cb; 
+            color: #721c24; 
+        }
+        .warning { 
+            background-color: #fff3cd; 
+            border-color: #ffeaa7; 
+            color: #856404; 
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            border: 1px solid #e9ecef;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+        }
+        .status-success { background-color: #28a745; }
+        .status-error { background-color: #dc3545; }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        select, input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Technician Workflow API Tester</h1>
+        <p>This tool tests the technician management API endpoints using your browser's stored authentication.</p>
+
+        <!-- Configuration Section -->
+        <div class="test-section">
+            <h2>🔧 Configuration</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="input-group">
+                    <label for="baseUrl">API Base URL:</label>
+                    <input type="text" id="baseUrl" value="http://127.0.0.1:8000/api" />
+                </div>
+                <div class="input-group">
+                    <label for="token">Auth Token:</label>
+                    <input type="text" id="token" placeholder="Auto-detected from localStorage" readonly />
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="input-group">
+                    <label for="testAppointmentId">Test Appointment ID:</label>
+                    <select id="testAppointmentId">
+                        <option value="">Loading appointments...</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="testTechnicianId">Test Technician ID:</label>
+                    <select id="testTechnicianId">
+                        <option value="">Loading technicians...</option>
+                    </select>
+                </div>
+            </div>
+            <button onclick="initializeData()" id="initBtn">🔄 Initialize Test Data</button>
+            <button onclick="runAllTests()" id="testBtn" disabled>🚀 Run All Tests</button>
+            <button onclick="clearResults()">🧹 Clear Results</button>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results"></div>
+
+        <!-- Troubleshooting Guide -->
+        <div class="test-section warning">
+            <h3>🔍 Troubleshooting Guide</h3>
+            <ul>
+                <li><strong>404 Errors:</strong> Backend endpoint not implemented - contact backend developer</li>
+                <li><strong>400/422 Errors:</strong> Invalid request data or appointment status workflow issue</li>
+                <li><strong>401/403 Errors:</strong> Authentication or permission issues</li>
+                <li><strong>500 Errors:</strong> Backend server error - check backend logs</li>
+                <li><strong>Network Errors:</strong> Connection issues or CORS problems</li>
+            </ul>
+            
+            <h4>Expected Workflow:</h4>
+            <ol>
+                <li>Appointment created with <code>status: 'pending'</code></li>
+                <li>Assign technician → <code>status: 'assigned'</code> + <code>assigned_technician_id</code> + <code>assigned_at</code></li>
+                <li>Start work → <code>status: 'in_progress'</code> + <code>started_at</code></li>
+                <li>Complete work → <code>status: 'completed'</code> + <code>completed_at</code></li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        let testResults = [];
+        let baseUrl = '';
+        let authToken = '';
+
+        // Initialize on page load
+        window.onload = function() {
+            // Get auth token from localStorage
+            const token = localStorage.getItem('auth_token');
+            if (token) {
+                document.getElementById('token').value = token.substring(0, 40) + '...';
+                authToken = token;
+            } else {
+                addResult({
+                    endpoint: 'localStorage check',
+                    method: 'GET',
+                    success: false,
+                    error: 'No auth_token found in localStorage. Please log in first.',
+                    timestamp: new Date().toLocaleTimeString()
+                });
+                return;
+            }
+            
+            baseUrl = document.getElementById('baseUrl').value;
+            
+            // Auto-initialize
+            initializeData();
+        };
+
+        async function initializeData() {
+            const initBtn = document.getElementById('initBtn');
+            const testBtn = document.getElementById('testBtn');
+            
+            initBtn.disabled = true;
+            initBtn.textContent = '🔄 Loading...';
+            
+            try {
+                // Load appointments
+                await loadAppointments();
+                
+                // Load technicians
+                await loadTechnicians();
+                
+                testBtn.disabled = false;
+                initBtn.textContent = '✅ Data Loaded';
+                initBtn.style.backgroundColor = '#28a745';
+                
+            } catch (error) {
+                initBtn.textContent = '❌ Load Failed';
+                initBtn.style.backgroundColor = '#dc3545';
+                initBtn.disabled = false;
+            }
+        }
+
+        async function loadAppointments() {
+            try {
+                const response = await makeApiCall('/shop/appointments/?limit=10', 'GET');
+                const appointments = response.results || response;
+                
+                const select = document.getElementById('testAppointmentId');
+                select.innerHTML = '<option value="">Select appointment...</option>';
+                
+                if (appointments && appointments.length > 0) {
+                    appointments.forEach(apt => {
+                        const option = document.createElement('option');
+                        option.value = apt.id;
+                        option.textContent = `ID: ${apt.id} - ${apt.customer?.first_name || apt.customer?.name || 'Unknown'} (${apt.status || 'unknown'})`;
+                        select.appendChild(option);
+                    });
+                } else {
+                    select.innerHTML = '<option value="">No appointments found</option>';
+                }
+                
+                addResult({
+                    endpoint: '/shop/appointments/',
+                    method: 'GET',
+                    success: true,
+                    data: `Loaded ${appointments?.length || 0} appointments`,
+                    timestamp: new Date().toLocaleTimeString()
+                });
+                
+            } catch (error) {
+                addResult({
+                    endpoint: '/shop/appointments/',
+                    method: 'GET',
+                    success: false,
+                    error: error.message,
+                    timestamp: new Date().toLocaleTimeString()
+                });
+            }
+        }
+
+        async function loadTechnicians() {
+            try {
+                const response = await makeApiCall('/shop/employees/?role=technician', 'GET');
+                const employees = response.results || response;
+                
+                const select = document.getElementById('testTechnicianId');
+                select.innerHTML = '<option value="">Select technician...</option>';
+                
+                if (employees && employees.length > 0) {
+                    employees.forEach(emp => {
+                        const option = document.createElement('option');
+                        option.value = emp.id;
+                        option.textContent = `ID: ${emp.id} - ${emp.first_name} ${emp.last_name} (${emp.position || emp.role})`;
+                        select.appendChild(option);
+                    });
+                } else {
+                    select.innerHTML = '<option value="">No technicians found</option>';
+                }
+                
+                addResult({
+                    endpoint: '/shop/employees/?role=technician',
+                    method: 'GET',
+                    success: true,
+                    data: `Loaded ${employees?.length || 0} technicians`,
+                    timestamp: new Date().toLocaleTimeString()
+                });
+                
+            } catch (error) {
+                addResult({
+                    endpoint: '/shop/employees/?role=technician',
+                    method: 'GET',
+                    success: false,
+                    error: error.message,
+                    timestamp: new Date().toLocaleTimeString()
+                });
+            }
+        }
+
+        async function makeApiCall(endpoint, method, data = null) {
+            const url = baseUrl + endpoint;
+            const options = {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                }
+            };
+            
+            if (data && method !== 'GET') {
+                options.body = JSON.stringify(data);
+            }
+            
+            const response = await fetch(url, options);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
+            }
+            
+            return await response.json();
+        }
+
+        async function runAllTests() {
+            const testBtn = document.getElementById('testBtn');
+            testBtn.disabled = true;
+            testBtn.textContent = '🧪 Running Tests...';
+            
+            const appointmentId = document.getElementById('testAppointmentId').value;
+            const technicianId = document.getElementById('testTechnicianId').value;
+            
+            try {
+                // Test 1: Get Workload Overview
+                await testEndpoint('/shop/technicians/workload/', 'GET', null, 'Get technician workload overview');
+                
+                // Test 2: Test workflow endpoints (if we have test data)
+                if (appointmentId && technicianId) {
+                    // Test assignment
+                    await testEndpoint(
+                        `/shop/appointments/${appointmentId}/assign-technician/`, 
+                        'POST', 
+                        { technician_id: parseInt(technicianId) },
+                        'Assign technician to appointment'
+                    );
+                    
+                    // Small delay between requests
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    // Test start work
+                    await testEndpoint(
+                        `/shop/appointments/${appointmentId}/start-work/`, 
+                        'POST', 
+                        {},
+                        'Start work on appointment'
+                    );
+                    
+                    // Small delay between requests
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    // Test complete work
+                    await testEndpoint(
+                        `/shop/appointments/${appointmentId}/complete-work/`, 
+                        'POST', 
+                        {},
+                        'Complete work on appointment'
+                    );
+                } else {
+                    addResult({
+                        endpoint: 'Workflow Tests',
+                        method: 'SKIP',
+                        success: false,
+                        error: 'No appointment or technician ID selected',
+                        timestamp: new Date().toLocaleTimeString()
+                    });
+                }
+                
+            } catch (error) {
+                console.error('Test error:', error);
+            } finally {
+                testBtn.disabled = false;
+                testBtn.textContent = '🚀 Run All Tests';
+            }
+        }
+
+        async function testEndpoint(endpoint, method, data, description) {
+            try {
+                const response = await makeApiCall(endpoint, method, data);
+                addResult({
+                    endpoint,
+                    method,
+                    success: true,
+                    data: response,
+                    timestamp: new Date().toLocaleTimeString(),
+                    description
+                });
+            } catch (error) {
+                addResult({
+                    endpoint,
+                    method,
+                    success: false,
+                    error: error.message,
+                    timestamp: new Date().toLocaleTimeString(),
+                    description
+                });
+            }
+        }
+
+        function addResult(result) {
+            testResults.unshift(result);
+            renderResults();
+        }
+
+        function renderResults() {
+            const resultsDiv = document.getElementById('results');
+            
+            if (testResults.length === 0) {
+                resultsDiv.innerHTML = '<div class="test-section">No test results yet.</div>';
+                return;
+            }
+            
+            const html = testResults.map(result => `
+                <div class="test-section ${result.success ? 'success' : 'error'}">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <div>
+                            <span class="status-badge ${result.success ? 'status-success' : 'status-error'}">
+                                ${result.method}
+                            </span>
+                            <code style="margin-left: 10px;">${result.endpoint}</code>
+                            ${result.description ? `<br><small>${result.description}</small>` : ''}
+                        </div>
+                        <small>${result.timestamp}</small>
+                    </div>
+                    
+                    ${result.success ? 
+                        `<div><strong>✅ Success</strong></div>
+                         ${result.data ? `<details style="margin-top: 10px;">
+                             <summary>Response Data</summary>
+                             <pre>${JSON.stringify(result.data, null, 2)}</pre>
+                         </details>` : ''}` :
+                        `<div><strong>❌ Failed</strong></div>
+                         <pre style="margin-top: 10px; background-color: rgba(220,53,69,0.1);">${result.error}</pre>`
+                    }
+                </div>
+            `).join('');
+            
+            resultsDiv.innerHTML = html;
+        }
+
+        function clearResults() {
+            testResults = [];
+            renderResults();
+        }
+    </script>
+</body>
+</html>

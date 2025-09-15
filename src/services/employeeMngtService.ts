@@ -40,18 +40,25 @@ export const employeeMngtService = {
 
     const response = await apiGet<EmployeeListResponse>(endpoint);
 
+    // Handle both direct array response and paginated response
+    const employeesArray = Array.isArray(response) ? response : (response.results || []);
+
     return {
       employees:
-        response.results?.map((employee: Employee) => ({
+        employeesArray.map((employee: any) => ({
           id: employee.id?.toString() || "",
-          first_name: employee.first_name || "",
-          last_name: employee.last_name || "",
+          // Handle both backend formats: name vs first_name/last_name
+          first_name: employee.first_name || (employee.name ? employee.name.split(' ')[0] : "") || "",
+          last_name: employee.last_name || (employee.name ? employee.name.split(' ').slice(1).join(' ') : "") || "",
+          name: employee.name || `${employee.first_name || ''} ${employee.last_name || ''}`.trim(),
           email: employee.email || "",
-          phone: employee.phone || "",
-          position: employee.position || "",
+          phone: employee.phone || employee.phone_number || "",
+          // Handle both backend formats: position vs role
+          position: employee.position || employee.role || "",
+          role: employee.role || employee.position || "",
           department: employee.department || "",
           employee_id: employee.employee_id || "",
-          hireDate: employee.hire_date || "",
+          hire_date: employee.hire_date || "",
           status: employee.status || "active",
           hourly_rate: employee.hourly_rate,
           salary: employee.salary,
@@ -68,8 +75,14 @@ export const employeeMngtService = {
             : undefined,
           work_schedule: employee.work_schedule,
           notes: employee.notes,
-          avatar: employee.avatar,
+          avatar: employee.avatar || employee.picture,
           is_active: employee.is_active ?? true,
+          // Backend specific properties  
+          is_available: employee.is_available,
+          is_technician: employee.is_technician,
+          workload_count: employee.workload_count || 0,
+          appointments_today_count: employee.appointments_today_count || 0,
+          current_jobs: employee.current_jobs || [],
           created_at: employee.created_at || new Date().toISOString(),
           updated_at: employee.updated_at || new Date().toISOString(),
           performance: employee.performance
@@ -82,10 +95,10 @@ export const employeeMngtService = {
               }
             : undefined,
         })) || [],
-      total: response.count || 0,
+      total: Array.isArray(response) ? response.length : (response.count || 0),
       page: query.page || 1,
       limit: query.limit || 10,
-      totalPages: Math.ceil((response.count || 0) / (query.limit || 10)),
+      totalPages: Array.isArray(response) ? 1 : Math.ceil((response.count || 0) / (query.limit || 10)),
     };
   },
 

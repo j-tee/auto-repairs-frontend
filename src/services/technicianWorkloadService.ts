@@ -22,8 +22,21 @@ export const technicianWorkloadService = {
   // Get only available technicians (employees with technician role)
   getAvailableTechnicians: async (): Promise<Employee[]> => {
     try {
-      const response = await apiGet<Employee[]>("/shop/technicians/available/");
-      return response;
+      const response = await apiGet<{ message: string; available_technicians: any[] }>("/shop/technicians/available/");
+      // Transform backend response to Employee format
+      const employees: Employee[] = response.available_technicians.map(tech => ({
+        id: tech.id.toString(),
+        first_name: tech.name.split(' ')[0] || '',
+        last_name: tech.name.split(' ').slice(1).join(' ') || '',
+        role: tech.role,
+        position: tech.role,
+        email: `${tech.name.toLowerCase().replace(/\s+/g, '.')}@autorepair.com`,
+        phone: '',
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        shop_id: ''
+      }));
+      return employees;
     } catch (error: unknown) {
       toast.error(
         "Error fetching available technicians: " +

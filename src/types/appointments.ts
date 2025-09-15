@@ -60,8 +60,14 @@ export interface TechnicianWorkloadResponse {
 
 export interface AppointmentResponse {
   id?: string | number;
+  assigned_technician_id?: string | number | null;
+  assigned_technician?: EmployeeResponse | null;
+  assigned_at?: string | null;
+  started_at?: string | null;
+  completed_at?: string | null;
   customer_id?: string | number;
   vehicle_id?: string | number;
+  // vehicle?: VehicleResponse;
   date?: string;
   status?: string;
   description?: string;

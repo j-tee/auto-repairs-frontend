@@ -42,9 +42,12 @@ export interface Employee {
   id: string;
   first_name?: string;
   last_name?: string;
+  name?: string; // Backend uses this instead of first_name/last_name sometimes
   email: string;
   phone: string;
+  phone_number?: string; // Backend alternative property name
   position: string;
+  role?: 'manager' | 'technician' | 'service_advisor' | 'admin' | 'mechanic' | 'receptionist';
   department: string;
   employee_id?: string;
   hire_date?: string;
@@ -63,6 +66,7 @@ export interface Employee {
   work_schedule?: WorkSchedule;
   notes?: string;
   avatar?: string;
+  picture?: string; // Backend alternative property name
   is_active?: boolean;
   created_at: string;
   updated_at: string;
@@ -73,7 +77,19 @@ export interface Employee {
     customer_rating: number;
     last_review_date?: string;
   };
-  role?: 'manager' | 'technician' | 'service_advisor' | 'admin';
+  
+  // Backend specific properties for technician management
+  is_available?: boolean;
+  is_technician?: boolean;
+  workload_count?: number;
+  appointments_today_count?: number;
+  current_jobs?: Array<{
+    appointment_id: number;
+    vehicle: string;
+    customer: string;
+    status: string;
+    date: string;
+  }>;
 }
 
 export interface CreateEmployeeData {

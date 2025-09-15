@@ -13,7 +13,7 @@ import type {
   TimeSlotResponse,
   UpdateAppointmentData,
 } from "../types/appointments";
-import { apiGet, apiPost, apiPut, apiDelete } from "../utils/api";
+import { apiGet, apiPost, apiPut, apiPatch, apiDelete } from "../utils/api";
 // import { AppointmentListResponse } from '../types/appointments';
 
 // Appointment Management Service
@@ -50,7 +50,7 @@ export const appointmentMngtService = {
             description: appointment.description || "",
             notes: appointment.notes || "",
             estimatedCost: 0, // Default since not in backend schema
-            assignedTechnician: "", // Default since not in backend schema
+            assignedTechnician: appointment.assigned_technician || "", // Map from backend
             createdAt: appointment.date || "",
             updatedAt: appointment.date || "",
             reportedProblemId:
@@ -615,10 +615,32 @@ export const appointmentMngtService = {
   // Assign technician (employee) to appointment
   assignTechnician: async (appointmentId: string, technicianId: string): Promise<Appointment> => {
     try {
-      const response = await apiPost<AppointmentResponse>(
-        `/shop/appointments/${appointmentId}/assign-technician/`,
-        { technician_id: technicianId }
+      console.log('🔧 appointmentMngtService.assignTechnician called with:', { appointmentId, technicianId });
+      
+      // Convert string IDs to numbers for backend API
+      const numericTechnicianId = parseInt(technicianId, 10);
+      if (isNaN(numericTechnicianId)) {
+        toast.error('Invalid technician ID: must be a number');
+      }
+
+      const requestData = { 
+        assigned_technician_id: numericTechnicianId,
+        status: "assigned" 
+      };
+      
+      console.log('📡 Making API call:', {
+        endpoint: `/shop/appointments/${appointmentId}/`,
+        method: 'PATCH',
+        data: requestData
+      });
+
+      // Use PATCH method to update appointment with technician assignment
+      const response = await apiPatch<AppointmentResponse>(
+        `/shop/appointments/${appointmentId}/`,
+        requestData
       );
+
+      console.log('🔍 Raw API response:', response);
 
       return {
         id: response.id?.toString() || "",
@@ -628,18 +650,36 @@ export const appointmentMngtService = {
         scheduledDate: response.date ? response.date.split("T")[0] : "",
         scheduledTime: response.date ? response.date.split("T")[1]?.substring(0, 5) : "",
         duration: 60,
-        status: response.status || "assigned",
+        status: (response.status as Appointment["status"]) || "assigned",
         priority: "medium",
         description: response.description || "",
         notes: response.notes || "",
         assignedTechnician: response.assigned_technician_id?.toString() || "",
-        assigned_technician_id: response.assigned_technician_id,
+        assigned_technician_id: response.assigned_technician_id 
+          ? (typeof response.assigned_technician_id === 'string' 
+              ? parseInt(response.assigned_technician_id, 10) 
+              : response.assigned_technician_id)
+          : undefined,
         assigned_technician: response.assigned_technician,
         assigned_at: response.assigned_at,
         started_at: response.started_at,
         completed_at: response.completed_at,
         customer: response.customer,
-        vehicle: response.vehicle,
+        vehicle: response.vehicle ? {
+          id: response.vehicle.id ? parseInt(response.vehicle.id.toString(), 10) : undefined,
+          make: response.vehicle.make,
+          model: response.vehicle.model,
+          year: response.vehicle.year,
+          license_plate: response.vehicle.license_plate,
+          vin: response.vehicle.vin,
+          color: response.vehicle.color,
+          customer: response.vehicle.customer ? {
+            id: response.vehicle.customer.id ? parseInt(response.vehicle.customer.id.toString(), 10) : undefined,
+            name: response.vehicle.customer.name,
+            phone_number: response.vehicle.customer.phone_number,
+            email: response.vehicle.customer.email
+          } : undefined
+        } : undefined,
         createdAt: response.created_at || "",
         updatedAt: response.updated_at || "",
       };
@@ -655,8 +695,10 @@ export const appointmentMngtService = {
   // Start work (assigned → in_progress)
   startWork: async (appointmentId: string): Promise<Appointment> => {
     try {
-      const response = await apiPost<AppointmentResponse>(
-        `/shop/appointments/${appointmentId}/start-work/`
+      // Use standard PATCH endpoint to update appointment status to in_progress
+      const response = await apiPut<AppointmentResponse>(
+        `/shop/appointments/${appointmentId}/`,
+        { status: "in_progress" }
       );
 
       return {
@@ -669,9 +711,13 @@ export const appointmentMngtService = {
         duration: 60,
         status: response.status || "in_progress",
         priority: "medium",
-        description: response.description || "",
-        notes: response.notes || "",
         assignedTechnician: response.assigned_technician_id?.toString() || "",
+        assigned_technician_id: response.assigned_technician_id 
+          ? (typeof response.assigned_technician_id === 'string' 
+              ? parseInt(response.assigned_technician_id, 10) 
+              : response.assigned_technician_id)
+          : undefined,
+        assigned_technician: response.assigned_technician,
         assigned_technician_id: response.assigned_technician_id,
         assigned_technician: response.assigned_technician,
         assigned_at: response.assigned_at,
@@ -694,8 +740,10 @@ export const appointmentMngtService = {
   // Complete work (in_progress → completed)
   completeWork: async (appointmentId: string): Promise<Appointment> => {
     try {
-      const response = await apiPost<AppointmentResponse>(
-        `/shop/appointments/${appointmentId}/complete-work/`
+      // Use standard PATCH endpoint to update appointment status to completed
+      const response = await apiPut<AppointmentResponse>(
+        `/shop/appointments/${appointmentId}/`,
+        { status: "completed" }
       );
 
       return {

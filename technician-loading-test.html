@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Technician Loading Fix Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        button { margin: 5px; padding: 8px 16px; }
+        pre { background: #f5f5f5; padding: 10px; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Technician Loading Fix Verification</h1>
+    
+    <div class="section">
+        <h2>Authentication</h2>
+        <button onclick="login()">Login as Owner</button>
+        <div id="authStatus"></div>
+    </div>
+
+    <div class="section">
+        <h2>Technician Loading Test</h2>
+        <button onclick="testEmployeesEndpoint()">Test Raw Employees Endpoint</button>
+        <button onclick="testTechnicianFiltering()">Test Technician Filtering</button>
+        <div id="testResults"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api';
+        let authToken = null;
+
+        function log(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            element.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+        }
+
+        async function login() {
+            try {
+                log('authStatus', 'Attempting to login...', 'info');
+                
+                const response = await fetch(`${API_BASE}/token/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'owner@autorepairshop.com',
+                        password: 'owner123'
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Login failed: ${response.status}`);
+                }
+
+                const data = await response.json();
+                authToken = data.access;
+                
+                log('authStatus', '✅ Login successful!', 'success');
+                log('authStatus', `Token: ${authToken.substring(0, 50)}...`, 'info');
+            } catch (error) {
+                log('authStatus', `❌ Login error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testEmployeesEndpoint() {
+            if (!authToken) {
+                log('testResults', '❌ Please login first', 'error');
+                return;
+            }
+
+            try {
+                log('testResults', '🧪 Testing raw employees endpoint...', 'info');
+                
+                const response = await fetch(`${API_BASE}/shop/employees/`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Employees API failed: ${response.status}`);
+                }
+
+                const data = await response.json();
+                log('testResults', `✅ Raw response type: ${Array.isArray(data) ? 'Array' : 'Object'}`, 'success');
+                log('testResults', `📊 Total employees: ${Array.isArray(data) ? data.length : (data.results ? data.results.length : 'Unknown')}`, 'info');
+                
+                // Log response structure
+                if (Array.isArray(data) && data.length > 0) {
+                    log('testResults', '📋 Sample employee structure:', 'info');
+                    const sample = data[0];
+                    log('testResults', `  - ID: ${sample.id}`, 'info');
+                    log('testResults', `  - Name: ${sample.name || 'N/A'}`, 'info');
+                    log('testResults', `  - First Name: ${sample.first_name || 'N/A'}`, 'info');
+                    log('testResults', `  - Last Name: ${sample.last_name || 'N/A'}`, 'info');
+                    log('testResults', `  - Role: ${sample.role || 'N/A'}`, 'info');
+                    log('testResults', `  - Position: ${sample.position || 'N/A'}`, 'info');
+                    log('testResults', `  - Is Technician: ${sample.is_technician}`, 'info');
+                    log('testResults', `  - Is Available: ${sample.is_available}`, 'info');
+                }
+                
+                // Store for filtering test
+                window.employeesData = data;
+                
+            } catch (error) {
+                log('testResults', `❌ Employees endpoint error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testTechnicianFiltering() {
+            if (!window.employeesData) {
+                log('testResults', '❌ Please test employees endpoint first', 'error');
+                return;
+            }
+
+            try {
+                log('testResults', '🔍 Testing technician filtering logic...', 'info');
+                
+                const employees = Array.isArray(window.employeesData) 
+                    ? window.employeesData 
+                    : (window.employeesData.results || []);
+                
+                log('testResults', `📊 Processing ${employees.length} employees`, 'info');
+                
+                // Apply same filtering logic as the fixed Redux thunk
+                const technicians = employees.filter(emp => {
+                    const isTechnician = emp.role === 'technician' || emp.role === 'mechanic' || emp.is_technician;
+                    return isTechnician;
+                });
+                
+                log('testResults', `🔧 Found ${technicians.length} technicians total`, 'success');
+                
+                const availableTechnicians = technicians.filter(emp => emp.is_available);
+                log('testResults', `✅ Found ${availableTechnicians.length} available technicians`, 'success');
+                
+                if (availableTechnicians.length > 0) {
+                    log('testResults', '👥 Available technicians:', 'info');
+                    availableTechnicians.forEach((tech, index) => {
+                        const name = tech.name || `${tech.first_name || ''} ${tech.last_name || ''}`.trim();
+                        const position = tech.position || tech.role || 'Unknown';
+                        log('testResults', `  ${index + 1}. ${name} (ID: ${tech.id}) - ${position}`, 'info');
+                    });
+                } else if (technicians.length > 0) {
+                    log('testResults', '⚠️ All technicians are busy:', 'info');
+                    technicians.forEach((tech, index) => {
+                        const name = tech.name || `${tech.first_name || ''} ${tech.last_name || ''}`.trim();
+                        const position = tech.position || tech.role || 'Unknown';
+                        log('testResults', `  ${index + 1}. ${name} (ID: ${tech.id}) - ${position} - Busy`, 'info');
+                    });
+                } else {
+                    log('testResults', '❌ No technicians found in the system', 'error');
+                }
+                
+            } catch (error) {
+                log('testResults', `❌ Filtering test error: ${error.message}`, 'error');
+            }
+        }
+
+        // Auto-login on page load
+        window.addEventListener('load', () => {
+            log('authStatus', '🚀 Ready to test technician loading fix', 'info');
+        });
+    </script>
+</body>
+</html>

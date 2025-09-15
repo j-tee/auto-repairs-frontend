@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Technician Assignment</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { color: green; background: #f0f8f0; padding: 10px; margin: 10px 0; }
+        .error { color: red; background: #fff0f0; padding: 10px; margin: 10px 0; }
+        .info { color: blue; background: #f0f0f8; padding: 10px; margin: 10px 0; }
+        button { margin: 5px; padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        pre { background: #f5f5f5; padding: 10px; white-space: pre-wrap; border-radius: 3px; overflow-x: auto; }
+        .json { font-size: 12px; max-height: 300px; overflow-y: auto; }
+        .highlight { background: yellow; padding: 2px; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Debug Technician Assignment</h1>
+
+    <div class="section">
+        <h2>Authentication</h2>
+        <button onclick="login()">Login as Owner</button>
+        <div id="authStatus"></div>
+    </div>
+
+    <div class="section">
+        <h2>Debug Data Structure</h2>
+        <button onclick="checkRepairOrders()">Get Repair Orders</button>
+        <button onclick="checkAppointments()">Get Appointments</button>
+        <button onclick="getTechnicians()">Get Technicians</button>
+        <div id="dataResults"></div>
+    </div>
+
+    <div class="section">
+        <h2>Test Assignment</h2>
+        <button onclick="testAssignment()">Test Manual Assignment</button>
+        <div id="assignmentResults"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api';
+        let authToken = null;
+        let repairOrders = [];
+        let appointments = [];
+        let technicians = [];
+
+        function log(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            element.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+        }
+
+        function logJSON(elementId, data, label = 'Response') {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            element.innerHTML += `
+                <div class="info">
+                    <strong>[${timestamp}] ${label}:</strong>
+                    <pre class="json">${JSON.stringify(data, null, 2)}</pre>
+                </div>
+            `;
+        }
+
+        async function apiCall(endpoint, options = {}) {
+            if (!authToken) {
+                throw new Error('Not authenticated. Please login first.');
+            }
+
+            const response = await fetch(`${API_BASE}${endpoint}`, {
+                ...options,
+                headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                }
+            });
+
+            let data;
+            try {
+                data = await response.json();
+            } catch (e) {
+                data = { message: 'No JSON response' };
+            }
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${JSON.stringify(data)}`);
+            }
+
+            return { data, status: response.status };
+        }
+
+        async function login() {
+            try {
+                log('authStatus', 'Logging in as owner...');
+                
+                const response = await fetch(`${API_BASE}/auth/login/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'owner@autorepairshop.com',
+                        password: 'owner123'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    authToken = data.access;
+                    log('authStatus', `✅ Login successful as ${data.user.role}`, 'success');
+                } else {
+                    log('authStatus', `❌ Login failed: ${data.message || 'Unknown error'}`, 'error');
+                }
+            } catch (error) {
+                log('authStatus', `❌ Login error: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkRepairOrders() {
+            try {
+                log('dataResults', '🔍 Fetching repair orders...');
+                
+                const result = await apiCall('/shop/repair-orders/');
+                repairOrders = result.data.results || result.data;
+                
+                log('dataResults', `✅ Found ${repairOrders.length} repair orders`, 'success');
+                
+                // Check for appointment linkage
+                const withAppointmentId = repairOrders.filter(ro => ro.appointment_id || ro.appointmentId);
+                log('dataResults', `📋 ${withAppointmentId.length} repair orders have appointment linkage`, 'info');
+                
+                if (repairOrders.length > 0) {
+                    const sample = repairOrders[0];
+                    logJSON('dataResults', sample, 'Sample Repair Order');
+                    
+                    // Highlight appointment fields
+                    const appointmentFields = ['appointment_id', 'appointmentId', 'appointment'];
+                    const foundFields = appointmentFields.filter(field => field in sample);
+                    log('dataResults', `🎯 Appointment fields found: ${foundFields.join(', ') || 'NONE'}`, foundFields.length > 0 ? 'success' : 'error');
+                }
+            } catch (error) {
+                log('dataResults', `❌ Error fetching repair orders: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkAppointments() {
+            try {
+                log('dataResults', '🔍 Fetching appointments...');
+                
+                const result = await apiCall('/shop/appointments/');
+                appointments = result.data.results || result.data;
+                
+                log('dataResults', `✅ Found ${appointments.length} appointments`, 'success');
+                
+                if (appointments.length > 0) {
+                    const sample = appointments[0];
+                    logJSON('dataResults', sample, 'Sample Appointment');
+                    
+                    // Check technician fields
+                    const techFields = ['assigned_technician', 'assigned_technician_id', 'technician', 'technician_id'];
+                    const foundFields = techFields.filter(field => field in sample);
+                    log('dataResults', `🎯 Technician fields found: ${foundFields.join(', ') || 'NONE'}`, foundFields.length > 0 ? 'success' : 'info');
+                }
+            } catch (error) {
+                log('dataResults', `❌ Error fetching appointments: ${error.message}`, 'error');
+            }
+        }
+
+        async function getTechnicians() {
+            try {
+                log('dataResults', '🔍 Fetching technicians...');
+                
+                const result = await apiCall('/shop/employees/?role=technician');
+                technicians = result.data.results || result.data;
+                
+                log('dataResults', `✅ Found ${technicians.length} technicians`, 'success');
+                
+                if (technicians.length > 0) {
+                    logJSON('dataResults', technicians[0], 'Sample Technician');
+                }
+            } catch (error) {
+                log('dataResults', `❌ Error fetching technicians: ${error.message}`, 'error');
+            }
+        }
+
+        async function testAssignment() {
+            try {
+                log('assignmentResults', '🎯 Starting assignment test...');
+                
+                if (appointments.length === 0) {
+                    await checkAppointments();
+                }
+                if (technicians.length === 0) {
+                    await getTechnicians();
+                }
+
+                // Find a pending appointment
+                const pendingAppointment = appointments.find(apt => apt.status === 'pending');
+                if (!pendingAppointment) {
+                    log('assignmentResults', '❌ No pending appointments found for testing', 'error');
+                    return;
+                }
+
+                if (technicians.length === 0) {
+                    log('assignmentResults', '❌ No technicians found for testing', 'error');
+                    return;
+                }
+
+                const appointmentId = pendingAppointment.id;
+                const technicianId = technicians[0].id;
+
+                log('assignmentResults', `🔄 Testing assignment: Appointment ${appointmentId} → Technician ${technicianId} (${technicians[0].name || technicians[0].first_name})`);
+
+                // Test different API approaches
+                const tests = [
+                    {
+                        name: 'PATCH appointment with assigned_technician_id',
+                        endpoint: `/shop/appointments/${appointmentId}/`,
+                        method: 'PATCH',
+                        data: { 
+                            assigned_technician_id: technicianId,
+                            status: 'assigned'
+                        }
+                    },
+                    {
+                        name: 'POST assign-technician endpoint',
+                        endpoint: `/shop/appointments/${appointmentId}/assign-technician/`,
+                        method: 'POST',
+                        data: { 
+                            technician_id: technicianId
+                        }
+                    },
+                    {
+                        name: 'PATCH appointment with assigned_technician',
+                        endpoint: `/shop/appointments/${appointmentId}/`,
+                        method: 'PATCH',
+                        data: { 
+                            assigned_technician: technicianId
+                        }
+                    }
+                ];
+
+                for (let i = 0; i < tests.length; i++) {
+                    const test = tests[i];
+                    try {
+                        log('assignmentResults', `📡 Test ${i + 1}: ${test.name}`);
+                        logJSON('assignmentResults', test.data, 'Request Data');
+                        
+                        const result = await apiCall(test.endpoint, {
+                            method: test.method,
+                            body: JSON.stringify(test.data)
+                        });
+
+                        log('assignmentResults', `✅ SUCCESS! Test ${i + 1} worked`, 'success');
+                        logJSON('assignmentResults', result.data, 'Success Response');
+                        break;
+                        
+                    } catch (error) {
+                        log('assignmentResults', `❌ Test ${i + 1} failed: ${error.message}`, 'error');
+                    }
+                }
+                
+            } catch (error) {
+                log('assignmentResults', `❌ Assignment test error: ${error.message}`, 'error');
+            }
+        }
+
+        // Auto-login on load
+        window.addEventListener('load', () => {
+            log('authStatus', '🚀 Debug tool ready. Click login to start.', 'info');
+        });
+    </script>
+</body>
+</html>

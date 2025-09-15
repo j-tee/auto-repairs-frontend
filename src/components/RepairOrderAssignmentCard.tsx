@@ -1,24 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { useAutoRepairs } from '../hooks/useAutoRepairs';
-import type { Appointment } from '../types/appointments';
+import type { RepairOrder } from '../types/repairOrders';
 import type { Employee } from '../types/employees';
-import './TechnicianAssignmentCard.scss';
+import './TechnicianAssignmentCard.scss'; // Reuse the same styles
 
-interface TechnicianAssignmentCardProps {
-  appointment: Appointment;
+interface RepairOrderAssignmentCardProps {
+  repairOrder: RepairOrder;
   onUpdate?: () => void;
 }
 
-export const TechnicianAssignmentCard: React.FC<TechnicianAssignmentCardProps> = ({ 
-  appointment,
+export const RepairOrderAssignmentCard: React.FC<RepairOrderAssignmentCardProps> = ({ 
+  repairOrder,
   onUpdate
 }) => {
   const {
     availableTechnicians,
     loadAvailableTechnicians,
-    assignTechnicianToAppointment,
-    startAppointmentWork,
-    completeAppointmentWork,
+    assignTechnicianToAppointment, // Use appointment assignment instead of repair order
+    startRepairOrderWork,
+    completeRepairOrderWork,
     loading,
     error
   } = useAutoRepairs();
@@ -26,23 +26,29 @@ export const TechnicianAssignmentCard: React.FC<TechnicianAssignmentCardProps> =
   const [selectedTechnicianId, setSelectedTechnicianId] = useState<string>('');
   const [showTechnicianSelector, setShowTechnicianSelector] = useState(false);
 
+  // Debug: Log repair order structure
+  useEffect(() => {
+    console.log('🔍 RepairOrderAssignmentCard mounted with repairOrder:', {
+      id: repairOrder.id,
+      appointmentId: repairOrder.appointmentId,
+      status: repairOrder.status,
+      assignedTechnician: repairOrder.assignedTechnician,
+      fullObject: repairOrder
+    });
+  }, [repairOrder]);
+
   // Load available technicians on component mount
   useEffect(() => {
-    console.log('🔧 TechnicianAssignmentCard: Loading available technicians...');
     loadAvailableTechnicians();
   }, [loadAvailableTechnicians]);
-
-  // Debug: Log availableTechnicians when it changes
-  useEffect(() => {
-    console.log('👥 TechnicianAssignmentCard: availableTechnicians updated:', availableTechnicians);
-  }, [availableTechnicians]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'status-pending';
-      case 'assigned': return 'status-assigned';
+      case 'approved': return 'status-approved';
       case 'in_progress': return 'status-in-progress';
       case 'completed': return 'status-completed';
+      case 'on_hold': return 'status-on-hold';
       case 'cancelled': return 'status-cancelled';
       default: return 'status-default';
     }
@@ -53,56 +59,71 @@ export const TechnicianAssignmentCard: React.FC<TechnicianAssignmentCardProps> =
   };
 
   const handleAssignTechnician = async () => {
-    if (!selectedTechnicianId) return;
+    if (!selectedTechnicianId) {
+      return;
+    }
+
+    if (!repairOrder.appointmentId) {
+      return;
+    }
     
     try {
-      const result = await assignTechnicianToAppointment(appointment.id!, selectedTechnicianId);
+      // Use appointment assignment since repair order status is stored in appointments
+      const result = await assignTechnicianToAppointment(repairOrder.appointmentId, selectedTechnicianId);
       
-      // Only close selector and call onUpdate if assignment actually succeeded
+      // Only close selector and refresh if assignment was successful
       if (result && result.type?.includes('fulfilled')) {
         setShowTechnicianSelector(false);
         setSelectedTechnicianId('');
         onUpdate?.();
       }
-      // Error state will be shown via Redux error handling
+      // If assignment failed, error state will be shown via Redux error handling
     } catch (error) {
-      // Error will be handled by Redux state
-      console.error('Failed to assign technician:', error);
+      // Error will be handled by Redux and displayed in UI
+      console.error('Assignment failed:', error);
     }
   };
 
   const handleStartWork = async () => {
+    if (!repairOrder.id) return;
+    
     try {
-      await startAppointmentWork(appointment.id!);
+      await startRepairOrderWork(repairOrder.id.toString());
       onUpdate?.();
     } catch (error) {
-      console.error('Failed to start work:', error);
+      console.error('Failed to start repair order work:', error);
     }
   };
 
   const handleCompleteWork = async () => {
+    if (!repairOrder.id) return;
+    
     try {
-      await completeAppointmentWork(appointment.id!);
+      await completeRepairOrderWork(repairOrder.id.toString());
       onUpdate?.();
     } catch (error) {
-      console.error('Failed to complete work:', error);
+      console.error('Failed to complete repair order work:', error);
     }
   };
 
   const canAssignTechnician = () => {
-    return appointment.status === 'pending';
+    return (repairOrder.status === 'pending' || repairOrder.status === 'approved') 
+      && !repairOrder.assignedTechnician 
+      && repairOrder.appointmentId; // Ensure appointment ID exists for assignment
   };
 
   const canReassignTechnician = () => {
-    return appointment.status === 'assigned' && appointment.assigned_technician;
+    return (repairOrder.status === 'pending' || repairOrder.status === 'approved') 
+      && repairOrder.assignedTechnician 
+      && repairOrder.appointmentId; // Ensure appointment ID exists for reassignment
   };
 
   const canStartWork = () => {
-    return appointment.status === 'assigned' && appointment.assigned_technician;
+    return repairOrder.status === 'approved' && repairOrder.assignedTechnician;
   };
 
   const canCompleteWork = () => {
-    return appointment.status === 'in_progress';
+    return repairOrder.status === 'in_progress';
   };
 
   const getActionButtons = () => {
@@ -168,14 +189,14 @@ export const TechnicianAssignmentCard: React.FC<TechnicianAssignmentCardProps> =
               <button 
                 className="btn btn-warning"
                 onClick={handleStartWork}
-                disabled={loading.startWork}
+                disabled={loading.repairOrders}
               >
-                {loading.startWork ? 'Starting...' : 'Start Work'}
+                {loading.repairOrders ? 'Starting...' : 'Start Work'}
               </button>
               <button 
                 className="btn btn-outline-primary btn-sm"
                 onClick={() => setShowTechnicianSelector(true)}
-                disabled={loading.assignTechnician}
+                disabled={loading.repairOrders}
               >
                 Reassign
               </button>
@@ -220,11 +241,6 @@ export const TechnicianAssignmentCard: React.FC<TechnicianAssignmentCardProps> =
               {error.assignTechnician}
             </div>
           )}
-          {error.startWork && (
-            <div className="error-message">
-              {error.startWork}
-            </div>
-          )}
         </div>
       );
     }
@@ -235,13 +251,13 @@ export const TechnicianAssignmentCard: React.FC<TechnicianAssignmentCardProps> =
           <button 
             className="btn btn-warning"
             onClick={handleStartWork}
-            disabled={loading.startWork}
+            disabled={loading.repairOrders}
           >
-            {loading.startWork ? 'Starting...' : 'Start Work'}
+            {loading.repairOrders ? 'Starting...' : 'Start Work'}
           </button>
-          {error.startWork && (
+          {error.repairOrders && (
             <div className="error-message">
-              {error.startWork}
+              {error.repairOrders}
             </div>
           )}
         </div>
@@ -254,13 +270,13 @@ export const TechnicianAssignmentCard: React.FC<TechnicianAssignmentCardProps> =
           <button 
             className="btn btn-success"
             onClick={handleCompleteWork}
-            disabled={loading.completeWork}
+            disabled={loading.repairOrders}
           >
-            {loading.completeWork ? 'Completing...' : 'Complete Work'}
+            {loading.repairOrders ? 'Completing...' : 'Complete Work'}
           </button>
-          {error.completeWork && (
+          {error.repairOrders && (
             <div className="error-message">
-              {error.completeWork}
+              {error.repairOrders}
             </div>
           )}
         </div>
@@ -274,16 +290,19 @@ export const TechnicianAssignmentCard: React.FC<TechnicianAssignmentCardProps> =
     <div className="technician-assignment-card">
       <div className="card-header">
         <div className="appointment-info">
-          <h3 className="customer-name">{appointment.customer?.name || 'Unknown Customer'}</h3>
+          <h3 className="customer-name">
+            {repairOrder.customer?.name || 'Unknown Customer'}
+          </h3>
           <p className="vehicle-info">
-            {appointment.vehicle?.year} {appointment.vehicle?.make} {appointment.vehicle?.model}
+            {repairOrder.vehicle?.year} {repairOrder.vehicle?.make} {repairOrder.vehicle?.model}
           </p>
-          <p className="license-plate">{appointment.vehicle?.license_plate}</p>
+          <p className="license-plate">{repairOrder.vehicle?.licensePlate}</p>
+          <p className="order-number">Order: {repairOrder.orderNumber}</p>
         </div>
         
         <div className="status-section">
-          <span className={`status-badge ${getStatusColor(appointment.status || 'pending')}`}>
-            {getStatusDisplayName(appointment.status || 'pending')}
+          <span className={`status-badge ${getStatusColor(repairOrder.status || 'pending')}`}>
+            {getStatusDisplayName(repairOrder.status || 'pending')}
           </span>
         </div>
       </div>
@@ -291,45 +310,69 @@ export const TechnicianAssignmentCard: React.FC<TechnicianAssignmentCardProps> =
       <div className="card-body">
         <div className="appointment-details">
           <p className="description">
-            <strong>Service:</strong> {appointment.description || 'General Service'}
+            <strong>Service:</strong> {repairOrder.description || 'Repair Service'}
           </p>
-          <p className="scheduled-time">
-            <strong>Scheduled:</strong> {appointment.scheduledDate} at {appointment.scheduledTime}
+          {repairOrder.diagnosis && (
+            <p className="diagnosis">
+              <strong>Diagnosis:</strong> {repairOrder.diagnosis}
+            </p>
+          )}
+          <p className="priority">
+            <strong>Priority:</strong> 
+            <span className={`priority-badge priority-${repairOrder.priority}`}>
+              {repairOrder.priority?.toUpperCase()}
+            </span>
           </p>
+          <p className="total-cost">
+            <strong>Total:</strong> ${repairOrder.total?.toFixed(2)}
+          </p>
+          {repairOrder.estimatedCompletionDate && (
+            <p className="estimated-completion">
+              <strong>Est. Completion:</strong> {new Date(repairOrder.estimatedCompletionDate).toLocaleDateString()}
+            </p>
+          )}
         </div>
 
-        {appointment.assigned_technician && (
+        {repairOrder.technician && (
           <div className="technician-info">
             <h4>Assigned Technician</h4>
             <p className="technician-name">
-              <strong>{appointment.assigned_technician.first_name} {appointment.assigned_technician.last_name}</strong>
+              <strong>{repairOrder.technician.firstName} {repairOrder.technician.lastName}</strong>
             </p>
-            <p className="technician-role">{appointment.assigned_technician.position}</p>
             
-            {appointment.assigned_at && (
+            {repairOrder.createdAt && (
               <p className="assignment-time">
-                Assigned: {new Date(appointment.assigned_at).toLocaleString()}
+                Created: {new Date(repairOrder.createdAt).toLocaleString()}
               </p>
             )}
             
-            {appointment.started_at && (
-              <p className="start-time">
-                Started: {new Date(appointment.started_at).toLocaleString()}
-              </p>
-            )}
-            
-            {appointment.completed_at && (
+            {repairOrder.actualCompletionDate && (
               <p className="completion-time">
-                Completed: {new Date(appointment.completed_at).toLocaleString()}
+                Completed: {new Date(repairOrder.actualCompletionDate).toLocaleString()}
               </p>
             )}
           </div>
         )}
 
         {getActionButtons()}
+
+        {/* Debug information */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="alert alert-info mt-2" style={{ fontSize: '12px' }}>
+            <strong>🔍 Debug Info:</strong> RO ID: {repairOrder.id} | Appt ID: {repairOrder.appointmentId || 'MISSING'} | Status: {repairOrder.status}
+          </div>
+        )}
+
+        {/* Warning when appointment ID is missing */}
+        {!repairOrder.appointmentId && (repairOrder.status === 'pending' || repairOrder.status === 'approved') && (
+          <div className="alert alert-warning mt-3">
+            <strong>⚠️ Notice:</strong> This repair order is not linked to an appointment. 
+            Technician assignment requires a linked appointment. Please contact your administrator.
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
-export default TechnicianAssignmentCard;
+export default RepairOrderAssignmentCard;

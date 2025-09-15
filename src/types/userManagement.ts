@@ -3,7 +3,7 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
-  role: 'owner' | 'employee' | 'customer';
+  role: 'owner' | 'employee' | 'customer' | 'admin' | 'manager';
   avatar?: string;
   phone?: string;
   address?: string;
@@ -19,7 +19,7 @@ export interface UserResponse {
   email?: string;
   first_name?: string;
   last_name?: string;
-  role?: 'owner' | 'employee' | 'customer';
+  role?: 'owner' | 'employee' | 'customer' | 'admin' | 'manager';
   avatar?: string;
   phone?: string;
   address?: string;
@@ -61,7 +61,7 @@ export interface UserResponse {
   email?: string;
   first_name?: string;
   last_name?: string;
-  role?: 'owner' | 'employee' | 'customer';
+  role?: 'owner' | 'employee' | 'customer' | 'admin' | 'manager';
   avatar?: string;
   phone?: string;
   address?: string;

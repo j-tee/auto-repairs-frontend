@@ -5,4 +5,9 @@ export { ProtectedRoute } from './ProtectedRoute';
 
 // NEW: Technician Assignment System Components
 export { TechnicianAssignmentCard } from './TechnicianAssignmentCard';
+export { RepairOrderAssignmentCard } from './RepairOrderAssignmentCard';
 export { TechnicianWorkloadDashboard } from './TechnicianWorkloadDashboard';
+export { TechnicianAssignmentModal } from './TechnicianAssignmentModal';
+
+// Diagnostic and Testing Components
+export { TechnicianApiDiagnostic } from './TechnicianApiDiagnostic';

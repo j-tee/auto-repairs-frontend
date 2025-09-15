@@ -143,6 +143,31 @@ export const useAutoRepairs = () => {
     return dispatch(completeWork(appointmentId));
   }, [dispatch]);
 
+  // NEW: Repair Order Technician Assignment operations
+  const assignTechnicianToRepairOrder = useCallback((repairOrderId: string, technicianId: string) => {
+    return dispatch(updateRepairOrder({ 
+      id: repairOrderId, 
+      data: { assignedTechnician: technicianId } 
+    }));
+  }, [dispatch]);
+
+  const startRepairOrderWork = useCallback((repairOrderId: string) => {
+    return dispatch(updateRepairOrder({ 
+      id: repairOrderId, 
+      data: { status: 'in_progress' } 
+    }));
+  }, [dispatch]);
+
+  const completeRepairOrderWork = useCallback((repairOrderId: string) => {
+    return dispatch(updateRepairOrder({ 
+      id: repairOrderId, 
+      data: { 
+        status: 'completed',
+        actualCompletionDate: new Date().toISOString()
+      } 
+    }));
+  }, [dispatch]);
+
   // NEW: Technician Workload Management operations
   const loadTechnicianWorkload = useCallback(() => {
     return dispatch(fetchTechnicianWorkload());
@@ -323,6 +348,11 @@ export const useAutoRepairs = () => {
     assignTechnicianToAppointment,
     startAppointmentWork,
     completeAppointmentWork,
+    
+    // NEW: Repair Order Technician Assignment Actions
+    assignTechnicianToRepairOrder,
+    startRepairOrderWork,
+    completeRepairOrderWork,
     
     // NEW: Technician Workload Actions
     loadTechnicianWorkload,
