@@ -71,13 +71,6 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
                          (user.role as string) === 'mechanic' ? 'employee' : user.role;
   
   if (requireEmployee && normalizedRole !== "employee" && normalizedRole !== "owner") {
-    console.log('PermissionGuard Debug:', {
-      requireEmployee,
-      originalRole: user.role,
-      normalizedRole,
-      userRoleType: typeof user.role,
-      passesCheck: normalizedRole === "employee" || normalizedRole === "owner"
-    });
     return showError ? (
       <div className="alert alert-danger">
         Access denied. Employee or owner privileges required. (Current role: {user.role})

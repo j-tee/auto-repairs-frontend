@@ -135,13 +135,11 @@ apiClient.interceptors.request.use(
             // Token refresh failed, remove invalid data
             const error = new Error('Authentication required');
             processQueue(error);
-            console.error('Token refresh failed, clearing auth data');
             return Promise.reject(error);
           }
         } catch (error) {
           const errorObj = error instanceof Error ? error : new Error('Token refresh failed');
           processQueue(errorObj);
-          console.error('Token refresh failed, clearing auth data');
           return Promise.reject(errorObj);
         } finally {
           isRefreshing = false;
@@ -154,7 +152,6 @@ apiClient.interceptors.request.use(
     return config;
   },
   (error) => {
-    console.error('Request interceptor error:', error);
     return Promise.reject(error);
   }
 );
@@ -209,10 +206,8 @@ apiClient.interceptors.response.use(
             originalRequest.headers.Authorization = `Bearer ${newToken}`;
           }
           
-          console.log('Token refreshed successfully, retrying request');
           return apiClient(originalRequest);
         } catch (refreshError) {
-          console.error('Token refresh failed, redirecting to login');
           
           // Process failed queue
           const errorObj = refreshError instanceof Error ? refreshError : new Error('Token refresh failed');
@@ -230,7 +225,6 @@ apiClient.interceptors.response.use(
             const { logoutUser } = await import('../store/slices/autoRepairsSlice');
             store.dispatch(logoutUser());
           } catch {
-            console.log('Store not available for logout dispatch');
           }
           
           return Promise.reject(refreshError);
@@ -478,7 +472,6 @@ export const refreshAuthToken = async (): Promise<string | null> => {
     setAuthToken(newToken);
     return newToken;
   } catch (error) {
-    console.error('Token refresh failed:', error);
     removeAuthToken();
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');

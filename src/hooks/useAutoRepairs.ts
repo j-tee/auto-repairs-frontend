@@ -15,6 +15,7 @@ import {
   
   // Appointments
   fetchAppointments,
+  fetchMyAssignments,
   createAppointment,
   updateAppointment,
   deleteAppointment,
@@ -116,6 +117,10 @@ export const useAutoRepairs = () => {
   // Appointment operations
   const loadAppointments = useCallback((filters?: AppointmentFilters) => {
     return dispatch(fetchAppointments(filters));
+  }, [dispatch]);
+
+  const loadMyAssignments = useCallback((filters?: { status?: string }) => {
+    return dispatch(fetchMyAssignments(filters));
   }, [dispatch]);
 
   const addAppointment = useCallback((appointmentData: Omit<Appointment, 'id' | 'createdAt' | 'updatedAt'>) => {
@@ -339,6 +344,7 @@ export const useAutoRepairs = () => {
     
     // Appointment Actions
     loadAppointments,
+    loadMyAssignments,
     addAppointment,
     editAppointment,
     removeAppointment,

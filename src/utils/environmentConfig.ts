@@ -40,40 +40,7 @@ export function getEnvironmentConfig(): EnvironmentConfig {
   };
 }
 
-/**
- * Log current environment configuration to console
- */
-export function debugEnvironmentConfig(): void {
-  const config = getEnvironmentConfig();
-  
-  console.group('🔧 Environment Configuration');
-  console.log('🌐 API Configuration:', {
-    baseUrl: config.apiBaseUrl,
-    timeout: `${config.apiTimeout}ms`,
-    tokenRefreshThreshold: `${config.tokenRefreshThreshold}ms`
-  });
-  
-  console.log('📱 Application Settings:', {
-    name: config.appName,
-    version: config.appVersion
-  });
-  
-  console.log('🛠️ Development Features:', {
-    devMode: config.devMode,
-    logLevel: config.logLevel,
-    debugTools: config.enableDebugTools,
-    mockApi: config.enableMockApi
-  });
-  
-  console.log('📄 Raw Environment Variables:', {
-    NODE_ENV: import.meta.env.NODE_ENV,
-    MODE: import.meta.env.MODE,
-    DEV: import.meta.env.DEV,
-    PROD: import.meta.env.PROD
-  });
-  
-  console.groupEnd();
-}
+
 
 /**
  * Validate environment configuration and return issues
@@ -145,40 +112,16 @@ export function getEnvironmentRecommendations(): string[] {
  * Display comprehensive environment status
  */
 export function displayEnvironmentStatus(): void {
-  console.group('🚀 Environment Status Check');
-  
-  // Show configuration
-  debugEnvironmentConfig();
-  
-  // Validate and show issues
-  const issues = validateEnvironmentConfig();
-  if (issues.length > 0) {
-    console.group('⚠️ Configuration Issues');
-    issues.forEach(issue => console.warn(issue));
-    console.groupEnd();
-  } else {
-    console.log('✅ No configuration issues found');
-  }
-  
-  // Show recommendations
-  const recommendations = getEnvironmentRecommendations();
-  if (recommendations.length > 0) {
-    console.group('💡 Recommendations');
-    recommendations.forEach(rec => console.info(rec));
-    console.groupEnd();
-  }
-  
-  console.groupEnd();
+  // Validate configuration silently
+  validateEnvironmentConfig();
+  getEnvironmentRecommendations();
 }
 
 // Make environment tools available globally in development
 if (import.meta.env.DEV) {
-  (window as any).envConfig = {
+  (window as unknown as { envConfig: unknown }).envConfig = {
     get: getEnvironmentConfig,
-    debug: debugEnvironmentConfig,
     validate: validateEnvironmentConfig,
     status: displayEnvironmentStatus,
   };
-  
-  console.log('🔧 Environment tools available at window.envConfig');
 }

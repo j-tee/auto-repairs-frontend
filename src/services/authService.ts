@@ -52,7 +52,6 @@ export const authService = {
       authResponse.user = user;
       localStorage.setItem('user', JSON.stringify(user));
     } catch (userError) {
-      console.error('Failed to fetch user data:', userError);
       authResponse.user = {
         id: '',
         email: credentials.email,
@@ -115,7 +114,6 @@ export const authService = {
         await apiPost('/auth/logout/', { refresh: refreshToken });
       }
     } catch (error) {
-      console.error('Logout API call failed:', error);
     } finally {
       removeAuthToken();
       localStorage.removeItem('refreshToken');

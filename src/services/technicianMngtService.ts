@@ -100,7 +100,6 @@ export const technicianMngtService = {
       
       return technicians;
     } catch (error) {
-      console.error('Failed to fetch technicians:', error);
       throw new Error(`Failed to fetch technicians: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   },
@@ -135,7 +134,6 @@ export const technicianMngtService = {
       
       return response;
     } catch (error) {
-      console.error('Failed to fetch workload overview:', error);
       throw new Error(`Failed to fetch workload overview: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   },
@@ -162,7 +160,6 @@ export const technicianMngtService = {
       
       return response;
     } catch (error) {
-      console.error('Failed to assign technician:', error);
       throw new Error(`Failed to assign technician: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   },
@@ -177,7 +174,6 @@ export const technicianMngtService = {
       // Invalidate caches after status change
       cacheManager.invalidate();
     } catch (error) {
-      console.error('Failed to start work:', error);
       throw new Error(`Failed to start work: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   },
@@ -192,7 +188,6 @@ export const technicianMngtService = {
       // Invalidate caches after status change
       cacheManager.invalidate();
     } catch (error) {
-      console.error('Failed to complete work:', error);
       throw new Error(`Failed to complete work: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   },
@@ -207,7 +202,6 @@ export const technicianMngtService = {
       // Invalidate caches after unassignment
       cacheManager.invalidate();
     } catch (error) {
-      console.error('Failed to unassign technician:', error);
       throw new Error(`Failed to unassign technician: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   },
@@ -220,7 +214,6 @@ export const technicianMngtService = {
       const technicians = await technicianMngtService.getTechnicians();
       return technicians.find(tech => tech.id === technicianId) || null;
     } catch (error) {
-      console.error('Failed to get technician by ID:', error);
       throw new Error(`Failed to get technician by ID: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   },
@@ -247,7 +240,6 @@ export const technicianMngtService = {
 
       return sortedTechnicians[0];
     } catch (error) {
-      console.error('Failed to find best technician:', error);
       throw new Error(`Failed to find best technician: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   },
@@ -265,7 +257,6 @@ export const technicianMngtService = {
 
       return await technicianMngtService.assignTechnician(appointmentId, bestTechnician.id);
     } catch (error) {
-      console.error('Failed to auto-assign technician:', error);
       throw new Error(`Failed to auto-assign technician: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   },
@@ -298,7 +289,6 @@ export const technicianMngtService = {
         utilizationRate
       };
     } catch (error) {
-      console.error('Failed to get technician stats:', error);
       throw new Error(`Failed to get technician stats: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   },

@@ -111,7 +111,7 @@ export interface Appointment {
   description?: string;
   
   // Updated status with new workflow
-  status?: 'pending' | 'assigned' | 'in_progress' | 'completed' | 'cancelled' | 'no_show';
+  status?: 'pending' | 'assigned' | 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'no_show';
   
   priority?: "low" | "medium" | "high" | "urgent";
   estimatedCost?: number;

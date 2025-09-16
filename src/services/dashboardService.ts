@@ -54,7 +54,6 @@ export const dashboardService = {
             ) || 0;
             
           } catch (error) {
-            console.warn('Error fetching customer-specific stats:', error);
             // Provide defaults if API calls fail
             stats.customerVehicles = 0;
             stats.customerActiveAppointments = 0;
@@ -83,7 +82,6 @@ export const dashboardService = {
           ).length;
           
         } catch (error) {
-          console.warn('Error fetching appointment stats:', error);
           stats.todaysAppointments = 0;
           stats.monthlyAppointments = 0;
         }
@@ -110,7 +108,6 @@ export const dashboardService = {
           stats.monthlyRevenue = monthlyActiveRepairs.reduce((sum, order) => sum + (order.total || 0), 0);
           
         } catch (error) {
-          console.warn('Error fetching repair order stats:', error);
           stats.activeRepairs = 0;
           stats.todaysRevenue = 0;
           stats.monthlyRevenue = 0;
@@ -130,7 +127,6 @@ export const dashboardService = {
           ).length;
           
         } catch (error) {
-          console.warn('Error fetching customer stats:', error);
           stats.totalCustomers = 0;
           stats.monthlyNewCustomers = 0;
         }
@@ -141,7 +137,6 @@ export const dashboardService = {
           stats.shop = shopStats;
           
         } catch (error) {
-          console.warn('🚧 Shop stats endpoint not implemented yet (404) - this is expected:', error);
           // Set default empty shop stats to prevent undefined errors
           stats.shop = {
             totalShops: 0,
@@ -164,7 +159,6 @@ export const dashboardService = {
       };
       
     } catch (error) {
-      console.error('Error fetching dashboard statistics:', error);
       throw error;
     }
   },
@@ -180,7 +174,6 @@ export const dashboardService = {
       });
       return response.total;
     } catch (error) {
-      console.warn('Error fetching today\'s appointments count:', error);
       return 0;
     }
   },
@@ -192,7 +185,6 @@ export const dashboardService = {
       const activeRepairs = await repairOrderMngtService.getActiveRepairOrders();
       return activeRepairs.length;
     } catch (error) {
-      console.warn('Error fetching active repairs count:', error);
       return 0;
     }
   },
@@ -205,7 +197,6 @@ export const dashboardService = {
       });
       return response.total;
     } catch (error) {
-      console.warn('Error fetching customers count:', error);
       return 0;
     }
   },
@@ -225,7 +216,6 @@ export const dashboardService = {
         return total + (order.total || 0);
       }, 0);
     } catch (error) {
-      console.warn('Error fetching today\'s revenue:', error);
       return 0;
     }
   }

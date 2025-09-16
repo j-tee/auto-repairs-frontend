@@ -615,8 +615,6 @@ export const appointmentMngtService = {
   // Assign technician (employee) to appointment
   assignTechnician: async (appointmentId: string, technicianId: string): Promise<Appointment> => {
     try {
-      console.log('🔧 appointmentMngtService.assignTechnician called with:', { appointmentId, technicianId });
-      
       // Convert string IDs to numbers for backend API
       const numericTechnicianId = parseInt(technicianId, 10);
       if (isNaN(numericTechnicianId)) {
@@ -627,20 +625,12 @@ export const appointmentMngtService = {
         assigned_technician_id: numericTechnicianId,
         status: "assigned" 
       };
-      
-      console.log('📡 Making API call:', {
-        endpoint: `/shop/appointments/${appointmentId}/`,
-        method: 'PATCH',
-        data: requestData
-      });
 
       // Use PATCH method to update appointment with technician assignment
       const response = await apiPatch<AppointmentResponse>(
         `/shop/appointments/${appointmentId}/`,
         requestData
       );
-
-      console.log('🔍 Raw API response:', response);
 
       return {
         id: response.id?.toString() || "",
@@ -695,23 +685,13 @@ export const appointmentMngtService = {
   // Start work (assigned → in_progress)
   startWork: async (appointmentId: string): Promise<Appointment> => {
     try {
-      console.log('🚀 appointmentMngtService.startWork called with appointmentId:', appointmentId);
-      
       const requestData = { status: "in_progress" };
-      
-      console.log('📡 Making start work API call:', {
-        endpoint: `/shop/appointments/${appointmentId}/`,
-        method: 'PATCH',
-        data: requestData
-      });
 
       // Use PATCH method to update appointment status to in_progress
       const response = await apiPatch<AppointmentResponse>(
         `/shop/appointments/${appointmentId}/`,
         requestData
       );
-
-      console.log('🔍 Start work API response:', response);
 
       return {
         id: response.id?.toString() || "",
@@ -721,7 +701,7 @@ export const appointmentMngtService = {
         scheduledDate: response.date ? response.date.split("T")[0] : "",
         scheduledTime: response.date ? response.date.split("T")[1]?.substring(0, 5) : "",
         duration: 60,
-        status: response.status || "in_progress",
+        status: (response.status as Appointment["status"]) || "in_progress",
         priority: "medium",
         assignedTechnician: response.assigned_technician_id?.toString() || "",
         assigned_technician_id: response.assigned_technician_id 
@@ -729,8 +709,6 @@ export const appointmentMngtService = {
               ? parseInt(response.assigned_technician_id, 10) 
               : response.assigned_technician_id)
           : undefined,
-        assigned_technician: response.assigned_technician,
-        assigned_technician_id: response.assigned_technician_id,
         assigned_technician: response.assigned_technician,
         assigned_at: response.assigned_at,
         started_at: response.started_at,
@@ -766,23 +744,13 @@ export const appointmentMngtService = {
   // Complete work (in_progress → completed)
   completeWork: async (appointmentId: string): Promise<Appointment> => {
     try {
-      console.log('🏁 appointmentMngtService.completeWork called with appointmentId:', appointmentId);
-      
       const requestData = { status: "completed" };
-      
-      console.log('📡 Making completion API call:', {
-        endpoint: `/shop/appointments/${appointmentId}/`,
-        method: 'PATCH',
-        data: requestData
-      });
 
       // Use PATCH method to update appointment status to completed
       const response = await apiPatch<AppointmentResponse>(
         `/shop/appointments/${appointmentId}/`,
         requestData
       );
-
-      console.log('🔍 Completion API response:', response);
 
       return {
         id: response.id?.toString() || "",
@@ -792,24 +760,108 @@ export const appointmentMngtService = {
         scheduledDate: response.date ? response.date.split("T")[0] : "",
         scheduledTime: response.date ? response.date.split("T")[1]?.substring(0, 5) : "",
         duration: 60,
-        status: response.status || "completed",
+        status: (response.status as Appointment["status"]) || "completed",
         priority: "medium",
         description: response.description || "",
         notes: response.notes || "",
         assignedTechnician: response.assigned_technician_id?.toString() || "",
-        assigned_technician_id: response.assigned_technician_id,
+        assigned_technician_id: response.assigned_technician_id 
+          ? (typeof response.assigned_technician_id === 'string' 
+              ? parseInt(response.assigned_technician_id, 10) 
+              : response.assigned_technician_id)
+          : undefined,
         assigned_technician: response.assigned_technician,
         assigned_at: response.assigned_at,
         started_at: response.started_at,
         completed_at: response.completed_at,
         customer: response.customer,
-        vehicle: response.vehicle,
+        vehicle: response.vehicle ? {
+          id: response.vehicle.id ? parseInt(response.vehicle.id.toString(), 10) : undefined,
+          make: response.vehicle.make,
+          model: response.vehicle.model,
+          year: response.vehicle.year,
+          license_plate: response.vehicle.license_plate,
+          vin: response.vehicle.vin,
+          color: response.vehicle.color,
+          customer: response.vehicle.customer ? {
+            id: response.vehicle.customer.id ? parseInt(response.vehicle.customer.id.toString(), 10) : undefined,
+            name: response.vehicle.customer.name,
+            phone_number: response.vehicle.customer.phone_number,
+            email: response.vehicle.customer.email
+          } : undefined
+        } : undefined,
         createdAt: response.created_at || "",
         updatedAt: response.updated_at || "",
       };
     } catch (error: unknown) {
       toast.error(
         "Error completing work: " +
+          (error instanceof Error ? error.message : String(error))
+      );
+      throw error;
+    }
+  },
+
+  // Get technician's assigned appointments
+  getMyAssignments: async (
+    query: { status?: string } = {}
+  ): Promise<AppointmentList> => {
+    try {
+      const endpoint = "/shop/appointments/my-assignments/";
+      
+      const response = await apiGet<AppointmentListResponse>(endpoint, query);
+
+      const appointmentsArray: AppointmentResponse[] = Array.isArray(response)
+        ? (response as AppointmentResponse[])
+        : response.results || [];
+
+      return {
+        appointments: appointmentsArray.map(
+          (appointment: AppointmentResponse) => {
+            return {
+              id: appointment.id?.toString() || "",
+              customerId: appointment.customer_id?.toString() || "",
+              vehicleId: appointment.vehicle_id?.toString() || "",
+              serviceType: "General Service", // Default since not in backend schema
+              scheduledDate: appointment.date
+                ? appointment.date.split("T")[0]
+                : "",
+              scheduledTime: appointment.date
+                ? appointment.date.split("T")[1]?.substring(0, 5)
+                : "",
+              duration: 60, // Default duration
+              status: appointment.status || "scheduled",
+              priority: "medium", // Default since not in backend schema
+              description: appointment.description || "",
+              notes: appointment.notes || "",
+              assignedTechnician: appointment.assigned_technician || "", // Map from backend
+              customer: {
+                id: appointment.customer_id?.toString() || "",
+                name: (appointment as AppointmentResponse & { customer_name?: string }).customer_name || "",
+                email: "",  // Not provided in this endpoint
+                phoneNumber: "", // Not provided in this endpoint
+              },
+              vehicle: appointment.vehicle ? {
+                id: appointment.vehicle.id?.toString() || "",
+                make: appointment.vehicle.make || "",
+                model: appointment.vehicle.model || "",
+                year: appointment.vehicle.year || 0,
+                licensePlate: appointment.vehicle.license_plate || "",
+                vin: appointment.vehicle.vin || "",
+                color: appointment.vehicle.color || "",
+              } : undefined,
+              createdAt: appointment.created_at || "",
+              updatedAt: appointment.updated_at || "",
+            };
+          }
+        ),
+        total: typeof response === 'object' && 'count' in response ? response.count : appointmentsArray.length,
+        page: 1,
+        totalPages: 1,
+      };
+    } catch (error: unknown) {
+      toast.error(
+        "Error loading technician assignments: " +
           (error instanceof Error ? error.message : String(error))
       );
       throw error;

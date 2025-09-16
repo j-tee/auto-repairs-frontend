@@ -578,6 +578,19 @@ export const deleteAppointment = createAsyncThunk(
   }
 );
 
+// Fetch technician's assigned appointments
+export const fetchMyAssignments = createAsyncThunk(
+  'autoRepairs/fetchMyAssignments',
+  async (filters: { status?: string } = {}, { rejectWithValue }) => {
+    try {
+      const response = await appointmentMngtService.getMyAssignments(filters);
+      return response.appointments;
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to load technician assignments');
+    }
+  }
+);
+
 // NEW: Technician Assignment Workflow
 export const assignTechnician = createAsyncThunk(
   'autoRepairs/assignTechnician',
@@ -1282,6 +1295,19 @@ export const autoRepairsSlice = createSlice({
         state.appointments = action.payload;
       })
       .addCase(fetchAppointments.rejected, (state, action) => {
+        state.loading.appointments = false;
+        state.error.appointments = action.payload as string;
+      })
+      // My Assignments (Technician-specific appointments)
+      .addCase(fetchMyAssignments.pending, (state) => {
+        state.loading.appointments = true;
+        state.error.appointments = null;
+      })
+      .addCase(fetchMyAssignments.fulfilled, (state, action) => {
+        state.loading.appointments = false;
+        state.appointments = action.payload;
+      })
+      .addCase(fetchMyAssignments.rejected, (state, action) => {
         state.loading.appointments = false;
         state.error.appointments = action.payload as string;
       })

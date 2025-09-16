@@ -8,5 +8,6 @@ export { TechnicianAssignmentCard } from './TechnicianAssignmentCard';
 export { RepairOrderAssignmentCard } from './RepairOrderAssignmentCard';
 export { TechnicianWorkloadDashboard } from './TechnicianWorkloadDashboard';
 export { TechnicianAssignmentModal } from './TechnicianAssignmentModal';
+export { TechnicianWorkDashboard } from './TechnicianWorkDashboard';
 
 

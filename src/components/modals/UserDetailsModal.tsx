@@ -104,10 +104,7 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
 
     try {
       // For now, this functionality is not implemented in the backend
-      console.log(
-        "Terminate session functionality not yet implemented:",
-        sessionId
-      );
+      // Terminate session functionality not yet implemented for sessionId: ${sessionId}
       setError("Session termination feature is not yet available");
     } catch (err) {
       setError("Failed to terminate session");
@@ -119,10 +116,7 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
 
     try {
       // For now, this functionality is not implemented in the backend
-      console.log(
-        "Send welcome email functionality not yet implemented for user:",
-        user.id
-      );
+      // Send welcome email functionality not yet implemented for user: ${user.id}
       setError("Welcome email feature is not yet available");
     } catch (err) {
       setError("Failed to send welcome email");

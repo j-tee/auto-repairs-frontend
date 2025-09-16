@@ -28,13 +28,11 @@ export const TechnicianAssignmentCard: React.FC<TechnicianAssignmentCardProps> =
 
   // Load available technicians on component mount
   useEffect(() => {
-    console.log('🔧 TechnicianAssignmentCard: Loading available technicians...');
     loadAvailableTechnicians();
   }, [loadAvailableTechnicians]);
 
-  // Debug: Log availableTechnicians when it changes
+
   useEffect(() => {
-    console.log('👥 TechnicianAssignmentCard: availableTechnicians updated:', availableTechnicians);
   }, [availableTechnicians]);
 
   const getStatusColor = (status: string) => {
@@ -67,7 +65,6 @@ export const TechnicianAssignmentCard: React.FC<TechnicianAssignmentCardProps> =
       // Error state will be shown via Redux error handling
     } catch (error) {
       // Error will be handled by Redux state
-      console.error('Failed to assign technician:', error);
     }
   };
 
@@ -76,7 +73,6 @@ export const TechnicianAssignmentCard: React.FC<TechnicianAssignmentCardProps> =
       await startAppointmentWork(appointment.id!);
       onUpdate?.();
     } catch (error) {
-      console.error('Failed to start work:', error);
     }
   };
 
@@ -85,7 +81,6 @@ export const TechnicianAssignmentCard: React.FC<TechnicianAssignmentCardProps> =
       await completeAppointmentWork(appointment.id!);
       onUpdate?.();
     } catch (error) {
-      console.error('Failed to complete work:', error);
     }
   };
 

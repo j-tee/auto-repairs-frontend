@@ -33,17 +33,11 @@ export const ServiceCatalogManagement: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      console.log("ServiceCatalogManagement component mounting...");
 
       const servicesResponse = await apiGet<Service[]>("/shop/services/");
 
-      console.log("ServiceCatalogManagement API response:", {
-        services: servicesResponse.length,
-      });
-
       setServices(servicesResponse);
     } catch (err) {
-      console.error("ServiceCatalogManagement loadData error:", err);
       setError(
         `Failed to load services: ${
           err instanceof Error ? err.message : "Unknown error"

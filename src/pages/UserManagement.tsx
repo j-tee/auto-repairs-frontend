@@ -104,7 +104,6 @@ export const UserManagement: React.FC = () => {
         dispatch(fetchUserStats()),
       ]);
     } catch (err) {
-      console.error("Load data error:", err);
     }
   };
 
@@ -174,7 +173,6 @@ export const UserManagement: React.FC = () => {
       // Refresh user stats after any action
       dispatch(fetchUserStats());
     } catch (err) {
-      console.error(`Failed to ${action} user:`, err);
     }
   };
 
@@ -208,15 +206,12 @@ export const UserManagement: React.FC = () => {
           }
           successCount++;
         } catch (err) {
-         console.log(err instanceof Error ? err.message : String(err));
          failedCount++;
         }
       }
 
       if (failedCount > 0) {
-        console.error(
-          `Operation completed with errors: ${failedCount} users failed`
-        );
+        // Errors are handled by Redux error state
       } else {
         setSuccessMessage(
           `Bulk operation completed successfully for ${successCount} users`
@@ -229,7 +224,6 @@ export const UserManagement: React.FC = () => {
       // Refresh user stats after bulk operation
       dispatch(fetchUserStats());
     } catch (err) {
-      console.error("Bulk operation failed:", err);
     }
   };
 
@@ -288,7 +282,6 @@ export const UserManagement: React.FC = () => {
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      console.error(`Failed to export users as ${format}:`, err);
     }
   };
 

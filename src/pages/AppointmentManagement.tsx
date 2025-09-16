@@ -37,8 +37,8 @@ export const AppointmentManagement: React.FC = () => {
         searchTerm: searchTerm || undefined,
         limit: 50
       } as any);
-    } catch (error: any) {
-      console.error("Error searching appointments:", error);
+    } catch {
+      setSearchResults([]);
     }
   };
 
@@ -268,31 +268,7 @@ export const AppointmentManagement: React.FC = () => {
         </Col>
       </Row>
 
-      {/* Debug Information - Only in dev mode */}
-      {process.env.NODE_ENV === "development" && (
-        <Row className="mt-3">
-          <Col>
-            <Card>
-              <Card.Header>
-                <small>Debug Information</small>
-              </Card.Header>
-              <Card.Body>
-                <small>
-                  <strong>User Role:</strong> {user?.role || "N/A"}
-                  <br />
-                  <strong>Appointments Count:</strong> {appointments.length}
-                  <br />
-                  <strong>Search Term:</strong> {searchTerm || "None"}
-                  <br />
-                  <strong>Loading:</strong> {loading.appointments ? "Yes" : "No"}
-                  <br />
-                  <strong>Error:</strong> {error.appointments || "None"}
-                </small>
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
-      )}
+      
     </Container>
   );
 };

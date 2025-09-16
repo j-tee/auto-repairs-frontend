@@ -1,0 +1,327 @@
+.technician-work-dashboard {
+  padding: 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+
+  .dashboard-header {
+    margin-bottom: 2rem;
+    text-align: center;
+
+    h2 {
+      color: #2c3e50;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+    }
+
+    .text-muted {
+      font-size: 1.1rem;
+    }
+  }
+
+  .summary-card {
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    }
+
+    .card-body {
+      padding: 1.5rem;
+
+      h3 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+      }
+
+      p {
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+    }
+  }
+
+  .tab-navigation {
+    .btn {
+      border-radius: 25px;
+      padding: 0.6rem 1.5rem;
+      font-weight: 500;
+      transition: all 0.3s ease;
+
+      &:hover {
+        transform: translateY(-1px);
+      }
+    }
+  }
+
+  .appointment-card,
+  .repair-order-card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    overflow: hidden;
+
+    &:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .card-header {
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      border-bottom: 1px solid #dee2e6;
+      padding: 1rem 1.25rem;
+
+      strong {
+        color: #2c3e50;
+        font-size: 1.1rem;
+      }
+
+      .badge {
+        font-size: 0.75rem;
+        padding: 0.35em 0.65em;
+        border-radius: 15px;
+      }
+    }
+
+    .card-body {
+      padding: 1.25rem;
+
+      .customer-info {
+        padding: 0.75rem;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        border-left: 4px solid #007bff;
+
+        strong {
+          color: #2c3e50;
+          font-size: 1.1rem;
+        }
+
+        .small {
+          color: #6c757d;
+          font-size: 0.9rem;
+        }
+      }
+
+      .vehicle-info {
+        padding: 0.75rem;
+        background-color: #fff3cd;
+        border-radius: 8px;
+        border-left: 4px solid #ffc107;
+
+        .fw-bold {
+          color: #856404;
+          font-size: 1rem;
+        }
+
+        .small {
+          color: #6c757d;
+          font-size: 0.85rem;
+        }
+      }
+
+      .service-info,
+      .description {
+        padding: 0.75rem;
+        background-color: #d1ecf1;
+        border-radius: 8px;
+        border-left: 4px solid #17a2b8;
+
+        .fw-bold {
+          color: #0c5460;
+          margin-bottom: 0.25rem;
+        }
+
+        div:not(.fw-bold) {
+          color: #2c3e50;
+          line-height: 1.4;
+        }
+
+        .small {
+          color: #6c757d;
+          font-style: italic;
+        }
+      }
+
+      .actions {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #e9ecef;
+
+        .btn {
+          border-radius: 20px;
+          font-weight: 500;
+          font-size: 0.875rem;
+          padding: 0.4rem 1rem;
+          transition: all 0.2s ease;
+
+          &:hover {
+            transform: translateY(-1px);
+          }
+
+          &.btn-success {
+            background: linear-gradient(45deg, #28a745, #34ce57);
+            border: none;
+            
+            &:hover {
+              background: linear-gradient(45deg, #218838, #28a745);
+            }
+          }
+
+          &.btn-primary {
+            background: linear-gradient(45deg, #007bff, #0056b3);
+            border: none;
+            
+            &:hover {
+              background: linear-gradient(45deg, #0056b3, #004085);
+            }
+          }
+
+          &.btn-warning {
+            background: linear-gradient(45deg, #ffc107, #e0a800);
+            border: none;
+            color: #212529;
+            
+            &:hover {
+              background: linear-gradient(45deg, #e0a800, #d39e00);
+            }
+          }
+
+          &.btn-info {
+            background: linear-gradient(45deg, #17a2b8, #138496);
+            border: none;
+            
+            &:hover {
+              background: linear-gradient(45deg, #138496, #117a8b);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .loading {
+    text-align: center;
+    padding: 3rem;
+
+    .spinner-border {
+      width: 3rem;
+      height: 3rem;
+      margin-bottom: 1rem;
+    }
+
+    p {
+      font-size: 1.1rem;
+      color: #6c757d;
+    }
+  }
+
+  .alert {
+    border-radius: 10px;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+}
+
+// Priority badges
+.badge {
+  &.bg-danger {
+    background: linear-gradient(45deg, #dc3545, #c82333) !important;
+  }
+
+  &.bg-warning {
+    background: linear-gradient(45deg, #ffc107, #e0a800) !important;
+    color: #212529 !important;
+  }
+
+  &.bg-info {
+    background: linear-gradient(45deg, #17a2b8, #138496) !important;
+  }
+
+  &.bg-secondary {
+    background: linear-gradient(45deg, #6c757d, #545b62) !important;
+  }
+
+  &.bg-success {
+    background: linear-gradient(45deg, #28a745, #1e7e34) !important;
+  }
+}
+
+// Status badges
+.badge {
+  &.bg-light {
+    background: #f8f9fa !important;
+    color: #6c757d !important;
+    border: 1px solid #dee2e6;
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .technician-work-dashboard {
+    padding: 1rem;
+
+    .summary-card .card-body {
+      padding: 1rem;
+
+      h3 {
+        font-size: 2rem;
+      }
+
+      p {
+        font-size: 0.85rem;
+      }
+    }
+
+    .tab-navigation {
+      .btn {
+        display: block;
+        width: 100%;
+        margin-bottom: 0.5rem;
+        margin-right: 0 !important;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
+    }
+
+    .appointment-card,
+    .repair-order-card {
+      .card-body .actions {
+        .btn {
+          font-size: 0.8rem;
+          padding: 0.35rem 0.8rem;
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 576px) {
+  .technician-work-dashboard {
+    .dashboard-header h2 {
+      font-size: 1.75rem;
+    }
+
+    .summary-card .card-body h3 {
+      font-size: 1.75rem;
+    }
+
+    .actions .btn {
+      width: 100%;
+      margin-bottom: 0.25rem;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+}

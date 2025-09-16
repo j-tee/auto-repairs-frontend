@@ -26,16 +26,7 @@ export const RepairOrderAssignmentCard: React.FC<RepairOrderAssignmentCardProps>
   const [selectedTechnicianId, setSelectedTechnicianId] = useState<string>('');
   const [showTechnicianSelector, setShowTechnicianSelector] = useState(false);
 
-  // Debug: Log repair order structure
-  useEffect(() => {
-    console.log('🔍 RepairOrderAssignmentCard mounted with repairOrder:', {
-      id: repairOrder.id,
-      appointmentId: repairOrder.appointmentId,
-      status: repairOrder.status,
-      assignedTechnician: repairOrder.assignedTechnician,
-      fullObject: repairOrder
-    });
-  }, [repairOrder]);
+
 
   // Load available technicians on component mount
   useEffect(() => {
@@ -80,7 +71,6 @@ export const RepairOrderAssignmentCard: React.FC<RepairOrderAssignmentCardProps>
       // If assignment failed, error state will be shown via Redux error handling
     } catch (error) {
       // Error will be handled by Redux and displayed in UI
-      console.error('Assignment failed:', error);
     }
   };
 
@@ -91,7 +81,6 @@ export const RepairOrderAssignmentCard: React.FC<RepairOrderAssignmentCardProps>
       await startRepairOrderWork(repairOrder.id.toString());
       onUpdate?.();
     } catch (error) {
-      console.error('Failed to start repair order work:', error);
     }
   };
 
@@ -102,7 +91,6 @@ export const RepairOrderAssignmentCard: React.FC<RepairOrderAssignmentCardProps>
       await completeRepairOrderWork(repairOrder.id.toString());
       onUpdate?.();
     } catch (error) {
-      console.error('Failed to complete repair order work:', error);
     }
   };
 
@@ -356,12 +344,7 @@ export const RepairOrderAssignmentCard: React.FC<RepairOrderAssignmentCardProps>
 
         {getActionButtons()}
 
-        {/* Debug information */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="alert alert-info mt-2" style={{ fontSize: '12px' }}>
-            <strong>🔍 Debug Info:</strong> RO ID: {repairOrder.id} | Appt ID: {repairOrder.appointmentId || 'MISSING'} | Status: {repairOrder.status}
-          </div>
-        )}
+        
 
         {/* Warning when appointment ID is missing */}
         {!repairOrder.appointmentId && (repairOrder.status === 'pending' || repairOrder.status === 'approved') && (

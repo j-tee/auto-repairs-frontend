@@ -17,6 +17,7 @@ import { CustomerManagement } from "./pages/CustomerManagement";
 import { AppointmentManagement } from "./pages/AppointmentManagement";
 import { RepairManagement } from "./pages/RepairManagement";
 import { ServiceCatalogManagement } from "./pages/ServiceCatalogManagement";
+import { TechnicianDashboard } from "./pages/TechnicianDashboard";
 import { useAuth } from "./hooks/useAuth";
 import { useAppDispatch } from "./store";
 import { initializeAuth } from "./store/slices/autoRepairsSlice";
@@ -141,6 +142,16 @@ const AppContent: React.FC = () => {
                   <h1>Parts Inventory</h1>
                   <p>Manage parts inventory and orders</p>
                 </div>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Technician Routes */}
+          <Route
+            path="/technician-dashboard"
+            element={
+              <ProtectedRoute>
+                <TechnicianDashboard />
               </ProtectedRoute>
             }
           />

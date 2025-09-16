@@ -238,6 +238,37 @@ export const Navigation: React.FC = () => {
                 Repair Orders
               </Link>
 
+              {/* Technician Dashboard - Show for technicians, mechanics, and management */}
+              {(user?.role === 'technician' || 
+                user?.role === 'mechanic' || 
+                user?.role === 'employee' || 
+                user?.role === 'owner' || 
+                user?.role === 'admin' || 
+                user?.role === 'manager' ||
+                (user as any)?.position?.toLowerCase().includes('technician') ||
+                (user as any)?.position?.toLowerCase().includes('mechanic')) && (
+                <Link
+                  to="/technician-dashboard"
+                  className={isActiveRoute("/technician-dashboard") ? "active" : ""}
+                  onClick={closeMenus}
+                  style={{
+                    color: "rgba(255, 255, 255, 0.9)",
+                    textDecoration: "none",
+                    fontWeight: "600",
+                    fontSize: "11px",
+                    padding: "8px 12px",
+                    borderRadius: "16px",
+                    background: "rgba(255, 255, 255, 0.05)",
+                    border: "1px solid rgba(255, 255, 255, 0.1)",
+                    backdropFilter: "blur(5px)",
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
+                  }}
+                >
+                  🔧 My Work
+                </Link>
+              )}
+
               <div style={{ position: "relative", display: "inline-block" }}>
                 <button
                   style={{

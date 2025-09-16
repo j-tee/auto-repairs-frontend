@@ -71,7 +71,6 @@ export const useDashboard = (): DashboardHookReturn => {
    */
   const search = useCallback(async (query: string) => {
     try {
-      console.log('🎯 Dashboard.search() called with:', query);
       
       updateState({ isLoading: true, error: null });
       
@@ -165,15 +164,7 @@ export const useDashboard = (): DashboardHookReturn => {
         error: null
       });
 
-      console.log('🎯 Dashboard.search() completed:', {
-        query,
-        vehicleCount: vehicles.length,
-        customerCount: customers.length,
-        repairOrderCount: repairOrders.length,
-        appointmentCount: appointments.length,
-        employeeCount: employees.length,
-        shopCount: shops.length
-      });
+      // Search results: query=${query}, vehicleCount=${vehicles.length}, customerCount=${customers.length}, repairOrderCount=${repairOrders.length}, appointmentCount=${appointments.length}, employeeCount=${employees.length}, shopCount=${shops.length}
       
     } catch (error) {
       const errorMessage = error instanceof ApiError 
@@ -182,7 +173,6 @@ export const useDashboard = (): DashboardHookReturn => {
           ? error.message 
           : 'Search failed';
       
-      console.error('🎯 Dashboard.search() failed:', { query, error: errorMessage });
       
       updateState({
         isLoading: false,
@@ -197,7 +187,6 @@ export const useDashboard = (): DashboardHookReturn => {
    */
   const loadAll = useCallback(async () => {
     try {
-      console.log('🎯 Dashboard.loadAll() called');
       
       updateState({ isLoading: true, error: null });
       
@@ -227,22 +216,16 @@ export const useDashboard = (): DashboardHookReturn => {
 
       // Log any failed service calls for debugging
       if (vehicleResults.status === 'rejected') {
-        console.warn('🚗 Vehicle service failed:', vehicleResults.reason?.message);
       }
       if (customerResults.status === 'rejected') {
-        console.warn('👥 Customer service failed:', customerResults.reason?.message);
       }
       if (repairOrderResults.status === 'rejected') {
-        console.warn('🔧 Repair order service failed:', repairOrderResults.reason?.message);
       }
       if (appointmentResults.status === 'rejected') {
-        console.warn('📅 Appointment service failed:', appointmentResults.reason?.message);
       }
       if (employeeResults.status === 'rejected') {
-        console.warn('👷 Employee service failed:', employeeResults.reason?.message);
       }
       if (shopResults.status === 'rejected') {
-        console.warn('🏪 Shop service failed:', shopResults.reason?.message);
       }
 
       const result: DashboardSummary = {
@@ -269,14 +252,7 @@ export const useDashboard = (): DashboardHookReturn => {
         error: null
       });
 
-      console.log('🎯 Dashboard.loadAll() completed:', {
-        vehicleCount: vehicles.length,
-        customerCount: customers.length,
-        repairOrderCount: repairOrders.length,
-        appointmentCount: appointments.length,
-        employeeCount: employees.length,
-        shopCount: shops.length
-      });
+      // Dashboard stats: vehicleCount=${vehicles.length}, customerCount=${customers.length}, repairOrderCount=${repairOrders.length}, appointmentCount=${appointments.length}, employeeCount=${employees.length}, shopCount=${shops.length}
       
     } catch (error) {
       const errorMessage = error instanceof ApiError 
@@ -285,7 +261,6 @@ export const useDashboard = (): DashboardHookReturn => {
           ? error.message 
           : 'Failed to load data';
       
-      console.error('🎯 Dashboard.loadAll() failed:', { error: errorMessage });
       
       updateState({
         isLoading: false,
@@ -299,7 +274,6 @@ export const useDashboard = (): DashboardHookReturn => {
    * Clear search results
    */
   const clearResults = useCallback(() => {
-    console.log('🎯 Dashboard.clearResults() called');
     updateState({
       data: null,
       error: null,
@@ -357,11 +331,9 @@ export const useDashboardTest = () => {
         v.licensePlate?.toLowerCase().includes(query.toLowerCase())
       );
       setLastResult(filtered);
-      console.log('🧪 Test vehicle search result:', filtered);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Test failed';
       setError(errorMessage);
-      console.error('🧪 Test vehicle search failed:', errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -378,11 +350,9 @@ export const useDashboardTest = () => {
         c.phone?.toLowerCase().includes(query.toLowerCase())
       );
       setLastResult(filtered);
-      console.log('🧪 Test customer search result:', filtered);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Test failed';
       setError(errorMessage);
-      console.error('🧪 Test customer search failed:', errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -398,11 +368,9 @@ export const useDashboardTest = () => {
         r.workOrderNumber?.toLowerCase().includes(query.toLowerCase())
       );
       setLastResult(filtered);
-      console.log('🧪 Test repair job search result:', filtered);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Test failed';
       setError(errorMessage);
-      console.error('🧪 Test repair job search failed:', errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -427,11 +395,9 @@ export const useDashboardTest = () => {
       };
       
       setLastResult(healthStatus);
-      console.log('🧪 Health check result:', healthStatus);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Health check failed';
       setError(errorMessage);
-      console.error('🧪 Health check failed:', errorMessage);
     } finally {
       setIsLoading(false);
     }

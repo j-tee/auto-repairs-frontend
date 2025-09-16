@@ -1,0 +1,260 @@
+.technician-dashboard-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+
+  .container-fluid {
+    padding: 0;
+  }
+
+  .page-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -10%;
+      width: 200px;
+      height: 200px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      transform: rotate(45deg);
+    }
+
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -30%;
+      left: -5%;
+      width: 150px;
+      height: 150px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 50%;
+    }
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+
+    .welcome-section {
+      .page-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+
+        .icon {
+          font-size: 2.2rem;
+          display: inline-block;
+          animation: rotate 3s ease-in-out infinite;
+        }
+
+        @keyframes rotate {
+          0%, 100% { transform: rotate(0deg); }
+          25% { transform: rotate(-10deg); }
+          75% { transform: rotate(10deg); }
+        }
+      }
+
+      .page-subtitle {
+        font-size: 1.2rem;
+        opacity: 0.9;
+        margin: 0;
+        font-weight: 300;
+      }
+    }
+
+    .user-info {
+      .user-badge {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        background: rgba(255, 255, 255, 0.15);
+        padding: 0.75rem 1.25rem;
+        border-radius: 50px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+
+        .user-avatar {
+          width: 50px;
+          height: 50px;
+          background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 700;
+          font-size: 1.2rem;
+          color: #2d3436;
+          border: 3px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .user-details {
+          .user-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 0.2rem;
+          }
+
+          .user-role {
+            font-size: 0.85rem;
+            opacity: 0.8;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+        }
+      }
+    }
+  }
+
+  // Responsive design
+  @media (max-width: 768px) {
+    .page-header {
+      flex-direction: column;
+      gap: 1.5rem;
+      text-align: center;
+      padding: 1.5rem 1rem;
+
+      .welcome-section .page-title {
+        font-size: 2rem;
+        flex-direction: column;
+        gap: 0.5rem;
+
+        .icon {
+          font-size: 1.8rem;
+        }
+      }
+
+      .welcome-section .page-subtitle {
+        font-size: 1rem;
+      }
+
+      .user-info .user-badge {
+        padding: 0.6rem 1rem;
+        
+        .user-avatar {
+          width: 40px;
+          height: 40px;
+          font-size: 1rem;
+        }
+
+        .user-details .user-name {
+          font-size: 1rem;
+        }
+
+        .user-details .user-role {
+          font-size: 0.8rem;
+        }
+      }
+    }
+  }
+
+  @media (max-width: 576px) {
+    .page-header {
+      padding: 1rem;
+
+      .welcome-section .page-title {
+        font-size: 1.75rem;
+      }
+
+      .user-info .user-badge {
+        flex-direction: column;
+        gap: 0.5rem;
+        padding: 1rem;
+
+        .user-details {
+          text-align: center;
+        }
+      }
+    }
+  }
+}
+
+// Global tech dashboard styles
+.tech-dashboard {
+  .card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  .btn {
+    border-radius: 25px;
+    font-weight: 500;
+    padding: 0.5rem 1.5rem;
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+    }
+  }
+
+  .badge {
+    border-radius: 15px;
+    padding: 0.4em 0.8em;
+    font-weight: 500;
+  }
+}
+
+// Animation utilities
+.fade-in {
+  animation: fadeIn 0.6s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-up {
+  animation: slideUp 0.4s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Loading states
+.loading-shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}

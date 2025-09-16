@@ -141,30 +141,16 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
       setError(null); // Clear any previous errors
       const response = await customerMngtService.getCustomers({ limit: 1000 });
 
-      // Debug logging to see the actual response structure
-      console.log("Service response:", response);
-      console.log("Response.customers:", response.customers);
-      console.log("Customers array length:", response.customers?.length || 0);
+
 
       // The service already returns a CustomerListResponse with customers array
       const customerList = response.customers || [];
 
-      console.log("Final customer list:", customerList);
-      console.log("Customer count:", customerList.length);
+
 
       setCustomers(customerList);
 
-      // Force a re-render by ensuring React sees this as a state change
-      if (customerList.length > 0) {
-        console.log(
-          "Setting customers state with",
-          customerList.length,
-          "customers"
-        );
-        console.log("First customer:", customerList[0]);
-      }
-    } catch (error: any) {
-      console.error("Error loading customers:", error);
+    } catch (error: unknown) {
 
       // Set user-friendly error messages based on error type
       if (error?.status === 401) {
@@ -192,20 +178,15 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
 
     try {
       setLoadingVehicles(true);
-      console.log(`Loading vehicles for customer: ${customerId}`);
+
 
       // Use the specialized method that handles filtering
       const customerVehicles = await vehicleMngtService.getCustomerVehicles(
         customerId
       );
 
-      console.log(
-        `Found ${customerVehicles.length} vehicles for customer ${customerId}:`,
-        customerVehicles
-      );
       setVehicles(customerVehicles);
-    } catch (error: any) {
-      console.error("Error loading vehicles:", error);
+    } catch (error: unknown) {
       setVehicles([]);
       // Could set a specific error for vehicles if needed
     } finally {
@@ -221,14 +202,11 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
 
     try {
       setLoadingProblems(true);
-      console.log(`Loading problems for vehicle: ${vehicleId}`);
       const problems = await vehicleProblemService.getVehicleProblemsForVehicle(
         vehicleId
       );
-      console.log("Vehicle problems response:", problems);
       setVehicleProblems(problems || []);
     } catch (error: any) {
-      console.error("Error loading vehicle problems:", error);
       setVehicleProblems([]);
     } finally {
       setLoadingProblems(false);
@@ -243,16 +221,13 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
 
     try {
       setCreatingNewProblem(true);
-      console.log(
-        `Creating new problem for vehicle ${formData.vehicleId}: ${newProblemDescription}`
-      );
+      // Creating new problem for vehicle ${formData.vehicleId}: ${newProblemDescription}
 
       const newProblem = await vehicleProblemService.createVehicleProblem({
         vehicleId: formData.vehicleId,
         description: newProblemDescription.trim(),
       });
 
-      console.log("New problem created:", newProblem);
 
       // Add the new problem to the existing list
       setVehicleProblems((prev) => [newProblem, ...prev]);
@@ -263,7 +238,6 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
 
       return newProblem.id;
     } catch (error: any) {
-      console.error("Error creating new vehicle problem:", error);
       throw error;
     } finally {
       setCreatingNewProblem(false);
@@ -348,7 +322,6 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
       // Check if we need to create a new problem
       let problemId: string | undefined = formData.reportedProblemId;
       if (showNewProblemForm && newProblemDescription.trim()) {
-        console.log("Creating new problem before appointment...");
         const newProblemId = await createNewVehicleProblem();
         if (!newProblemId) {
           throw new Error("Failed to create new vehicle problem");
@@ -377,7 +350,6 @@ export const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({
       onHide();
       resetForm();
     } catch (error: any) {
-      console.error("Error creating appointment:", error);
       setError(error.message || "Failed to create appointment");
     } finally {
       setLoading(false);

@@ -30,29 +30,19 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   const mappedRole = requiredRole ? mapLegacyRole(requiredRole) : undefined;
 
-  console.log("ProtectedRoute check:", {
-    path: location.pathname,
-    user: user,
-    requiredRole,
-    mappedRole,
-    hasPermission: mappedRole ? hasPermission(mappedRole) : "N/A",
-  });
+  // Debug info: path: ${location.pathname}, user: ${user?.email}, requiredRole: ${requiredRole}, mappedRole: ${mappedRole}
 
   if (!user) {
-    console.log("No user, redirecting to login");
     // Redirect to login with the current location
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   if (mappedRole && !hasPermission(mappedRole)) {
-    console.log(
-      `User ${user.email} doesn't have ${requiredRole} (mapped to ${mappedRole}) permission, redirecting to dashboard`
-    );
+    // User ${user.email} doesn't have ${requiredRole} (mapped to ${mappedRole}) permission, redirecting to dashboard
     // User doesn't have required permissions
     return <Navigate to="/dashboard" replace />;
   }
 
-  console.log("Access granted, rendering protected content");
   return <>{children}</>;
 };
 

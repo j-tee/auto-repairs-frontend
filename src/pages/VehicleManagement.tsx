@@ -52,9 +52,7 @@ export const VehicleManagement: React.FC = () => {
 
       setCustomers(customersResponse);
 
-      // Debug: Log data to see new structure
-      console.log("Loaded vehicles:", vehiclesResponse.length);
-      console.log("First vehicle data:", vehiclesResponse[0]);
+      
 
       // ✅ Backend now provides customer_name directly - no need for complex lookup!
       const vehiclesWithCustomers = vehiclesResponse.map((vehicle) => {

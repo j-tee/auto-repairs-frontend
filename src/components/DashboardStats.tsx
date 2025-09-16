@@ -56,7 +56,6 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({
           problems: problemStats,
         });
       } catch (err: any) {
-        console.error("Error loading dashboard stats:", err);
         setError(err.message || "Failed to load dashboard statistics");
       } finally {
         setLoading(false);

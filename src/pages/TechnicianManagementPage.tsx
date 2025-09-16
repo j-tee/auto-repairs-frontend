@@ -41,7 +41,6 @@ export const TechnicianManagementPage: React.FC = () => {
         await loadTechnicianWorkload();
         await loadAvailableTechnicians();
       } catch (error) {
-        console.error('Failed to load data:', error);
       }
     };
 

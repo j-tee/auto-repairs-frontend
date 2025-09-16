@@ -753,21 +753,19 @@ export const repairOrderMngtService = {
   getTodaysRevenue: async (): Promise<number> => {
     try {
       const today = new Date().toISOString().split('T')[0];
-      console.log(`🔍 getTodaysRevenue called for date: ${today}`);
+
       
       // Get all completed orders (no date filtering since backend dates are null)
       const endpoint = `/shop/repair-orders/?status=completed&limit=100`;
-      console.log(`📡 Calling API endpoint: ${endpoint}`);
+
       
       const response = await apiGet<any>(endpoint);
-      console.log(`📥 API response received. Type:`, typeof response, `Keys:`, Object.keys(response || {}));
+
       
       // Handle both array and object responses
       const ordersArray = Array.isArray(response) ? response : (response.results || response.repairOrders || response.repair_orders || []);
-      console.log(`📋 Found ${ordersArray.length} completed orders`);
       
       if (ordersArray.length === 0) {
-        console.log(`📭 No completed orders found`);
         return 0;
       }
       
@@ -783,19 +781,14 @@ export const repairOrderMngtService = {
         return completionDate && completionDate.trim() !== '';
       });
       
-      console.log(`📅 Found ${ordersWithDates.length} orders with valid dates out of ${ordersArray.length} total`);
-      
       let todaysRevenue = 0;
       
       if (ordersWithDates.length === 0) {
         // FALLBACK: All completion dates are null - treat all completed orders as today's revenue
-        console.log(`⚠️ No completion dates in backend data - using all completed orders as fallback`);
         todaysRevenue = ordersArray.reduce((sum: number, order: any) => {
           const amount = Number(order.total_cost || order.total || 0);
-          console.log(`💰 Fallback: Adding $${amount} from order ${order.id}`);
           return sum + amount;
         }, 0);
-        console.log(`💵 Fallback total revenue: $${todaysRevenue}`);
       } else {
         // Normal date filtering for orders with valid dates
         const todaysOrders = ordersWithDates.filter((order: any) => {
@@ -810,25 +803,18 @@ export const repairOrderMngtService = {
           const orderDate = completionDate.split('T')[0];
           const isToday = orderDate === today;
           
-          console.log(`📅 Order ${order.id}: Date=${orderDate}, IsToday=${isToday}`);
           return isToday;
         });
         
-        console.log(`📊 Found ${todaysOrders.length} orders completed today`);
-        
         todaysRevenue = todaysOrders.reduce((sum: number, order: any) => {
           const amount = Number(order.total_cost || order.total || 0);
-          console.log(`💰 Adding $${amount} from order ${order.id}`);
           return sum + amount;
         }, 0);
-        console.log(`💵 Total today's revenue: $${todaysRevenue}`);
       }
       
-      console.log(`✅ getTodaysRevenue returning: ${todaysRevenue}`);
       return todaysRevenue;
       
     } catch (error) {
-      console.error("❌ Failed to get today's revenue:", error);
       toast.error("Failed to load today's revenue");
       return 0;
     }

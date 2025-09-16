@@ -34,7 +34,6 @@ export const AutoRepairDashboard: React.FC = () => {
     loadCustomers,
     loadVehicles,
     todaysRevenue,
-    loadTodaysRevenue,
     clearError,
     clearAppointments,
   } = useAutoRepairs();
@@ -94,24 +93,14 @@ export const AutoRepairDashboard: React.FC = () => {
       };
     } else {
       // Employee/Owner stats calculated from Redux state
-      console.log(`🔍 Dashboard calculation - Today: ${today}`);
-      console.log(`📋 Total appointments in Redux: ${appointments.length}`);
-      console.log(`📋 Appointments data:`, appointments.map(apt => ({
-        id: apt.id,
-        scheduledDate: apt.scheduledDate,
-        status: apt.status,
-        date: apt.date
-      })));
+      
       
       const todaysAppointments = appointments.filter(apt => 
         apt.scheduledDate === today
       ).length;
       
-      console.log(`📊 Today's appointments count: ${todaysAppointments}`);
-      
       // Use server-calculated today's revenue from Redux instead of client-side calculation
       const revenueToday = todaysRevenue || 0;
-      console.log(`📊 Dashboard stats: todaysRevenue from Redux = ${todaysRevenue}, revenueToday = ${revenueToday}`);
 
       // Calculate monthly stats
       const thisMonth = new Date().toISOString().substring(0, 7); // YYYY-MM
@@ -159,7 +148,6 @@ export const AutoRepairDashboard: React.FC = () => {
       const calculatedData = calculateDashboardStats();
       setDashboardData(calculatedData);
     } catch (error) {
-      console.error("Error calculating dashboard data:", error);
       const errorMessage = error instanceof Error ? error.message : "Failed to calculate dashboard data";
       setDashboardError(errorMessage);
     } finally {
@@ -204,9 +192,7 @@ export const AutoRepairDashboard: React.FC = () => {
         await loadCustomers();
         await loadVehicles();
         
-        // Load today's revenue from server-side calculation
-        console.log('🔄 Dashboard loading today\'s revenue...');
-        await loadTodaysRevenue();
+        // Today's revenue is loaded automatically by the hook
       } else {
         // For customers, load their specific data
         await loadAppointments({ 
@@ -219,8 +205,8 @@ export const AutoRepairDashboard: React.FC = () => {
           customer_id: user.id
         });
       }
-    } catch (error: unknown) {
-      console.error("Error loading entity data:", error);
+    } catch {
+      // Error handled by individual dispatch actions
     }
   };
 
@@ -471,7 +457,7 @@ export const AutoRepairDashboard: React.FC = () => {
       return [
         {
           title: "Today's Appointments",
-          value: appointments.length.toString(),
+          value: stats.todaysAppointments.toString(),
           icon: "📅",
           color: "primary",
         },
@@ -682,13 +668,18 @@ export const AutoRepairDashboard: React.FC = () => {
                       Retry
                     </Button>
                   </div>
-                ) : appointments.length === 0 ? (
-                  <div className="text-center py-3 text-muted">
-                    <p className="mb-0">No appointments scheduled for today</p>
-                  </div>
-                ) : (
-                  <>
-                    {appointments.slice(0, 5).map((appointment) => (
+                ) : (() => {
+                    // Filter appointments for today's date to be defensive against different Redux state filters
+                    const today = new Date().toISOString().split('T')[0];
+                    const todaysAppointments = appointments.filter(apt => apt.scheduledDate === today);
+                    
+                    return todaysAppointments.length === 0 ? (
+                      <div className="text-center py-3 text-muted">
+                        <p className="mb-0">No appointments scheduled for today</p>
+                      </div>
+                    ) : (
+                      <>
+                        {todaysAppointments.slice(0, 5).map((appointment) => (
                       <div key={appointment.id} className="mb-3">
                         <strong>
                           {formatAppointmentTime(appointment)} -{" "}
@@ -723,9 +714,10 @@ export const AutoRepairDashboard: React.FC = () => {
                           </>
                         )}
                       </div>
-                    ))}
-                  </>
-                )}
+                        ))}
+                      </>
+                    );
+                  })()}
                 <Button
                   variant="outline-primary"
                   size="sm"
