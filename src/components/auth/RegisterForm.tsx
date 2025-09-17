@@ -1,6 +1,8 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
-import type { RegisterData, User } from "../../store/slices/autoRepairsSlice";
+import type { RegisterData } from "../../types/auth";
+import type { User } from "../../types/userManagement";
 import "./auth.scss";
 
 type UserRole = User["role"];
@@ -67,7 +69,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     }
 
     // Phone validation
-    const phoneRegex = /^\+?[\d\s\-\(\)]{10,}$/;
+    const phoneRegex = /^\+?[\d\s\-()]{10,}$/;
     if (formData.phone && !phoneRegex.test(formData.phone)) {
       errors.phone = "Please enter a valid phone number";
     }
@@ -77,9 +79,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
   };
 
   const handleInputChange = (field: keyof RegisterData, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev: RegisterData) => ({ ...prev, [field]: value }));
     // Clear validation error when user starts typing
-    if (validationErrors[field]) {
+    if (validationErrors[field as string]) {
       setValidationErrors((prev) => ({ ...prev, [field]: "" }));
     }
   };
@@ -271,10 +273,10 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           {loading.register ? "Creating Account..." : "Create Account"}
         </button>
 
-        {onSwitchToLogin && (
-          <div className="auth-links">
-            <p className="switch-form">
-              Already have an account?{" "}
+        <div className="auth-links">
+          <p className="switch-form">
+            Already have an account?{" "}
+            {onSwitchToLogin ? (
               <button
                 type="button"
                 className="link-button"
@@ -282,9 +284,13 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
               >
                 Sign in here
               </button>
-            </p>
-          </div>
-        )}
+            ) : (
+              <Link to="/login" className="link-button">
+                Sign in here
+              </Link>
+            )}
+          </p>
+        </div>
       </form>
     </div>
   );

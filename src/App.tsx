@@ -6,8 +6,10 @@ import {
   Navigate,
 } from "react-router-dom";
 import { Navigation } from "./components/navigation/Navigation";
-import { AuthPage } from "./components/auth/AuthPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { LandingPage } from "./pages/LandingPage";
+import { LoginPage } from "./pages/LoginPage";
+import { RegisterPage } from "./pages/RegisterPage";
 import { AutoRepairDashboard } from "./pages/AutoRepairDashboard";
 import { UserManagement } from "./pages/UserManagement";
 import { ShopManagement } from "./pages/ShopManagement";
@@ -46,9 +48,90 @@ const AppContent: React.FC = () => {
       {user && <Navigation />}
       <div className={user ? "content-watermark" : ""}>
         <Routes>
+          {/* Public Routes */}
+          <Route
+            path="/"
+            element={user ? <Navigate to="/dashboard" replace /> : <LandingPage />}
+          />
           <Route
             path="/login"
-            element={user ? <Navigate to="/dashboard" replace /> : <AuthPage />}
+            element={user ? <Navigate to="/dashboard" replace /> : <LoginPage />}
+          />
+          <Route
+            path="/register"
+            element={user ? <Navigate to="/dashboard" replace /> : <RegisterPage />}
+          />
+          
+          {/* Public Information Routes */}
+          <Route
+            path="/demo"
+            element={
+              <div style={{ padding: "20px", textAlign: "center" }}>
+                <h1>Product Demo</h1>
+                <p>Watch how AutoRepair Pro can transform your business</p>
+                <p>Demo content coming soon...</p>
+              </div>
+            }
+          />
+          <Route
+            path="/contact"
+            element={
+              <div style={{ padding: "20px", textAlign: "center" }}>
+                <h1>Contact Sales</h1>
+                <p>Get in touch with our team to learn more</p>
+                <p>Contact form coming soon...</p>
+              </div>
+            }
+          />
+          <Route
+            path="/about"
+            element={
+              <div style={{ padding: "20px", textAlign: "center" }}>
+                <h1>About AutoRepair Pro</h1>
+                <p>Learn more about our company and mission</p>
+                <p>About page coming soon...</p>
+              </div>
+            }
+          />
+          <Route
+            path="/help"
+            element={
+              <div style={{ padding: "20px", textAlign: "center" }}>
+                <h1>Help Center</h1>
+                <p>Find answers to common questions</p>
+                <p>Help documentation coming soon...</p>
+              </div>
+            }
+          />
+          <Route
+            path="/privacy"
+            element={
+              <div style={{ padding: "20px", textAlign: "center" }}>
+                <h1>Privacy Policy</h1>
+                <p>Our commitment to protecting your data</p>
+                <p>Privacy policy coming soon...</p>
+              </div>
+            }
+          />
+          <Route
+            path="/terms"
+            element={
+              <div style={{ padding: "20px", textAlign: "center" }}>
+                <h1>Terms of Service</h1>
+                <p>Terms and conditions for using AutoRepair Pro</p>
+                <p>Terms of service coming soon...</p>
+              </div>
+            }
+          />
+          <Route
+            path="/documentation"
+            element={
+              <div style={{ padding: "20px", textAlign: "center" }}>
+                <h1>Documentation</h1>
+                <p>API and user documentation</p>
+                <p>Documentation coming soon...</p>
+              </div>
+            }
           />
           <Route
             path="/dashboard"
@@ -227,10 +310,7 @@ const AppContent: React.FC = () => {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/"
-            element={<Navigate to={user ? "/dashboard" : "/login"} replace />}
-          />
+          {/* Catch-all redirect */}
           <Route
             path="*"
             element={

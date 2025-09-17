@@ -10,4 +10,8 @@ export { TechnicianWorkloadDashboard } from './TechnicianWorkloadDashboard';
 export { TechnicianAssignmentModal } from './TechnicianAssignmentModal';
 export { TechnicianWorkDashboard } from './TechnicianWorkDashboard';
 
+// Customer Dashboard Components
+export { CustomerServiceStatus } from './CustomerServiceStatus';
+export { CustomerVehicleList } from './CustomerVehicleList';
+
 

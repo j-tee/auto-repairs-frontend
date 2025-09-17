@@ -15,7 +15,7 @@ export const Navigation: React.FC = () => {
 
   const handleLogout = async () => {
     await logout();
-    navigate("/login");
+    navigate("/");
     setShowUserMenu(false);
   };
 

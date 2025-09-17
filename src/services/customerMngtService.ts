@@ -284,5 +284,192 @@ export const customerMngtService = {
     
     const response = await customerMngtService.getCustomers(query);
     return response.customers;
+  },
+
+  // Customer Dashboard specific methods
+  // Get current customer's profile (for logged-in customers)
+  getMyProfile: async (): Promise<Customer> => {
+    try {
+      // Use the implemented backend endpoint: /api/auth/customer-profile/
+      const response = await apiGet<{
+        user_id: number;
+        customer: CustomerResponse;
+        user_role: string;
+      }>('/auth/customer-profile/');
+      
+      const customerData = response.customer;
+      
+      return {
+        id: customerData.id?.toString() || '',
+        name: customerData.name || '',
+        email: customerData.email || '',
+        phone: customerData.phone_number || '',
+        address: customerData.address || '',
+        city: customerData.city || '',
+        state: customerData.state || '',
+        zipCode: customerData.zip_code || '',
+        emergencyContact: customerData.emergency_contact || '',
+        emergencyPhone: customerData.emergency_phone || '',
+        preferredContact: customerData.preferred_contact,
+        isActive: customerData.user?.is_active ?? true,
+        createdAt: customerData.created_at || new Date().toISOString(),
+        updatedAt: customerData.updated_at || new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('Customer profile error:', error);
+      throw new Error('Unable to load customer profile. Please ensure you are logged in with a customer account.');
+    }
+  },
+
+  // Get current customer's appointments
+  getMyAppointments: async (filters: { status?: string; dateFrom?: string; dateTo?: string } = {}) => {
+    try {
+      const params = new URLSearchParams();
+      if (filters.status) params.append('status', filters.status);
+      if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
+      if (filters.dateTo) params.append('dateTo', filters.dateTo);
+
+      const queryString = params.toString();
+      const endpoint = queryString 
+        ? `/shop/appointments/customers/me/appointments/?${queryString}`
+        : '/shop/appointments/customers/me/appointments/';
+
+      const response = await apiGet<{
+        results: any[];
+        count: number;
+        customer_id: number;
+        customer_name: string;
+      }>(endpoint);
+
+      return {
+        appointments: response.results || [],
+        total: response.count || 0,
+        customerId: response.customer_id,
+        customerName: response.customer_name
+      };
+    } catch (error) {
+      console.error('Customer appointments error:', error);
+      throw new Error('Unable to load appointments. Please ensure you are logged in with a customer account.');
+    }
+  },
+
+  // Get current customer's vehicles  
+  getMyVehicles: async () => {
+    try {
+      const response = await apiGet<{
+        results: any[];
+        count: number;
+        customer_id: number;
+        customer_name: string;
+      }>('/shop/vehicles/customers/me/vehicles/');
+
+      return {
+        vehicles: response.results || [],
+        total: response.count || 0,
+        customerId: response.customer_id,
+        customerName: response.customer_name
+      };
+    } catch (error) {
+      console.error('Customer vehicles error:', error);
+      throw new Error('Unable to load vehicles. Please ensure you are logged in with a customer account.');
+    }
+  },
+
+  // Get current customer's repair orders
+  getMyRepairOrders: async (filters: { status?: string } = {}) => {
+    try {
+      const params = new URLSearchParams();
+      if (filters.status) params.append('status', filters.status);
+
+      const queryString = params.toString();
+      const endpoint = queryString 
+        ? `/shop/repair-orders/customers/me/repair-orders/?${queryString}`
+        : '/shop/repair-orders/customers/me/repair-orders/';
+
+      const response = await apiGet<{
+        results: any[];
+        count: number;
+        customer_id: number;
+        customer_name: string;
+      }>(endpoint);
+
+      return {
+        repairOrders: response.results || [],
+        total: response.count || 0,
+        customerId: response.customer_id,
+        customerName: response.customer_name
+      };
+    } catch (error) {
+      console.error('Customer repair orders error:', error);
+      throw new Error('Unable to load repair orders. Please ensure you are logged in with a customer account.');
+    }
+  },
+
+  // Get complete customer dashboard summary
+  getDashboardSummary: async () => {
+    try {
+      const [profile, appointments, vehicles, repairOrders] = await Promise.all([
+        customerMngtService.getMyProfile(),
+        customerMngtService.getMyAppointments(),
+        customerMngtService.getMyVehicles(),
+        customerMngtService.getMyRepairOrders()
+      ]);
+
+      return {
+        profile,
+        appointments,
+        vehicles,
+        repairOrders,
+        summary: {
+          totalAppointments: appointments.total,
+          totalVehicles: vehicles.total,
+          totalRepairOrders: repairOrders.total,
+          activeAppointments: appointments.appointments.filter(
+            (apt: any) => ['pending', 'in_progress'].includes(apt.status)
+          ).length
+        }
+      };
+    } catch (error) {
+      console.error('Customer dashboard summary error:', error);
+      throw new Error('Unable to load dashboard. Please ensure you are logged in with a customer account.');
+    }
+  },
+
+  // Update current customer's profile (for logged-in customers)
+  updateMyProfile: async (profileData: Partial<UpdateCustomerData>): Promise<Customer> => {
+    try {
+      // This endpoint should be created in the backend: PUT /api/customers/profile/
+      const updateData: Partial<UpdateCustomerData> = {};
+      
+      if (profileData.name !== undefined) updateData.name = profileData.name;
+      if (profileData.phone !== undefined) updateData.phone_number = profileData.phone;
+      if (profileData.email !== undefined) updateData.email = profileData.email;
+      if (profileData.address !== undefined) updateData.address = profileData.address;
+      if (profileData.emergencyContact !== undefined) updateData.emergencyContact = profileData.emergencyContact;
+      if (profileData.emergencyPhone !== undefined) updateData.emergencyPhone = profileData.emergencyPhone;
+      if (profileData.preferredContact !== undefined) updateData.preferredContact = profileData.preferredContact;
+      
+      const response = await apiPut<CustomerResponse>('/customers/profile/', updateData);
+      
+      return {
+        id: response.id?.toString() || '',
+        name: response.name || '',
+        email: response.email || '',
+        phone: response.phone_number || '',
+        address: response.address || '',
+        city: response.city || '',
+        state: response.state || '',
+        zipCode: response.zip_code || '',
+        emergencyContact: response.emergency_contact || '',
+        emergencyPhone: response.emergency_phone || '',
+        preferredContact: response.preferred_contact,
+        isActive: response.user?.is_active ?? true,
+        createdAt: response.created_at || new Date().toISOString(),
+        updatedAt: response.updated_at || new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('Customer profile update endpoint not available:', error);
+      throw new Error('Unable to update profile. Please contact support to make changes to your account.');
+    }
   }
 };

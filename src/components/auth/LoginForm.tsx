@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import "./auth.scss";
 
@@ -85,10 +86,10 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
           {loading.login ? "Signing in..." : "Sign In"}
         </button>
 
-        {onSwitchToRegister && (
-          <div className="auth-links">
-            <p className="switch-form">
-              Don't have an account?{" "}
+        <div className="auth-links">
+          <p className="switch-form">
+            Don't have an account?{" "}
+            {onSwitchToRegister ? (
               <button
                 type="button"
                 className="link-button"
@@ -96,9 +97,13 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
               >
                 Sign up here
               </button>
-            </p>
-          </div>
-        )}
+            ) : (
+              <Link to="/register" className="link-button">
+                Sign up here
+              </Link>
+            )}
+          </p>
+        </div>
       </form>
     </div>
   );
